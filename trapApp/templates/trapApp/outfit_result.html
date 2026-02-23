@@ -1,0 +1,344 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ваш образ — TrapDom</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+
+    <!-- Tailwind config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'charcoal-900': '#121212',
+                        'charcoal-800': '#1E1E1E',
+                        'charcoal-700': '#2A2A2A',
+                        'off-white': '#F5F5F0',
+                        'grunge-gray': '#A0A0A0',
+                        'accent-red': '#8B0000',
+                    },
+                    fontFamily: {
+                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                        'bebas': ['"Bebas Neue"', 'cursive'],
+                        'sans': ['"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        'mono': ['"Courier New"', 'monospace'],
+                    },
+                    spacing: { '128': '32rem' }
+                }
+            }
+        }
+    </script>
+    <style>
+        .product-card:hover .hover-overlay {
+            opacity: 1;
+        }
+
+        .hover-overlay {
+            transition: opacity 0.3s;
+        }
+
+        .product-img {
+            transition: transform 0.5s;
+        }
+
+        .product-card:hover .product-img {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body class="bg-charcoal-900 text-off-white min-h-screen">
+
+    <!-- Grunge Overlay -->
+    <div class="grunge-texture fixed inset-0 z-0"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-charcoal-900/90 backdrop-blur-md border-b border-charcoal-700">
+        <div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+            <button id="mobile-menu-btn"
+                class="text-off-white p-2 flex flex-col justify-center items-center w-10 h-10 gap-[6px] group"
+                aria-label="Toggle Menu">
+                <span id="bar1" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
+                <span id="bar2" class="block w-7 h-[2px] bg-off-white transition-all duration-300"></span>
+                <span id="bar3" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
+            </button>
+            <div class="absolute left-1/2 -translate-x-1/2">
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="160" height="43"
+                        style="object-fit: contain;">
+                </a>
+            </div>
+            <div class="flex items-center space-x-6">
+                <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+                <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Account">
+                    <i class="fa-regular fa-user"></i>
+                </button>
+                <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Cart">
+                    <i class="fa-solid fa-bag-shopping"></i>
+                    <span
+                        class="absolute -top-2 -right-2 bg-off-white text-charcoal-900 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">2</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Side Drawer -->
+    <div id="side-menu-overlay"
+        class="fixed inset-0 bg-black/60 z-[45] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
+    </div>
+    <div id="side-menu"
+        class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-charcoal-900 border-r border-charcoal-700 transform -translate-x-full transition-transform duration-300 z-[45] flex flex-col pt-28 px-8 pb-8 overflow-y-auto">
+        <nav class="flex flex-col space-y-6 flex-1">
+            <a href="{% url 'digital_wardrobe' %}"
+                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors flex items-center gap-3 w-fit">
+                Цифрова шафа
+            </a>
+            <a href="{% url 'home' %}"
+                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors flex items-center gap-3 w-fit">
+                Головна
+            </a>
+        </nav>
+        <div class="mt-auto pt-8 flex space-x-6 justify-center">
+            <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                    class="fa-brands fa-instagram"></i></a>
+            <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                    class="fa-brands fa-tiktok"></i></a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="relative z-10 pt-28 pb-24">
+        <div class="max-w-[1440px] mx-auto px-6">
+
+            <!-- Page Header -->
+            <div class="mb-16 border-b border-charcoal-700 pb-10">
+                <p class="text-xs font-mono uppercase tracking-[0.3em] text-grunge-gray mb-3">AI Lookbook</p>
+                <h1 class="font-bebas text-6xl md:text-8xl text-off-white leading-none tracking-wider">Ваш образ</h1>
+                <p class="text-grunge-gray mt-4 text-sm font-mono uppercase tracking-widest">
+                    Подія: <span class="text-off-white">{{ suggestion.event.name }}</span>
+                </p>
+            </div>
+
+            <!-- AI Analysis Strip -->
+            <div class="flex flex-wrap gap-6 mb-16 border-b border-charcoal-700 pb-10">
+                <div class="border border-charcoal-700 px-6 py-4 flex-1 min-w-[200px]">
+                    <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray mb-1">Колір речі</p>
+                    <p class="text-off-white font-bebas text-2xl tracking-wider">{{
+                        suggestion.wardrobe_item.color|default:"—" }}</p>
+                </div>
+                <div class="border border-charcoal-700 px-6 py-4 flex-1 min-w-[200px]">
+                    <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray mb-1">Тип</p>
+                    <p class="text-off-white font-bebas text-2xl tracking-wider">{{
+                        suggestion.wardrobe_item.category_guess|default:"—" }}</p>
+                </div>
+                <div class="border border-charcoal-700 px-6 py-4 flex-1 min-w-[200px]">
+                    <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray mb-1">Стиль</p>
+                    <p class="text-off-white font-bebas text-2xl tracking-wider">{{
+                        suggestion.wardrobe_item.style|default:"—" }}</p>
+                </div>
+            </div>
+
+            <!-- Lookbook Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+
+                <!-- User's uploaded item -->
+                <div class="lg:col-span-1">
+                    <p class="text-xs font-mono uppercase tracking-[0.3em] text-grunge-gray mb-4">Ваша річ</p>
+                    <div class="relative overflow-hidden bg-charcoal-800 border border-charcoal-700 aspect-[3/4]">
+                        <img src="{{ suggestion.wardrobe_item.image.url }}" alt="Your item"
+                            class="w-full h-full object-cover">
+                        <div
+                            class="absolute top-3 left-3 bg-off-white text-charcoal-900 text-[10px] font-bold px-2 py-1 uppercase tracking-wider">
+                            Ваше
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Divider with plus icon -->
+                <div class="lg:col-span-1 flex lg:flex-col items-center justify-center gap-4 py-8 lg:py-0">
+                    <div class="flex-1 h-px lg:h-full lg:w-px bg-charcoal-700 lg:flex-none lg:h-full"></div>
+                    <div
+                        class="w-12 h-12 border border-charcoal-700 flex items-center justify-center text-grunge-gray text-xl flex-shrink-0">
+                        <i class="fa-solid fa-plus"></i>
+                    </div>
+                    <div class="flex-1 h-px lg:h-full lg:w-px bg-charcoal-700 lg:flex-none"></div>
+                </div>
+
+                <!-- Recommended products -->
+                <div class="lg:col-span-2">
+                    <p class="text-xs font-mono uppercase tracking-[0.3em] text-grunge-gray mb-4">Ми підібрали до неї
+                    </p>
+
+                    {% if suggestion.suggested_products.all %}
+                    <div class="flex flex-col gap-6">
+                        {% for product in suggestion.suggested_products.all %}
+                        <div class="product-card group flex gap-4 border border-charcoal-700 bg-charcoal-800/30 p-4">
+                            <!-- Product image -->
+                            <div
+                                class="relative w-24 h-24 shrink-0 overflow-hidden bg-charcoal-800 border border-charcoal-700">
+                                {% if product.images.first %}
+                                <img src="{{ product.images.first.image_url }}" alt="{{ product.name }}"
+                                    class="product-img w-full h-full object-cover">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center text-charcoal-700">
+                                    <i class="fa-solid fa-shirt text-2xl"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Product info -->
+                            <div class="flex-1 flex flex-col justify-between">
+                                <div>
+                                    <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray mb-1">{{
+                                        product.brand.name }}</p>
+                                    <h3 class="font-bold text-sm uppercase tracking-wide text-off-white mb-1">{{
+                                        product.name }}</h3>
+                                    <p class="text-xs font-mono text-grunge-gray">{{ product.category.name }}</p>
+                                </div>
+                                <div class="flex items-center justify-between mt-3">
+                                    <span class="font-mono font-bold text-off-white">{{ product.base_price }} ₴</span>
+                                    <a href="#"
+                                        class="text-xs font-mono uppercase tracking-widest border border-charcoal-700 px-4 py-2 hover:bg-off-white hover:text-charcoal-900 hover:border-off-white transition-all">
+                                        Купити
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="border border-charcoal-700 p-12 text-center">
+                        <i class="fa-solid fa-circle-exclamation text-charcoal-700 text-3xl mb-4 block"></i>
+                        <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray">На жаль, не знайдено
+                            підходящих речей</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- AI Reasoning -->
+            {% if suggestion.ai_reasoning %}
+            <div class="mt-16 border-t border-charcoal-700 pt-10">
+                <p class="text-xs font-mono uppercase tracking-[0.3em] text-grunge-gray mb-4">AI Аналіз</p>
+                <p
+                    class="text-sm font-mono text-grunge-gray leading-relaxed border-l border-charcoal-700 pl-6 max-w-2xl">
+                    {{ suggestion.ai_reasoning }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Back Button -->
+            <div class="mt-16">
+                <a href="{% url 'digital_wardrobe' %}"
+                    class="inline-flex items-center gap-3 border border-charcoal-700 px-8 py-4 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:bg-off-white hover:text-charcoal-900 hover:border-off-white transition-all">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Спробувати знову
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-charcoal-700 bg-charcoal-900">
+        <div class="max-w-[1440px] mx-auto px-6 py-16">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+                <div class="md:col-span-1">
+                    <a href="{% url 'home' %}" class="block mb-4">
+                        <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="140" height="37"
+                            style="object-fit: contain;">
+                    </a>
+                    <p class="text-xs text-grunge-gray font-mono leading-relaxed">Forged in the underground. Crafted for
+                        rebels. Every thread tells a story of defiance.</p>
+                    <div class="flex space-x-4 mt-6">
+                        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                                class="fa-brands fa-instagram"></i></a>
+                        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                                class="fa-brands fa-tiktok"></i></a>
+                        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                                class="fa-brands fa-x-twitter"></i></a>
+                        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                                class="fa-brands fa-pinterest"></i></a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Shop</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">New
+                                Arrivals</a></li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Collections</a>
+                        </li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Accessories</a>
+                        </li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Sale</a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Info</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">About</a>
+                        </li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Shipping
+                                &amp; Returns</a></li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Size
+                                Guide</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Contact</h4>
+                    <ul class="space-y-3">
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors">info@trapdom.ua</a>
+                        </li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">FAQ</a>
+                        </li>
+                        <li><a href="#"
+                                class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Stockists</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-charcoal-700 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+                <p class="text-xs text-charcoal-700 font-mono">© 2024 TrapDom. All Rights Reserved.</p>
+                <div class="flex space-x-6">
+                    <a href="#"
+                        class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Privacy
+                        Policy</a>
+                    <a href="#"
+                        class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Terms</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{% static 'trapApp/js/script.js' %}"></script>
+</body>
+
+</html>

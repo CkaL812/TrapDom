@@ -1,0 +1,539 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Streetwear Landing Page</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap"
+        rel="stylesheet">
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous"
+        referrerpolicy="no-referrer"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+
+    <!-- CSS (в <head>) -->
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+
+    <!-- Tailwind config -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'charcoal-900': '#121212',
+                        'charcoal-800': '#1E1E1E',
+                        'charcoal-700': '#2A2A2A',
+                        'off-white': '#F5F5F0',
+                        'grunge-gray': '#A0A0A0',
+                        'accent-red': '#8B0000',
+                    },
+                    fontFamily: {
+                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                        'bebas': ['"Bebas Neue"', 'cursive'],
+                        'sans': ['"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        'mono': ['"Courier New"', 'monospace'],
+                    },
+                    spacing: { '128': '32rem' }
+                }
+            }
+        }
+    </script>
+</head>
+
+<!-- Grunge Overlay -->
+<div class="grunge-texture fixed inset-0 z-0"></div>
+
+<!-- Navigation -->
+<nav class="fixed w-full z-50 bg-charcoal-900/90 backdrop-blur-md border-b border-charcoal-700">
+    <div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+        <!-- Menu Button (left) -->
+        <button id="mobile-menu-btn"
+            class="text-off-white p-2 flex flex-col justify-center items-center w-10 h-10 gap-[6px] group"
+            aria-label="Toggle Menu">
+            <span id="bar1" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
+            <span id="bar2" class="block w-7 h-[2px] bg-off-white transition-all duration-300"></span>
+            <span id="bar3" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
+        </button>
+
+        <!-- Logo (center) -->
+        <div class="absolute left-1/2 -translate-x-1/2">
+            <a href="#">
+                <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="160" height="43"
+                    style="object-fit: contain;">
+            </a>
+        </div>
+
+        <!-- Icons (right) -->
+        <div class="flex items-center space-x-6">
+            <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+            <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Account">
+                <i class="fa-regular fa-user"></i>
+            </button>
+            <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Cart">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span
+                    class="absolute -top-2 -right-2 bg-off-white text-charcoal-900 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">2</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Mobile Menu / Side Drawer -->
+<div id="side-menu-overlay"
+    class="fixed inset-0 bg-black/60 z-[45] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm"></div>
+<div id="side-menu"
+    class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-charcoal-900 border-r border-charcoal-700 transform -translate-x-full transition-transform duration-300 z-[45] flex flex-col pt-28 px-8 pb-8 overflow-y-auto">
+    <nav class="flex flex-col space-y-6 flex-1">
+        <!-- Digital Wardrobe Button -->
+        <a href="{% url 'digital_wardrobe' %}" id="open-wardrobe-btn"
+            class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors flex items-center gap-3 w-fit">
+            Цифрова шафа
+        </a>
+    </nav>
+
+    <div class="mt-auto pt-8 flex space-x-6 justify-center">
+        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                class="fa-brands fa-instagram"></i></a>
+        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
+                class="fa-brands fa-tiktok"></i></a>
+    </div>
+</div>
+
+<!-- Digital Wardrobe Modal -->
+<div id="wardrobe-modal" class="fixed inset-0 z-[60] hidden">
+    <div id="wardrobe-overlay"
+        class="absolute inset-0 bg-black/80 backdrop-blur-md transition-opacity opacity-0 duration-300"></div>
+    <div class="absolute inset-0 flex items-center justify-center p-4">
+        <div id="wardrobe-content"
+            class="bg-charcoal-800 border border-charcoal-700 w-full max-w-xl transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh] shadow-2xl relative">
+            <!-- Modal Header -->
+            <div
+                class="flex items-center justify-between p-6 border-b border-charcoal-700 relative z-10 bg-charcoal-800">
+                <h2 class="font-bebas text-3xl text-off-white tracking-wider">Цифрова шафа</h2>
+                <button id="close-wardrobe-btn"
+                    class="text-grunge-gray hover:text-off-white transition-colors w-8 h-8 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <div class="p-8 overflow-y-auto relative z-10" style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+                <p class="text-grunge-gray text-sm mb-6 leading-relaxed">
+                    Завантажте фото свого одягу, і наша система автоматично підбере до нього ідеальні елементи з нашого
+                    магазину для створення завершеного образу.
+                </p>
+
+                <!-- Upload Box -->
+                <div id="wardrobe-upload-area"
+                    class="border-2 border-dashed border-charcoal-700 hover:border-off-white transition-colors rounded-none p-12 flex flex-col items-center justify-center cursor-pointer group mb-6 bg-charcoal-900/50 relative overflow-hidden">
+                    <input type="file" id="wardrobe-upload-input" accept="image/*"
+                        class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                    <div
+                        class="w-16 h-16 rounded-full bg-charcoal-800 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                        <i class="fa-solid fa-cloud-arrow-up text-2xl text-off-white"></i>
+                    </div>
+                    <h3 class="text-off-white font-bold tracking-wide uppercase text-sm mb-2">Завантажити фото</h3>
+                    <p class="text-charcoal-700 text-xs text-center font-mono">Перетягніть файл сюди або натисніть для
+                        вибору</p>
+                </div>
+
+                <!-- Selected Image Preview (Hidden by default) -->
+                <div id="wardrobe-preview" class="hidden mb-6 relative">
+                    <div class="border border-charcoal-700 p-2 bg-charcoal-900 flex gap-4 items-center">
+                        <div
+                            class="w-16 h-16 bg-charcoal-800 overflow-hidden relative border border-charcoal-700 shrink-0">
+                            <img id="wardrobe-preview-img" src="" alt="Preview" class="w-full h-full object-cover">
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-off-white text-sm font-bold mb-1">Ваша річ</p>
+                            <p class="text-grunge-gray text-xs" id="wardrobe-status-text">Готовий до аналізу</p>
+                        </div>
+                        <button id="wardrobe-remove-img"
+                            class="p-3 text-grunge-gray hover:text-accent-red transition-colors z-20">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="wardrobe-submit-btn"
+                    class="w-full bg-charcoal-700 text-grunge-gray px-6 py-4 font-bold tracking-widest mt-2 uppercase text-sm cursor-not-allowed transition-all border border-charcoal-700 relative overflow-hidden"
+                    disabled>
+                    <span class="relative z-10">Підібрати образ</span>
+                    <div id="wardrobe-submit-progress"
+                        class="absolute left-0 top-0 bottom-0 bg-off-white w-0 transition-all duration-100 opacity-20 z-0">
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content Wrapper -->
+<main class="relative z-10 pt-20">
+
+    <!-- Hero Section -->
+    <section id="hero" class="relative w-full h-[850px] overflow-hidden flex items-center border-b border-charcoal-700">
+
+        <div class="max-w-[1440px] mx-auto px-6 w-full relative z-10 grid grid-cols-12 gap-6 h-full items-center">
+            <div class="col-span-12 md:col-span-8 flex flex-col justify-center h-full">
+                <h1 class="font-gothic text-off-white leading-[0.85] mb-8 mix-blend-difference">
+                    <span
+                        class="block text-8xl md:text-[11rem] text-stroke hover-text-fill transition-all duration-500">TRAPDOM</span>
+                </h1>
+                <p class="text-grunge-gray max-w-md text-base leading-relaxed mb-10 border-l border-charcoal-700 pl-6"
+                    style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+                    Професійний підбір одягу для особливих подій. Ваш ідеальний образ починається тут. Просто натисніть
+                    кнопку нижче, щоб ми розпочали створення вашого унікального стилю.
+                </p>
+                <div class="flex space-x-6">
+                    <a href="#"
+                        class="bg-off-white text-charcoal-900 px-10 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm">
+                        Shop The Drop
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vertical Text Decoration -->
+        <div class="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:block rotate-180"
+            style="writing-mode: vertical-rl;">
+            <span class="text-xs font-mono tracking-[0.3em] text-charcoal-700 uppercase">Scroll to explore the
+                darkness</span>
+        </div>
+    </section>
+
+    <!-- Categories / Collections -->
+    <section id="collections" class="w-full border-b border-charcoal-700 py-8">
+        <div class="max-w-[1440px] mx-auto px-6 mb-16">
+            <h2 class="text-5xl md:text-6xl font-mono mb-2 tracking-widest uppercase cursor-pointer"
+                style="color:#F5F5F0; transition: color 0.2s;">Наші події</h2>
+        </div>
+        <div class="flex items-center max-w-[1440px] mx-auto px-6 gap-6">
+            <button
+                class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                <i class="fa-solid fa-arrow-left"></i>
+            </button>
+            <div class="grid grid-cols-1 md:grid-cols-3 flex-1 gap-6">
+                <!-- Cat 1 -->
+                <div class="relative group border-r border-charcoal-700 overflow-hidden aspect-[3/4]">
+                    <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
+                        src="https://storage.googleapis.com/uxpilot-auth.appspot.com/ad086ad07c-2e19f77d6311c6e9c1a6.png"
+                        alt="streetwear male model wearing oversized graphic t-shirt black and white photography" />
+                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500"></div>
+                    <div
+                        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <h3 class="font-gothic text-5xl text-stroke">TRAPDOM</h3>
+                    </div>
+                    <div
+                        class="absolute bottom-0 left-0 p-8 w-full border-t border-charcoal-700 bg-charcoal-900/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <a href="#"
+                            class="text-xs font-mono uppercase tracking-widest border-b border-off-white pb-1">Shop
+                            Category</a>
+                    </div>
+                </div>
+
+                <!-- Cat 2 -->
+                <div class="relative group border-r border-charcoal-700 overflow-hidden aspect-[3/4]">
+                    <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
+                        src="https://storage.googleapis.com/uxpilot-auth.appspot.com/edc3548f38-17cd902c88db32f63646.png"
+                        alt="streetwear female model wearing baggy cargo pants and boots black and white photography" />
+                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500"></div>
+                    <div
+                        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <h3 class="font-gothic text-5xl text-stroke">TRAPDOM</h3>
+                    </div>
+                    <div
+                        class="absolute bottom-0 left-0 p-8 w-full border-t border-charcoal-700 bg-charcoal-900/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <a href="#"
+                            class="text-xs font-mono uppercase tracking-widest border-b border-off-white pb-1">Shop
+                            Category</a>
+                    </div>
+                </div>
+
+                <!-- Cat 3 -->
+                <div class="relative group overflow-hidden aspect-[3/4]">
+                    <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
+                        src="https://storage.googleapis.com/uxpilot-auth.appspot.com/326dd9e430-2b3b997e5427a46de1bf.png"
+                        alt="streetwear accessories silver chains rings and black cap flat lay photography" />
+                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500"></div>
+                    <div
+                        class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <h3 class="font-gothic text-5xl text-stroke">TRAPDOM</h3>
+                    </div>
+                    <div
+                        class="absolute bottom-0 left-0 p-8 w-full border-t border-charcoal-700 bg-charcoal-900/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+                        <a href="#"
+                            class="text-xs font-mono uppercase tracking-widest border-b border-off-white pb-1">Shop
+                            Category</a>
+                    </div>
+                </div>
+            </div>
+            <button
+                class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </section>
+
+    <section id="new-arrivals" class="py-24 border-b border-charcoal-700 relative">
+        <div class="max-w-[1440px] mx-auto px-6">
+            <div class="flex justify-between items-end mb-16">
+                <div>
+                    <h2 class="text-5xl md:text-6xl font-mono mb-2 tracking-widest uppercase cursor-pointer"
+                        style="color:#F5F5F0; transition: color 0.2s;">Наші бренди</h2>
+                </div>
+            </div>
+
+            <div class="relative flex items-center gap-4">
+                <!-- Left Arrow -->
+                <button
+                    class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </button>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 flex-1">
+                    <!-- Product 1 -->
+                    <div class="group cursor-pointer">
+                        <div
+                            class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
+                            <span
+                                class="absolute top-4 left-4 z-10 bg-off-white text-charcoal-900 text-[10px] font-bold px-2 py-1 uppercase tracking-wider">New</span>
+                            <div
+                                class="absolute right-4 top-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center mb-2 hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                                    <i class="fa-regular fa-heart text-xs"></i>
+                                </button>
+                                <button
+                                    class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                                    <i class="fa-solid fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                            <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/322e505d55-565b2763c7a6fbd44948.png"
+                                alt="black oversized t-shirt with white skull graphic on back streetwear style isolated" />
+                        </div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3
+                                    class="font-bold text-sm uppercase tracking-wide mb-1 group-hover:text-grunge-gray transition-colors">
+                                    Skull &amp; Roses Tee</h3>
+                                <p class="text-xs text-grunge-gray font-mono">100% Cotton / Black</p>
+                            </div>
+                            <span class="font-mono text-sm">$65.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Product 2 -->
+                    <div class="group cursor-pointer">
+                        <div
+                            class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
+                            <div
+                                class="absolute right-4 top-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center mb-2 hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                                    <i class="fa-regular fa-heart text-xs"></i>
+                                </button>
+                                <button
+                                    class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                                    <i class="fa-solid fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                            <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/1a5e800acc-537a9b39560c5c42749c.png"
+                                alt="distressed grey denim jacket with patches streetwear style isolated" />
+                        </div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3
+                                    class="font-bold text-sm uppercase tracking-wide mb-1 group-hover:text-grunge-gray transition-colors">
+                                    Chaos Denim Jacket</h3>
+                                <p class="text-xs text-grunge-gray font-mono">Distressed / Grey</p>
+                            </div>
+                            <span class="font-mono text-sm">$220.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Product 3 -->
+                    <div class="group cursor-pointer">
+                        <div
+                            class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
+                            <span
+                                class="absolute top-4 left-4 z-10 bg-accent-red text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">Hot</span>
+                            <div
+                                class="absolute right-4 top-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center mb-2 hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                                    <i class="fa-regular fa-heart text-xs"></i>
+                                </button>
+                                <button
+                                    class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                                    <i class="fa-solid fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                            <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/1278f01d94-ad888095acf6fa8b7b4b.png"
+                                alt="black cargo pants with multiple pockets and straps streetwear style isolated" />
+                        </div>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3
+                                    class="font-bold text-sm uppercase tracking-wide mb-1 group-hover:text-grunge-gray transition-colors">
+                                    Tactical Cargo V2</h3>
+                                <p class="text-xs text-grunge-gray font-mono">Techwear / Black</p>
+                            </div>
+                            <span class="font-mono text-sm">$145.00</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Arrow -->
+                <button
+                    class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="mt-16 text-center">
+                <a href="#"
+                    class="inline-block border border-charcoal-700 px-8 py-3 text-sm font-mono uppercase tracking-widest hover:bg-off-white hover:text-charcoal-900 transition-all">View
+                    All Products</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section id="newsletter" class="py-24 border-b border-charcoal-700">
+        <div class="max-w-[1440px] mx-auto px-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                <div>
+                    <h2 class="text-5xl md:text-6xl font-sans font-bold mb-6" style="color: #8B0000;">Приєднуйся до
+                        TrapDom</h2>
+                    <p class="text-grunge-gray text-base leading-loose max-w-md"
+                        style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+                        Підпишіться, щоб першими отримувати доступ до нових колекцій та індивідуального підбору вашого
+                        ідеального образу — жодного спаму, лише чистий стиль.
+                    </p>
+                </div>
+                <div>
+                    <div class="flex flex-col sm:flex-row gap-0">
+                        <input type="email" placeholder="YOUR EMAIL ADDRESS"
+                            class="bg-charcoal-800 border border-charcoal-700 text-off-white placeholder-charcoal-700 focus:outline-none focus:border-off-white px-6 py-4 text-sm font-mono flex-1 transition-colors">
+                        <button
+                            class="bg-off-white text-charcoal-900 px-8 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm whitespace-nowrap">
+                            Subscribe
+                        </button>
+                    </div>
+                    <p class="text-xs text-charcoal-700 mt-3 font-mono">By subscribing, you agree to our Privacy Policy.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</main>
+
+<!-- Footer -->
+<footer class="relative z-10 border-t border-charcoal-700 bg-charcoal-900">
+    <div class="max-w-[1440px] mx-auto px-6 py-16">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
+            <div class="md:col-span-1">
+                <a href="#" class="block mb-4">
+                    <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="140" height="37"
+                        style="object-fit: contain;">
+                </a>
+                <p class="text-xs text-grunge-gray font-mono leading-relaxed">
+                    Forged in the underground. Crafted for rebels. Every thread tells a story of defiance.
+                </p>
+                <div class="flex space-x-4 mt-6">
+                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"
+                        aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a>
+                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors" aria-label="TikTok"><i
+                            class="fa-brands fa-tiktok"></i></a>
+                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors" aria-label="Twitter"><i
+                            class="fa-brands fa-x-twitter"></i></a>
+                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"
+                        aria-label="Pinterest"><i class="fa-brands fa-pinterest"></i></a>
+                </div>
+            </div>
+            <div>
+                <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Shop</h4>
+                <ul class="space-y-3">
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">New
+                            Arrivals</a></li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Collections</a>
+                    </li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Accessories</a>
+                    </li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Sale</a>
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Info</h4>
+                <ul class="space-y-3">
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">About</a>
+                    </li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Editorial</a>
+                    </li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Shipping
+                            &amp; Returns</a></li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Size
+                            Guide</a></li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Care
+                            Guide</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Contact</h4>
+                <ul class="space-y-3">
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors"><span
+                                class="__cf_email__"
+                                data-cfemail="721a171e1e1d321b001d1c131c161b1c195c111d1f">[email&#160;protected]</span></a>
+                    </li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">FAQ</a>
+                    </li>
+                    <li><a href="#"
+                            class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Stockists</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-charcoal-700 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p class="text-xs text-charcoal-700 font-mono">© 2024 Iron &amp; Ink. All Rights Reserved.</p>
+            <div class="flex space-x-6">
+                <a href="#"
+                    class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Privacy
+                    Policy</a>
+                <a href="#"
+                    class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Terms</a>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- JS (перед </body>) -->
+<script src="{% static 'trapApp/js/script.js' %}"></script>
+</body>
+
+</html>
