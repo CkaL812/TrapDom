@@ -1,68 +1,146 @@
 from django.contrib import admin
-from .models import (
-    DressCode, Event,
-    Brand, Category, Color, Size, Tag,
-    Product, ProductVariant, ProductImage,
-    UserWardrobeItem, OutfitSuggestion
-)
+from django.utils.html import format_html
+from .models import Brand, Event, ClothingItem, ClothingSize, Outfit
 
-# --- Events ---
-@admin.register(DressCode)
-class DressCodeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'description')
+
+# ─── Inline: розміри всередині картки речі ───────────────────────────────────
+
+class ClothingSizeInline(admin.TabularInline):
+    model = ClothingSize
+    extra = 1
+    fields = ('size_label', 'size_type', 'in_stock', 'quantity')
+
+
+class OutfitItemsInline(admin.TabularInline):
+    model = Outfit.items.through
+    extra = 1
+    verbose_name = 'Річ у луці'
+    verbose_name_plural = 'Речі у луці'
+
+
+# ─── Brand ───────────────────────────────────────────────────────────────────
+
+@admin.register(Brand)
+class BrandAdmin(admin.ModelAdmin):
+    list_display  = ('name', 'formality_range', 'website', 'item_count')
+    search_fields = ('name',)
+    ordering      = ('name',)
+
+    @admin.display(description='Кількість речей')
+    def item_count(self, obj):
+        return obj.items.count()
+
+
+# ─── Event ───────────────────────────────────────────────────────────────────
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    list_display = ('name', 'dress_code')
-    list_filter = ('dress_code',)
+    list_display  = ('name', 'formality', 'item_count', 'outfit_count')
+    list_filter   = ('formality',)
+    search_fields = ('name',)
+    ordering      = ('formality', 'name')
 
-# --- Brands & Products ---
-@admin.register(Brand)
-class BrandAdmin(admin.ModelAdmin):
-    list_display = ('name', 'country', 'website')
-    search_fields = ('name', 'country')
+    @admin.display(description='Речей')
+    def item_count(self, obj):
+        return obj.items.count()
 
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'parent')
+    @admin.display(description='Луків')
+    def outfit_count(self, obj):
+        return obj.outfits.count()
 
-@admin.register(Color)
-class ColorAdmin(admin.ModelAdmin):
-    list_display = ('name', 'hex_code')
 
-@admin.register(Size)
-class SizeAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+# ─── ClothingItem ─────────────────────────────────────────────────────────────
 
-@admin.register(Tag)
-class TagAdmin(admin.ModelAdmin):
-    list_display = ('name',)
+@admin.register(ClothingItem)
+class ClothingItemAdmin(admin.ModelAdmin):
+    list_display   = (
+        'preview_image', 'name', 'brand', 'category',
+        'formality', 'gender', 'color', 'pattern',
+        'price_display', 'scraped_at',
+    )
+    list_filter    = ('brand', 'category', 'formality', 'gender', 'pattern', 'is_set')
+    search_fields  = ('name', 'description', 'color', 'material')
+    ordering       = ('-scraped_at',)
+    readonly_fields = ('scraped_at', 'preview_image_large')
+    filter_horizontal = ('events',)
+    inlines        = [ClothingSizeInline]
 
-class ProductVariantInline(admin.TabularInline):
-    model = ProductVariant
-    extra = 1
+    fieldsets = (
+        ('Основна інформація', {
+            'fields': ('brand', 'name', 'description', 'category', 'formality', 'gender', 'is_set')
+        }),
+        ('Метадані (для матчингу)', {
+            'fields': ('color', 'color_hex', 'material', 'pattern')
+        }),
+        ('Ціна', {
+            'fields': ('price', 'currency', 'sale_price')
+        }),
+        ('Медіа', {
+            'fields': ('image_url', 'image_local', 'preview_image_large')
+        }),
+        ('Посилання та дати', {
+            'fields': ('source_url', 'scraped_at')
+        }),
+        ('Події', {
+            'fields': ('events',)
+        }),
+    )
 
-class ProductImageInline(admin.TabularInline):
-    model = ProductImage
-    extra = 1
+    @admin.display(description='Фото')
+    def preview_image(self, obj):
+        url = obj.image_url or (obj.image_local.url if obj.image_local else '')
+        if url:
+            return format_html('<img src="{}" style="height:48px;border-radius:4px;">', url)
+        return '—'
 
-@admin.register(Product)
-class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'brand', 'category', 'base_price', 'gender', 'season')
-    list_filter = ('brand', 'category', 'gender', 'season', 'events')
-    search_fields = ('name', 'brand__name')
-    filter_horizontal = ('events', 'tags')
-    inlines = [ProductVariantInline, ProductImageInline]
+    @admin.display(description='Фото (повне)')
+    def preview_image_large(self, obj):
+        url = obj.image_url or (obj.image_local.url if obj.image_local else '')
+        if url:
+            return format_html('<img src="{}" style="max-height:300px;border-radius:8px;">', url)
+        return '—'
 
-# --- Digital Wardrobe ---
-@admin.register(UserWardrobeItem)
-class UserWardrobeItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user_identifier', 'color', 'category_guess', 'style', 'created_at')
-    list_filter = ('style',)
-    search_fields = ('user_identifier', 'color', 'category_guess')
+    @admin.display(description='Ціна')
+    def price_display(self, obj):
+        if obj.sale_price:
+            return format_html(
+                '<s style="color:gray">{}</s> <b style="color:green">{} {}</b>',
+                obj.price, obj.sale_price, obj.currency
+            )
+        return f'{obj.price} {obj.currency}' if obj.price else '—'
 
-@admin.register(OutfitSuggestion)
-class OutfitSuggestionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'wardrobe_item', 'event', 'created_at')
-    list_filter = ('event',)
-    filter_horizontal = ('suggested_products',)
+
+# ─── ClothingSize ─────────────────────────────────────────────────────────────
+
+@admin.register(ClothingSize)
+class ClothingSizeAdmin(admin.ModelAdmin):
+    list_display  = ('item', 'size_label', 'size_type', 'in_stock', 'quantity')
+    list_filter   = ('size_type', 'in_stock')
+    search_fields = ('item__name', 'size_label')
+    ordering      = ('item', 'size_label')
+
+
+# ─── Outfit ───────────────────────────────────────────────────────────────────
+
+@admin.register(Outfit)
+class OutfitAdmin(admin.ModelAdmin):
+    list_display      = ('name', 'event', 'item_count', 'created')
+    list_filter       = ('event__formality', 'event')
+    search_fields     = ('name', 'notes')
+    ordering          = ('-created',)
+    readonly_fields   = ('created',)
+    filter_horizontal = ('items',)
+    exclude           = ()  # items керується через filter_horizontal
+
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'event', 'notes', 'created')
+        }),
+        ('Речі в луці', {
+            'fields': ('items',)
+        }),
+    )
+
+    @admin.display(description='Речей у луці')
+    def item_count(self, obj):
+        return obj.items.count()

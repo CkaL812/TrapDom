@@ -1,4 +1,3 @@
-// Tailwind config
 tailwind.config = {
     theme: {
         extend: {
@@ -21,15 +20,13 @@ tailwind.config = {
     }
 };
 
-// ─── Mobile Menu ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
-
-    const menuBtn     = document.getElementById('mobile-menu-btn');
-    const sideMenu    = document.getElementById('side-menu');
-    const overlay     = document.getElementById('side-menu-overlay');
-    const bar1        = document.getElementById('bar1');
-    const bar2        = document.getElementById('bar2');
-    const bar3        = document.getElementById('bar3');
+    const menuBtn  = document.getElementById('mobile-menu-btn');
+    const sideMenu = document.getElementById('side-menu');
+    const overlay  = document.getElementById('side-menu-overlay');
+    const bar1     = document.getElementById('bar1');
+    const bar2     = document.getElementById('bar2');
+    const bar3     = document.getElementById('bar3');
 
     if (!menuBtn || !sideMenu || !overlay) return;
 
@@ -37,13 +34,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function openMenu() {
         isOpen = true;
-        // animate bars → X
         bar1.style.transform = 'translateY(8px) rotate(45deg)';
-        bar2.style.opacity = '0';
+        bar2.style.opacity   = '0';
         bar3.style.transform = 'translateY(-8px) rotate(-45deg)';
-        // show drawer
         sideMenu.classList.remove('-translate-x-full');
-        // show overlay
         overlay.classList.remove('hidden');
         requestAnimationFrame(() => overlay.classList.remove('opacity-0'));
         document.body.style.overflow = 'hidden';
@@ -51,13 +45,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function closeMenu() {
         isOpen = false;
-        // revert bars
         bar1.style.transform = '';
-        bar2.style.opacity = '';
+        bar2.style.opacity   = '';
         bar3.style.transform = '';
-        // hide drawer
         sideMenu.classList.add('-translate-x-full');
-        // hide overlay
         overlay.classList.add('opacity-0');
         setTimeout(() => overlay.classList.add('hidden'), 300);
         document.body.style.overflow = '';
@@ -65,5 +56,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     menuBtn.addEventListener('click', () => isOpen ? closeMenu() : openMenu());
     overlay.addEventListener('click', closeMenu);
+});
+// ── Селект подій → заповнює textarea ────────────────────
+const eventSelect = document.getElementById('event-select');
+const eventInput  = document.getElementById('event-input');
 
+eventSelect.addEventListener('change', function () {
+    eventInput.value = this.value;
+    eventInput.dispatchEvent(new Event('input'));
 });
