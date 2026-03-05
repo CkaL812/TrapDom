@@ -5,3 +5,4 @@ lxml>=5.0
 python-dotenv>=1.0
 Pillow>=10.0          # для ImageField
 mysqlclient>=2.2      # MySQL драйвер (або PyMySQL як альтернатива)
+playwright>=1.40      # для JS-сторінок (cos, ralph_lauren, massimo_dutti scrapers)
