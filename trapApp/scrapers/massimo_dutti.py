@@ -1,21 +1,16 @@
 """
 Massimo Dutti Scraper — Playwright.
-Wait_for_selector видалено (сайт надто повільний для нього).
-Використовується фіксований wait 12с після завантаження.
-
+Фіксований wait 12с (сайт повільний).
 Вимога: python -m playwright install chromium
 """
 import asyncio
 import re
-
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
-
 from trapApp.scrapers.base import BaseScraper
 
 
 class MassimoDuttiScraper(BaseScraper):
-
     brand_name = 'Massimo Dutti'
     base_url   = 'https://www.massimodutti.com'
 
@@ -54,16 +49,14 @@ class MassimoDuttiScraper(BaseScraper):
         print(f'[Massimo Dutti] → {url}')
         try:
             await page.goto(url, wait_until='domcontentloaded', timeout=60_000)
-            # Фіксований wait — надійніший за wait_for_selector на повільних сайтах
             await page.wait_for_timeout(12_000)
         except PWTimeout:
-            print(f'[Massimo Dutti] Timeout goto: {url}')
+            print(f'[Massimo Dutti] Timeout: {url}')
             return
         except Exception as e:
             print(f'[Massimo Dutti] Помилка: {e}')
             return
 
-        # Прийняти cookies якщо є
         try:
             for txt in ['Accept all', 'Accept', 'Дозволити все']:
                 btn = page.locator(f'button:has-text("{txt}")')
@@ -74,7 +67,6 @@ class MassimoDuttiScraper(BaseScraper):
         except Exception:
             pass
 
-        # Scroll
         for _ in range(10):
             await page.keyboard.press('End')
             await page.wait_for_timeout(500)
@@ -97,25 +89,34 @@ class MassimoDuttiScraper(BaseScraper):
         print(f'[Massimo Dutti] Знайдено карток: {len(cards)}')
 
         for card in cards:
-            name_el = (card.select_one('h2') or card.select_one('h3')
-                       or card.select_one('[class*="name"]'))
+            name_el = (
+                card.select_one('h2') or card.select_one('h3')
+                or card.select_one('[class*="name"]')
+            )
             name = name_el.get_text(strip=True) if name_el else ''
             if not name or len(name) < 3:
                 continue
+
             link_el = card.select_one('a[href]')
             href = link_el['href'] if link_el else ''
             source_url = href if href.startswith('http') else self.base_url + href
             if not source_url or source_url in seen:
                 continue
             seen.add(source_url)
-            price_el = card.select_one('[class*="price"]') or card.select_one('[class*="Price"]')
+
+            price_el = (
+                card.select_one('[class*="price"]')
+                or card.select_one('[class*="Price"]')
+            )
             price = self._parse_price(price_el.get_text() if price_el else '')
+
             img_el = card.select_one('img')
             image_url = ''
             if img_el:
-                image_url = img_el.get('src') or img_el.get('data-src') or ''
+                image_url = img_el.get('data-src') or img_el.get('src') or ''
                 if image_url.startswith('//'):
                     image_url = 'https:' + image_url
+
             self.save_item({
                 'name': name, 'source_url': source_url,
                 'category': category, 'formality': formality,

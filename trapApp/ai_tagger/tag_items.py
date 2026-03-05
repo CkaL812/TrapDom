@@ -1,7 +1,6 @@
 import sys
 import os
 
-# Додаємо корінь проєкту до sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from dotenv import load_dotenv
@@ -14,17 +13,12 @@ django.setup()
 
 import requests
 import json
-from django.db.models import Q
 from trapApp.models import ClothingItem
 
 
 OPENROUTER_API_KEY = os.environ['OPENROUTER_API_KEY']
 
-# Безкоштовні моделі з vision на OpenRouter:
-# - google/gemini-flash-1.5           (рекомендовано)
-# - meta-llama/llama-3.2-11b-vision-instruct:free
-# - qwen/qwen-2-vl-7b-instruct:free
-MODEL = 'openrouter/free'
+MODEL = 'google/gemini-2.0-flash-001'
 
 PROMPT = """Analyze this clothing item image and return JSON with:
 - "color": dominant color in English (e.g. "Navy Blue", "Black")
@@ -35,8 +29,9 @@ Respond ONLY with valid JSON, no markdown, no explanation."""
 
 
 def tag_item(item: ClothingItem):
-    if not item.image_url or (item.color and item.material):
-        return  # вже заповнено
+    if not item.image_url:
+        print(f'  [skip] {item.name} — немає image_url')
+        return
 
     resp = requests.post(
         'https://openrouter.ai/api/v1/chat/completions',
@@ -65,7 +60,6 @@ def tag_item(item: ClothingItem):
 
         raw = resp.json()['choices'][0]['message']['content']
 
-        # Очищаємо від markdown-обгортки, якщо модель повернула ```json ... ```
         clean = (
             raw.strip()
             .removeprefix('```json')
@@ -82,24 +76,26 @@ def tag_item(item: ClothingItem):
         item.formality = result.get('formality', item.formality)
         item.save(update_fields=['color', 'material', 'pattern', 'formality'])
 
-        print(f'[✓] {item.name} → {result}')
+        print(f'  [✓] {item.name} → {result}')
 
     except requests.HTTPError as e:
-        print(f'[✗] HTTP error для {item.name}: {e} | resp: {resp.text[:200]}')
+        print(f'  [✗] HTTP error для {item.name}: {e} | {resp.text[:200]}')
     except Exception as e:
-        print(f'[✗] Tag error для {item.name}: {e} | resp: {resp.text[:200]}')
+        print(f'  [✗] Помилка для {item.name}: {e} | {resp.text[:200]}')
 
 
 def run_tagging(limit: int = 500):
-    qs = ClothingItem.objects.filter(Q(color='') | Q(color__isnull=True))
+    qs = ClothingItem.objects.filter(material='')
     total = min(qs.count(), limit)
-    items = qs[:limit]
+    items = list(qs[:limit])
 
     print(f'[→] Тегуємо {total} речей...')
 
     for i, item in enumerate(items, 1):
-        print(f'  [{i}/{total}] {item.name}')
+        print(f'[{i}/{total}] {item.name}')
         tag_item(item)
+
+    print(f'\n[✅] Готово!')
 
 
 if __name__ == '__main__':

@@ -8,20 +8,6 @@ class ZaraScraper(BaseScraper):
     brand_name = 'Zara'
     base_url   = 'https://www.zara.com'
 
-    # (category_id, wardrobe_category, formality, gender)
-    # categoryId береться з DevTools: Network → /category/{ID}/products?ajax=true
-    CATEGORY_MAP = [
-        (2431994,  'tops',      'smart_casual', 'M'),  # choloviky-sorochky ✓
-        (None,     'outerwear', 'smart_casual', 'M'),  # choloviky-verkhnii-odiah
-        (None,     'tops',      'smart_casual', 'F'),  # zhinky-sorochky
-        (None,     'tops',      'casual',       'F'),  # zhinky-futbolky
-        (None,     'onepiece',  'cocktail',     'F'),  # zhinky-sukni
-        (None,     'bottoms',   'smart_casual', 'F'),  # zhinky-shtany
-        (None,     'bottoms',   'casual',       'F'),  # zhinky-dzhynsy
-        (None,     'outerwear', 'smart_casual', 'F'),  # zhinky-verkhnii-odiah
-        (None,     'tops',      'casual',       'F'),  # zhinky-topy
-    ]
-
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
         'Accept': 'application/json, text/javascript, */*; q=0.01',
@@ -30,12 +16,50 @@ class ZaraScraper(BaseScraper):
         'Referer': 'https://www.zara.com/ua/uk/',
     }
 
+    # (category_id, wardrobe_category, formality, gender, label)
+    CATEGORY_MAP = [
+
+        # ── ЧОЛОВІКИ ────────────────────────────────────────────────────
+        (2436949, 'tops',      'smart_casual', 'M', 'MAN Сорочки'),
+        (2436585, 'tops',      'casual',       'M', 'MAN Футболки'),
+        (2473840, 'bottoms',   'smart_casual', 'M', 'MAN Штани'),
+        (2436584, 'bottoms',   'casual',       'M', 'MAN Шорти'),
+        (2436311, 'layering',  'business',     'M', 'MAN Блейзери'),       # ← виправлено
+        (2606109, 'outerwear', 'smart_casual', 'M', 'MAN Пальта/Тренчі'), # ← виправлено
+        (2436336, 'footwear',  'casual',       'M', 'MAN Кросівки'),
+        (2436384, 'footwear',  'formal',       'M', 'MAN Офіційне взуття'),
+        (2436444, 'accessory', 'casual',       'M', 'MAN Аксесуари'),
+        (2436434, 'accessory', 'casual',       'M', 'MAN Ремені'),
+        (2436436, 'accessory', 'formal',       'M', 'MAN Краватки'),
+
+        # ── ЖІНКИ ───────────────────────────────────────────────────────
+        (2420369, 'tops',      'smart_casual', 'F', 'WOMAN Сорочки/Блузи'),
+        (2420417, 'tops',      'casual',       'F', 'WOMAN Футболки'),
+        (2419940, 'tops',      'casual',       'F', 'WOMAN Топи'),
+        (2420896, 'onepiece',  'cocktail',     'F', 'WOMAN Сукні'),
+        (2419185, 'bottoms',   'casual',       'F', 'WOMAN Джинси'),
+        (2420795, 'bottoms',   'smart_casual', 'F', 'WOMAN Штани'),
+        (2420454, 'bottoms',   'smart_casual', 'F', 'WOMAN Спідниці'),
+        (2420942, 'layering',  'business',     'F', 'WOMAN Блейзери'),
+        (2419032, 'outerwear', 'smart_casual', 'F', 'WOMAN Тренчі/Пальта'),
+        (2417772, 'outerwear', 'casual',       'F', 'WOMAN Куртки'),
+        (2419160, 'footwear',  'smart_casual', 'F', 'WOMAN Взуття'),
+        (2419075, 'footwear',  'casual',       'F', 'WOMAN Кросівки'),
+        (2419172, 'footwear',  'casual',       'F', 'WOMAN Босоніжки'),
+        (2418989, 'accessory', 'casual',       'F', 'WOMAN Аксесуари'),
+        (2418963, 'accessory', 'casual',       'F', 'WOMAN Прикраси'),
+        (2418966, 'accessory', 'casual',       'F', 'WOMAN Ремені'),
+    ]
+
+    LIMIT_PER_CATEGORY = 4
+
     def run(self):
-        for category_id, category, formality, gender in self.CATEGORY_MAP:
-            if category_id is None:
-                print(f'[Zara] Пропускаємо {category}/{gender} — немає categoryId')
-                continue
-            self._scrape_category(category_id, category, formality, gender)
+        total_saved = 0
+        for category_id, category, formality, gender, label in self.CATEGORY_MAP:
+            print(f'\n[Zara] ── {label} ──')
+            saved = self._scrape_category(category_id, category, formality, gender)
+            total_saved += saved
+        print(f'\n[Zara] ✅ Всього збережено: {total_saved} товарів')
 
     def _scrape_category(self, category_id, category, formality, gender):
         url = f'{self.base_url}/ua/uk/category/{category_id}/products?ajax=true'
@@ -45,17 +69,17 @@ class ZaraScraper(BaseScraper):
             r = requests.get(url, headers=self.HEADERS, timeout=20)
         except Exception as e:
             print(f'[Zara] Помилка: {e}')
-            return
+            return 0
 
         if r.status_code != 200:
             print(f'[Zara] Статус {r.status_code}: {r.text[:300]}')
-            return
+            return 0
 
         try:
             data = r.json()
         except Exception:
             print(f'[Zara] Не JSON: {r.text[:300]}')
-            return
+            return 0
 
         products = []
         for group in data.get('productGroups', []):
@@ -63,11 +87,13 @@ class ZaraScraper(BaseScraper):
                 for item in el.get('commercialComponents', []):
                     products.append(item)
 
-        print(f'[Zara] Знайдено товарів: {len(products)}')
+        print(f'[Zara] Знайдено: {len(products)}, беремо: {self.LIMIT_PER_CATEGORY}')
 
         if not products:
             print(f'[Zara] Ключі відповіді: {list(data.keys())}')
-            return
+            return 0
+
+        products = products[:self.LIMIT_PER_CATEGORY]
 
         saved = 0
         for item in products:
@@ -75,17 +101,15 @@ class ZaraScraper(BaseScraper):
             if not name or len(name) < 3:
                 continue
 
-            # URL товару — обрізаємо до 500 символів (ліміт VARCHAR)
-            pid = item.get('id', '')
-            seo = item.get('seo', {})
+            pid  = item.get('id', '')
+            seo  = item.get('seo', {})
             slug = seo.get('keyword', '') if isinstance(seo, dict) else ''
-            if slug:
-                source_url = f'{self.base_url}/ua/uk/{slug}-p{pid}.html'
-            else:
-                source_url = f'{self.base_url}/ua/uk/p{pid}.html'
-            source_url = source_url[:500]  # фікс Data too long
+            source_url = (
+                f'{self.base_url}/ua/uk/{slug}-p{pid}.html' if slug
+                else f'{self.base_url}/ua/uk/p{pid}.html'
+            )
+            source_url = source_url[:500]
 
-            # Ціна
             price = None
             for price_key in ['price', 'maxPrice', 'minPrice', 'originalPrice']:
                 v = item.get(price_key)
@@ -93,9 +117,6 @@ class ZaraScraper(BaseScraper):
                     price = v / 100 if isinstance(v, int) and v > 10000 else v
                     break
 
-            # Зображення
-            # Зображення
-# Зображення
             image_url = ''
             try:
                 colors = item.get('detail', {}).get('colors', [])
@@ -103,23 +124,33 @@ class ZaraScraper(BaseScraper):
                     xmedia_list = colors[0].get('xmedia', [])
                     if xmedia_list:
                         image_url = xmedia_list[0].get('extraInfo', {}).get('deliveryUrl', '')
-            except Exception:   
+            except Exception:
                 pass
             image_url = image_url[:500]
+
+            color = ''
+            try:
+                colors = item.get('detail', {}).get('colors', [])
+                if colors:
+                    color = colors[0].get('name', '')[:100]
+            except Exception:
+                pass
+
             self.save_item({
-                'name': name[:255],
+                'name':       name[:255],
                 'source_url': source_url,
-                'category': category,
-                'formality': formality,
-                'price': price,
-                'currency': 'UAH',
-                'image_url': image_url,
-                'color': '',
-                'material': '',
-                'pattern': 'solid',
-                'gender': gender,
+                'category':   category,
+                'formality':  formality,
+                'price':      price,
+                'currency':   'UAH',
+                'image_url':  image_url,
+                'color':      color,
+                'material':   '',
+                'pattern':    'solid',
+                'gender':     gender,
             }, [])
             saved += 1
 
-        print(f'[Zara] categoryId={category_id}: {saved} товарів збережено')
+        print(f'[Zara] categoryId={category_id}: {saved} збережено')
         time.sleep(1)
+        return saved

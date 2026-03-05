@@ -1,69 +1,132 @@
-import requests
+"""
+Suitsupply Scraper — Playwright.
+ФІКС: eu.suitsupply.com/en_UA/ → 404.
+Новий URL: www.suitsupply.com/en-UA/
+Вимога: python -m playwright install chromium
+"""
+import asyncio
+import re
+from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
 from trapApp.scrapers.base import BaseScraper
 
 
 class SuitsupplyScraper(BaseScraper):
-    """
-    Suitsupply — HTML scraping каталогу.
-    URL: https://eu.suitsupply.com/en_UA/
-    """
     brand_name = 'Suitsupply'
-    base_url = 'https://eu.suitsupply.com'
+    base_url   = 'https://www.suitsupply.com'
 
     CATEGORY_MAP = [
-        ('/en_UA/suits/',       'outerwear', 'formal'),
-        ('/en_UA/trousers/',    'bottoms',   'formal'),
-        ('/en_UA/shirts/',      'tops',      'formal'),
-        ('/en_UA/jackets/',     'outerwear', 'smart_casual'),
-        ('/en_UA/ties/',        'accessories','formal'),
-        ('/en_UA/shoes/',       'footwear',  'formal'),
-        ('/en_UA/coats/',       'outerwear', 'formal'),
+        ('/en-UA/clothing/suits/',    'outerwear',   'formal',       'M'),
+        ('/en-UA/clothing/trousers/', 'bottoms',     'formal',       'M'),
+        ('/en-UA/clothing/shirts/',   'tops',        'formal',       'M'),
+        ('/en-UA/clothing/jackets/',  'outerwear',   'smart_casual', 'M'),
+        ('/en-UA/shoes/',             'footwear',    'formal',       'M'),
+        ('/en-UA/clothing/coats/',    'outerwear',   'formal',       'M'),
+        ('/en-UA/ties/',              'accessories', 'formal',       'M'),
     ]
 
-    def scrape_category(self, path, category, formality):
-        url = self.base_url + path
+    def run(self):
+        print('[Suitsupply] Запуск Playwright...')
         try:
-            resp = requests.get(url, headers=self.headers, timeout=15)
-            soup = BeautifulSoup(resp.text, 'html.parser')
+            asyncio.run(self._run_async())
+        except Exception as e:
+            print(f'[Suitsupply] КРИТИЧНА ПОМИЛКА: {e}')
+
+    async def _run_async(self):
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            ctx = await browser.new_context(
+                user_agent=(
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/121.0.0.0 Safari/537.36'
+                ),
+                locale='en-UA',
+                viewport={'width': 1280, 'height': 900},
+            )
+            page = await ctx.new_page()
+            for path, category, formality, gender in self.CATEGORY_MAP:
+                await self._scrape_category(page, path, category, formality, gender)
+            await browser.close()
+            print('[Suitsupply] Готово')
+
+    async def _scrape_category(self, page, path, category, formality, gender):
+        url = self.base_url + path
+        print(f'[Suitsupply] → {url}')
+        try:
+            await page.goto(url, wait_until='domcontentloaded', timeout=45_000)
+            await page.wait_for_timeout(8_000)
+        except PWTimeout:
+            print(f'[Suitsupply] Timeout: {url}')
+            return
         except Exception as e:
             print(f'[Suitsupply] Помилка: {e}')
             return
 
-        for card in soup.select('.product-tile, [class*="ProductCard"]'):
-            name_tag = card.select_one('[class*="name"], [class*="title"]')
-            price_tag = card.select_one('[class*="price"]')
-            img_tag = card.select_one('img')
-            link_tag = card.select_one('a')
+        for _ in range(6):
+            await page.keyboard.press('End')
+            await page.wait_for_timeout(600)
 
-            if not name_tag:
+        html = await page.content()
+        saved = self._parse_html(html, category, formality, gender)
+        print(f'[Suitsupply] {path}: {saved} товарів збережено')
+
+    def _parse_html(self, html, category, formality, gender):
+        soup = BeautifulSoup(html, 'html.parser')
+        saved = 0
+        seen: set[str] = set()
+
+        cards = (
+            soup.select('[class*="product-tile"]')
+            or soup.select('[class*="ProductCard"]')
+            or soup.select('article')
+            or soup.select('li[class*="product"]')
+        )
+        print(f'[Suitsupply] Знайдено карток: {len(cards)}')
+
+        for card in cards:
+            name_el = card.select_one('[class*="name"], [class*="title"], h2, h3')
+            name = name_el.get_text(strip=True) if name_el else ''
+            if not name or len(name) < 3:
                 continue
 
-            name = name_tag.get_text(strip=True)
-            price_text = price_tag.get_text(strip=True) if price_tag else ''
-            try:
-                price = float(''.join(c for c in price_text if c.isdigit() or c == '.'))
-            except (ValueError, TypeError):
-                price = None
-
-            image_url = img_tag.get('src', img_tag.get('data-src', '')) if img_tag else ''
-            href = link_tag.get('href', '') if link_tag else ''
+            link_el = card.select_one('a[href]')
+            href = link_el['href'] if link_el else ''
             source_url = href if href.startswith('http') else self.base_url + href
+            if not source_url or source_url in seen:
+                continue
+            seen.add(source_url)
+
+            price_el = card.select_one('[class*="price"], [class*="Price"]')
+            price_text = price_el.get_text(strip=True) if price_el else ''
+            price = None
+            if price_text:
+                m = re.search(r'[\d]+\.?\d*', price_text.replace(',', '.'))
+                if m:
+                    try:
+                        price = float(m.group())
+                    except ValueError:
+                        pass
+
+            img_el = card.select_one('img')
+            image_url = ''
+            if img_el:
+                image_url = img_el.get('data-src') or img_el.get('src') or ''
+                if image_url.startswith('//'):
+                    image_url = 'https:' + image_url
 
             self.save_item({
-                'name': name,
+                'name':       name,
                 'source_url': source_url,
-                'category': category,
-                'formality': formality,
-                'price': price,
-                'currency': 'EUR',
-                'image_url': image_url,
-                'color': '',
-                'material': '',
-                'pattern': 'solid',
-                'gender': 'M',
+                'category':   category,
+                'formality':  formality,
+                'price':      price,
+                'currency':   'EUR',
+                'image_url':  image_url,
+                'color':      '',
+                'material':   '',
+                'pattern':    'solid',
+                'gender':     gender,
             }, [])
-
-    def run(self):
-        for path, category, formality in self.CATEGORY_MAP:
-            self.scrape_category(path, category, formality)
+            saved += 1
+        return saved

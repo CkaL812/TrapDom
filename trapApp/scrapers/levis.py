@@ -1,27 +1,30 @@
+import os
 import requests
+from dotenv import load_dotenv
 from trapApp.scrapers.base import BaseScraper
+
+load_dotenv()
 
 
 class LevisScraper(BaseScraper):
     """
     Levi's — Algolia Search API.
-    Реальні ключі знайти в DevTools → Network → фільтр 'algolia' на сторінці каталогу.
+    ФІКС: ключі з .env замість хардкоду.
+    Реальні ключі знайти в DevTools → Network → фільтр 'algolia'.
     """
     brand_name = "Levi's"
     base_url   = 'https://www.levi.com/UA/uk_UA'
 
-    # ⚠️ Замінити на реальні ключі з DevTools
-    ALGOLIA_APP_ID  = 'LEVI_APP_ID'
-    ALGOLIA_API_KEY = 'LEVI_API_KEY'
-    ALGOLIA_INDEX   = 'levi_ua_products'
+    ALGOLIA_APP_ID  = os.environ.get('LEVI_ALGOLIA_APP_ID', '')
+    ALGOLIA_API_KEY = os.environ.get('LEVI_ALGOLIA_API_KEY', '')
+    ALGOLIA_INDEX   = 'levi_UA_products'  # уточнити через DevTools
 
-    # (category, formality, algolia_facet)
     CATEGORY_FACETS = [
-        ('tops',    'casual',       'mens-tops'),
-        ('bottoms', 'casual',       'mens-bottoms'),
-        ('tops',    'casual',       'womens-tops'),
-        ('bottoms', 'casual',       'womens-bottoms'),
-        ('outerwear','smart_casual','mens-outerwear'),
+        ('tops',     'casual',       'mens-tops'),
+        ('bottoms',  'casual',       'mens-bottoms'),
+        ('tops',     'casual',       'womens-tops'),
+        ('bottoms',  'casual',       'womens-bottoms'),
+        ('outerwear','smart_casual', 'mens-outerwear'),
     ]
 
     def search_products(self, category_facet: str) -> list[dict]:
@@ -44,8 +47,8 @@ class LevisScraper(BaseScraper):
             return []
 
     def run(self):
-        if self.ALGOLIA_APP_ID == 'LEVI_APP_ID':
-            print("[Levi's] ⚠️  ALGOLIA_APP_ID не заповнено — скрапер пропущено")
+        if not self.ALGOLIA_APP_ID:
+            print("[Levi's] ⚠️  LEVI_ALGOLIA_APP_ID не заповнено в .env — скрапер пропущено")
             return
 
         for category, formality, facet in self.CATEGORY_FACETS:

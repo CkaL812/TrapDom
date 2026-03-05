@@ -2,21 +2,29 @@ from trapApp.scrapers.base import BaseScraper
 
 
 class GenericHTMLScraper(BaseScraper):
+    """
+    Tommy Hilfiger — HTML scraping каталогу.
+    ФІКС: ua.tommy.com не існує → tommy.com/en-gb/
+    """
     brand_name = 'Tommy Hilfiger'
-    base_url = 'https://ua.tommy.com'
+    base_url   = 'https://www.tommy.com'
 
     CATEGORY_URLS = [
-        ('/uk/en_uk/mens/shirts/', 'tops', 'smart_casual', 'M'),
-        ('/uk/en_uk/mens/chinos/',  'bottoms', 'smart_casual', 'M'),
+        ('/en-gb/men/shirts/',        'tops',      'smart_casual', 'M'),
+        ('/en-gb/men/chinos/',        'bottoms',   'smart_casual', 'M'),
+        ('/en-gb/men/jackets/',       'outerwear', 'smart_casual', 'M'),
+        ('/en-gb/men/t-shirts/',      'tops',      'casual',       'M'),
+        ('/en-gb/women/tops/',        'tops',      'smart_casual', 'F'),
+        ('/en-gb/women/dresses/',     'onepiece',  'smart_casual', 'F'),
+        ('/en-gb/women/trousers/',    'bottoms',   'smart_casual', 'F'),
     ]
 
-    # CSS-селектори для конкретного сайту
     SELECTORS = {
-        'product_card': '.product-tile',
-        'name':         '.product-tile__name',
-        'price':        '.product-tile__price',
-        'image':        'img.product-tile__image',
-        'link':         'a.product-tile__link',
+        'product_card': '.product-tile, [class*="ProductCard"], .grid__item',
+        'name':         '[class*="product-name"], [class*="product-title"], h2, h3',
+        'price':        '[class*="price"], [class*="Price"]',
+        'image':        'img',
+        'link':         'a[href]',
         'size_btn':     'button.size-button:not(.size-button--unavailable)',
     }
 
@@ -26,7 +34,11 @@ class GenericHTMLScraper(BaseScraper):
         if not soup:
             return
 
-        for card in soup.select(self.SELECTORS['product_card']):
+        cards = soup.select(self.SELECTORS['product_card'])
+        print(f'[Tommy Hilfiger] Знайдено карток: {len(cards)}')
+
+        seen: set[str] = set()
+        for card in cards:
             name_el  = card.select_one(self.SELECTORS['name'])
             price_el = card.select_one(self.SELECTORS['price'])
             img_el   = card.select_one(self.SELECTORS['image'])
@@ -34,15 +46,26 @@ class GenericHTMLScraper(BaseScraper):
 
             if not name_el:
                 continue
-
             name = name_el.get_text(strip=True)
-            source_url = self.base_url + link_el.get('href', '') if link_el else ''
-            image_url = img_el.get('src', '') if img_el else ''
-            price_text = price_el.get_text(strip=True) if price_el else ''
+            if not name or len(name) < 3:
+                continue
 
-            price = None
-            for char in ['£', '€', '$', 'UAH', '₴', ',']:
+            href = link_el.get('href', '') if link_el else ''
+            source_url = href if href.startswith('http') else self.base_url + href
+            if not source_url or source_url in seen:
+                continue
+            seen.add(source_url)
+
+            image_url = ''
+            if img_el:
+                image_url = img_el.get('data-src') or img_el.get('src') or ''
+                if image_url.startswith('//'):
+                    image_url = 'https:' + image_url
+
+            price_text = price_el.get_text(strip=True) if price_el else ''
+            for char in ['£', '€', '$', 'GBP', 'UAH', '₴', ',']:
                 price_text = price_text.replace(char, '').strip()
+            price = None
             try:
                 price = float(price_text.split()[0])
             except Exception:
@@ -58,17 +81,17 @@ class GenericHTMLScraper(BaseScraper):
                     ]
 
             self.save_item({
-                'name': name,
+                'name':       name,
                 'source_url': source_url,
-                'category': category,
-                'formality': formality,
-                'price': price,
-                'currency': 'UAH',
-                'image_url': image_url,
-                'gender': gender,
-                'color': '',
-                'material': '',
-                'pattern': 'solid',
+                'category':   category,
+                'formality':  formality,
+                'price':      price,
+                'currency':   'GBP',
+                'image_url':  image_url,
+                'gender':     gender,
+                'color':      '',
+                'material':   '',
+                'pattern':    'solid',
             }, sizes)
 
     def run(self):

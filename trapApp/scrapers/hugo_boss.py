@@ -1,3 +1,4 @@
+import json
 import re
 import time
 import requests
@@ -8,7 +9,7 @@ from trapApp.scrapers.base import BaseScraper
 class HugoBossScraper(BaseScraper):
     brand_name = 'Hugo Boss'
     base_url   = 'https://www.hugoboss.com'
-    PAGE_SIZE  = 36
+    PAGE_SIZE  = 4
 
     CATEGORY_MAP = [
         ('/uk/men-shirts/',      'tops',      'smart_casual', 'M'),
@@ -33,6 +34,8 @@ class HugoBossScraper(BaseScraper):
     def run(self):
         for path, category, formality, gender in self.CATEGORY_MAP:
             self._scrape_category(path, category, formality, gender)
+
+    CATEGORY_LIMIT = 100
 
     def _scrape_category(self, path, category, formality, gender):
         start = 0
@@ -80,6 +83,9 @@ class HugoBossScraper(BaseScraper):
 
             print(f'[Hugo Boss] start={start}: {new} нових')
 
+            if len(seen) >= self.CATEGORY_LIMIT:
+                print(f'[Hugo Boss] {path}: ліміт {self.CATEGORY_LIMIT} — стоп')
+                break
             if new < self.PAGE_SIZE:
                 break
             start += self.PAGE_SIZE
@@ -90,8 +96,8 @@ class HugoBossScraper(BaseScraper):
         results = []
         seen_urls: set[str] = set()
 
-        for card in soup.select('[class*="product-tile"]'):
-            a = card.select_one('a[href*="hugoboss.com"], a[href^="/uk/"]')
+        for card in soup.select('article.product-tile-plp'):
+            a = card.select_one('a.js-product-tile__search-link, a[href*="hugoboss.com"], a[href^="/uk/"]')
             if not a:
                 continue
             href = a.get('href', '')
@@ -106,36 +112,22 @@ class HugoBossScraper(BaseScraper):
                 if re.search(r'-\d{5,}', source_url) is None:
                     continue
 
-            name_el = card.select_one(
-                '[class*="product-name"], [class*="productName"], '
-                '[class*="tile-name"], h3, h2'
-            )
-            name = name_el.get_text(strip=True) if name_el else a.get_text(strip=True)
-            name = re.sub(r'\s+', ' ', name).split('£')[0].strip()
+            product_data = json.loads(card.get('data-as-product', '{}'))
+            name = product_data.get('item_name', '').strip()
             if not name or len(name) < 5:
                 continue
+            price = product_data.get('price') or None
 
-            price_el = card.select_one('[class*="price"], [class*="Price"]')
-            price = self._parse_price(price_el.get_text() if price_el else '')
-
-            # Фото — шукаємо img з src hugoboss
-            img = card.select_one('img[src*="hugoboss"]')
-            if not img:
-                img = card.select_one('img')
-            image_url = ''
-            if img:
-                image_url = img.get('src', '') or img.get('data-src', '')
-                if image_url.startswith('//'):
-                    image_url = 'https:' + image_url
+            # Image from data attribute (always present, clean URL)
+            image_url = card.get('data-originalimage', '')
+            if not image_url:
+                img = card.select_one('img[src*="hugoboss"]') or card.select_one('img')
+                if img:
+                    image_url = img.get('src', '') or img.get('data-src', '')
+            if image_url.startswith('//'):
+                image_url = 'https:' + image_url
 
             seen_urls.add(source_url)
             results.append((name, source_url, price, image_url))
 
         return results
-
-    @staticmethod
-    def _parse_price(text: str):
-        if not text:
-            return None
-        m = re.search(r'[\d]+\.?\d*', text.replace(',', ''))
-        return float(m.group()) if m else None

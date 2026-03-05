@@ -6,61 +6,82 @@ from trapApp.scrapers.base import BaseScraper
 class DieselScraper(BaseScraper):
     """
     Diesel — HTML scraping каталогу.
-    URL: https://www.diesel.com/en-ua/category/clothing
+    ФІКС: en-ua більше не існує, перейшли на en-gb.
     """
     brand_name = 'Diesel'
-    base_url = 'https://www.diesel.com'
+    base_url   = 'https://www.diesel.com'
 
     CATEGORY_MAP = [
-        ('/en-ua/category/mens-t-shirts',   'tops',      'casual'),
-        ('/en-ua/category/mens-jeans',      'bottoms',   'casual'),
-        ('/en-ua/category/mens-jackets',    'outerwear', 'smart_casual'),
-        ('/en-ua/category/mens-hoodies',    'tops',      'casual'),
-        ('/en-ua/category/mens-shoes',      'footwear',  'casual'),
+        ('/en-gb/category/mens-t-shirts',  'tops',      'casual',       'M'),
+        ('/en-gb/category/mens-jeans',     'bottoms',   'casual',       'M'),
+        ('/en-gb/category/mens-jackets',   'outerwear', 'smart_casual', 'M'),
+        ('/en-gb/category/mens-hoodies',   'tops',      'casual',       'M'),
+        ('/en-gb/category/mens-shoes',     'footwear',  'casual',       'M'),
     ]
 
-    def scrape_category(self, path, category, formality):
+    def scrape_category(self, path, category, formality, gender):
         url = self.base_url + path
         try:
             resp = requests.get(url, headers=self.headers, timeout=15)
+            resp.raise_for_status()
             soup = BeautifulSoup(resp.text, 'html.parser')
         except Exception as e:
             print(f'[Diesel] Помилка: {e}')
             return
 
-        for card in soup.select('.product-tile'):
-            name_tag = card.select_one('.product-name')
-            price_tag = card.select_one('.price .sales .value')
-            img_tag = card.select_one('img.tile-image')
-            link_tag = card.select_one('a.thumb-link')
+        # Diesel оновив верстку — широкий набір селекторів
+        cards = (
+            soup.select('[data-product-id]')
+            or soup.select('.product-tile')
+            or soup.select('article')
+            or soup.select('[class*="ProductCard"]')
+        )
+        print(f'[Diesel] Знайдено карток: {len(cards)}')
 
+        seen: set[str] = set()
+        for card in cards:
+            name_tag = card.select_one('[class*="name"], [class*="title"], h2, h3')
             if not name_tag:
                 continue
-
             name = name_tag.get_text(strip=True)
-            price_text = price_tag.get_text(strip=True).replace('\u20b4', '').replace(',', '.').strip() if price_tag else None
+            if not name or len(name) < 3:
+                continue
+
+            link_tag = card.select_one('a[href]')
+            href = link_tag['href'] if link_tag else ''
+            source_url = href if href.startswith('http') else self.base_url + href
+            if not source_url or source_url in seen:
+                continue
+            seen.add(source_url)
+
+            price_tag = card.select_one('[class*="price"], [class*="Price"]')
+            price_text = price_tag.get_text(strip=True) if price_tag else ''
             try:
-                price = float(price_text) if price_text else None
+                price = float(''.join(c for c in price_text if c.isdigit() or c == '.') or '0') or None
             except ValueError:
                 price = None
 
-            image_url = img_tag.get('src', img_tag.get('data-src', '')) if img_tag else ''
-            source_url = self.base_url + link_tag['href'] if link_tag else url
+            img_tag = card.select_one('img')
+            image_url = ''
+            if img_tag:
+                image_url = img_tag.get('data-src') or img_tag.get('src') or ''
+                if image_url.startswith('//'):
+                    image_url = 'https:' + image_url
 
             self.save_item({
-                'name': name,
+                'name':       name,
                 'source_url': source_url,
-                'category': category,
-                'formality': formality,
-                'price': price,
-                'currency': 'UAH',
-                'image_url': image_url,
-                'color': '',
-                'material': '',
-                'pattern': 'solid',
-                'gender': 'M',
+                'category':   category,
+                'formality':  formality,
+                'price':      price,
+                'currency':   'GBP',
+                'image_url':  image_url,
+                'color':      '',
+                'material':   '',
+                'pattern':    'solid',
+                'gender':     gender,
             }, [])
 
     def run(self):
-        for path, category, formality in self.CATEGORY_MAP:
-            self.scrape_category(path, category, formality)
+        for path, category, formality, gender in self.CATEGORY_MAP:
+            self.scrape_category(path, category, formality, gender)

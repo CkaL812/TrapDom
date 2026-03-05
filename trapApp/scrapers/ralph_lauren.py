@@ -2,15 +2,12 @@
 Ralph Lauren Scraper — Playwright + stealth.
 Cloudflare px-captcha блокує звичайний headless.
 pip install playwright-stealth
-
-Вимога: python -m playwright install chromium && pip install playwright-stealth
+Вимога: python -m playwright install chromium
 """
 import asyncio
 import re
-
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
-
 from trapApp.scrapers.base import BaseScraper
 
 try:
@@ -22,18 +19,17 @@ except ImportError:
 
 
 class RalphLaurenScraper(BaseScraper):
-
     brand_name = 'Ralph Lauren'
     base_url   = 'https://www.ralphlauren.com'
 
     CATEGORY_MAP = [
-        ('/men/clothing/polos',          'tops',      'smart_casual', 'M'),
-        ('/men/clothing/shirts',         'tops',      'formal',       'M'),
-        ('/men/clothing/pants',          'bottoms',   'smart_casual', 'M'),
-        ('/men/clothing/jackets-coats',  'outerwear', 'smart_casual', 'M'),
-        ('/women/clothing/tops',         'tops',      'smart_casual', 'F'),
-        ('/women/clothing/dresses',      'onepiece',  'cocktail',     'F'),
-        ('/women/clothing/pants-jeans',  'bottoms',   'casual',       'F'),
+        ('/men/clothing/polos',         'tops',      'smart_casual', 'M'),
+        ('/men/clothing/shirts',        'tops',      'formal',       'M'),
+        ('/men/clothing/pants',         'bottoms',   'smart_casual', 'M'),
+        ('/men/clothing/jackets-coats', 'outerwear', 'smart_casual', 'M'),
+        ('/women/clothing/tops',        'tops',      'smart_casual', 'F'),
+        ('/women/clothing/dresses',     'onepiece',  'cocktail',     'F'),
+        ('/women/clothing/pants-jeans', 'bottoms',   'casual',       'F'),
     ]
 
     def run(self):
@@ -53,12 +49,10 @@ class RalphLaurenScraper(BaseScraper):
                 extra_http_headers={'Accept-Language': 'en-US,en;q=0.9'},
             )
             page = await ctx.new_page()
-
             if HAS_STEALTH:
                 await stealth_async(page)
                 print('[Ralph Lauren] Stealth mode активний')
 
-            # Відкриваємо головну для отримання cookies
             try:
                 await page.goto(self.base_url, wait_until='domcontentloaded', timeout=30_000)
                 await page.wait_for_timeout(3000)
@@ -67,7 +61,6 @@ class RalphLaurenScraper(BaseScraper):
 
             for path, category, formality, gender in self.CATEGORY_MAP:
                 await self._scrape_category(page, path, category, formality, gender)
-
             await browser.close()
 
     async def _scrape_category(self, page, path, category, formality, gender):
@@ -75,7 +68,7 @@ class RalphLaurenScraper(BaseScraper):
         print(f'[Ralph Lauren] → {url}')
         try:
             await page.goto(url, wait_until='domcontentloaded', timeout=60_000)
-            await page.wait_for_timeout(10_000)  # Cloudflare challenge
+            await page.wait_for_timeout(10_000)
         except PWTimeout:
             print(f'[Ralph Lauren] Timeout: {url}')
             return
@@ -83,14 +76,11 @@ class RalphLaurenScraper(BaseScraper):
             print(f'[Ralph Lauren] Помилка: {e}')
             return
 
-        # Scroll
         for _ in range(10):
             await page.keyboard.press('End')
             await page.wait_for_timeout(500)
 
         html = await page.content()
-
-        # Перевіряємо чи не блокований
         if 'px-captcha' in html or 'Access to this page has been denied' in html:
             print(f'[Ralph Lauren] ❌ Cloudflare заблокував: {url}')
             return
@@ -120,20 +110,27 @@ class RalphLaurenScraper(BaseScraper):
             name = name_el.get_text(strip=True) if name_el else ''
             if not name or len(name) < 3:
                 continue
+
             link_el = card.select_one('a[href]')
             href = link_el['href'] if link_el else ''
             source_url = href if href.startswith('http') else self.base_url + href
             if not source_url or source_url in seen:
                 continue
             seen.add(source_url)
-            price_el = card.select_one('[class*="price"]') or card.select_one('[class*="Price"]')
+
+            price_el = (
+                card.select_one('[class*="price"]')
+                or card.select_one('[class*="Price"]')
+            )
             price = self._parse_price(price_el.get_text() if price_el else '')
+
             img_el = card.select_one('img')
             image_url = ''
             if img_el:
-                image_url = img_el.get('src') or img_el.get('data-src') or ''
+                image_url = img_el.get('data-src') or img_el.get('src') or ''
                 if image_url.startswith('//'):
                     image_url = 'https:' + image_url
+
             self.save_item({
                 'name': name, 'source_url': source_url,
                 'category': category, 'formality': formality,

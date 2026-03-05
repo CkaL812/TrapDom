@@ -1,33 +1,28 @@
 """
 COS Scraper — Playwright.
-api.cos.com мертвий. Wait_for_selector видалено (замінено на fixed wait).
-Додано детальний дебаг.
-
+api.cos.com мертвий. Використовується фіксований wait.
 Вимога: python -m playwright install chromium
 """
 import asyncio
 import re
-
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
-
 from trapApp.scrapers.base import BaseScraper
 
 
 class CosScraper(BaseScraper):
-
     brand_name = 'COS'
     base_url   = 'https://www.cos.com'
 
     CATEGORY_MAP = [
-        ('/en-gb/men/shirts',           'tops',      'smart_casual', 'M'),
-        ('/en-gb/men/trousers',          'bottoms',   'smart_casual', 'M'),
-        ('/en-gb/men/coats-jackets',     'outerwear', 'smart_casual', 'M'),
-        ('/en-gb/men/knitwear',          'tops',      'casual',       'M'),
-        ('/en-gb/women/shirts-blouses',  'tops',      'smart_casual', 'F'),
-        ('/en-gb/women/trousers',        'bottoms',   'smart_casual', 'F'),
-        ('/en-gb/women/dresses',         'onepiece',  'cocktail',     'F'),
-        ('/en-gb/women/coats-jackets',   'outerwear', 'smart_casual', 'F'),
+        ('/en-gb/men/shirts',          'tops',      'smart_casual', 'M'),
+        ('/en-gb/men/trousers',         'bottoms',   'smart_casual', 'M'),
+        ('/en-gb/men/coats-jackets',    'outerwear', 'smart_casual', 'M'),
+        ('/en-gb/men/knitwear',         'tops',      'casual',       'M'),
+        ('/en-gb/women/shirts-blouses', 'tops',      'smart_casual', 'F'),
+        ('/en-gb/women/trousers',       'bottoms',   'smart_casual', 'F'),
+        ('/en-gb/women/dresses',        'onepiece',  'cocktail',     'F'),
+        ('/en-gb/women/coats-jackets',  'outerwear', 'smart_casual', 'F'),
     ]
 
     def run(self):
@@ -40,7 +35,6 @@ class CosScraper(BaseScraper):
 
     async def _run_async(self):
         async with async_playwright() as p:
-            print('[COS] Запуск Chromium...')
             browser = await p.chromium.launch(headless=True)
             ctx = await browser.new_context(
                 user_agent=(
@@ -53,10 +47,8 @@ class CosScraper(BaseScraper):
             )
             page = await ctx.new_page()
             print('[COS] Chromium готовий')
-
             for path, category, formality, gender in self.CATEGORY_MAP:
                 await self._scrape_category(page, path, category, formality, gender)
-
             await browser.close()
             print('[COS] Готово')
 
@@ -65,7 +57,6 @@ class CosScraper(BaseScraper):
         print(f'[COS] → {url}')
         try:
             await page.goto(url, wait_until='domcontentloaded', timeout=40_000)
-            # Фіксований wait — надійніший за wait_for_selector
             await page.wait_for_timeout(8_000)
         except PWTimeout:
             print(f'[COS] Timeout: {url}')
@@ -74,20 +65,17 @@ class CosScraper(BaseScraper):
             print(f'[COS] Помилка goto: {e}')
             return
 
-        # Scroll для lazy-load
         for _ in range(8):
             await page.keyboard.press('End')
             await page.wait_for_timeout(600)
 
         html = await page.content()
         print(f'[COS] HTML отримано ({len(html)} байт)')
-
         saved = self._parse_html(html, category, formality, gender)
         print(f'[COS] {category}/{gender}: {saved} товарів збережено')
 
     def _parse_html(self, html, category, formality, gender):
         soup = BeautifulSoup(html, 'html.parser')
-
         cards = (
             soup.select('article')
             or soup.select('[data-testid="product"]')
@@ -98,7 +86,6 @@ class CosScraper(BaseScraper):
         print(f'[COS] Знайдено карток: {len(cards)}')
 
         if not cards:
-            # Fallback: шукаємо по заголовках всередині посилань
             cards = []
             for a in soup.select('a[href*="/en-gb/"]'):
                 h = a.select_one('h2, h3, [class*="name"]')
@@ -107,7 +94,6 @@ class CosScraper(BaseScraper):
 
         saved = 0
         seen: set[str] = set()
-
         for card in cards:
             name_el = (
                 card.select_one('h2') or card.select_one('h3')
@@ -134,7 +120,7 @@ class CosScraper(BaseScraper):
             img_el = card.select_one('img')
             image_url = ''
             if img_el:
-                image_url = img_el.get('src') or img_el.get('data-src') or ''
+                image_url = img_el.get('data-src') or img_el.get('src') or ''
                 if image_url.startswith('//'):
                     image_url = 'https:' + image_url
 

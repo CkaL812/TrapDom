@@ -1,9 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
-
     // ── Burger ───────────────────────────────────────────────
     const menuBtn = document.getElementById('mobile-menu-btn');
     const sideMenu = document.getElementById('side-menu');
-    const overlay  = document.getElementById('side-menu-overlay');
+    const overlay = document.getElementById('side-menu-overlay');
     const bar1 = document.getElementById('bar1');
     const bar2 = document.getElementById('bar2');
     const bar3 = document.getElementById('bar3');
@@ -23,7 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function closeMenu() {
         isOpen = false;
         bar1.style.transform = '';
-        bar2.style.opacity  = '';
+        bar2.style.opacity = '';
         bar3.style.transform = '';
         sideMenu.classList.add('-translate-x-full');
         overlay.classList.add('opacity-0');
@@ -32,26 +31,28 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     if (menuBtn) menuBtn.addEventListener('click', () => isOpen ? closeMenu() : openMenu());
-    if (overlay)  overlay.addEventListener('click', closeMenu);
+    if (overlay) overlay.addEventListener('click', closeMenu);
 
-
-    // ── Фільтр категорій ────────────────────────────────────
-    // Читаємо поточні GET-параметри
+    // ── Фільтри категорій ─────────────────────────────────────
+    // Зчитуємо поточні params з URL
     const urlParams = new URLSearchParams(window.location.search);
-    const idsParam  = urlParams.getAll('ids').map(id => `ids=${id}`).join('&');
-    const baseQuery = idsParam +
-        (urlParams.get('event')  ? `&event=${encodeURIComponent(urlParams.get('event'))}`  : '') +
-        (urlParams.get('gender') ? `&gender=${encodeURIComponent(urlParams.get('gender'))}` : '') +
-        (urlParams.get('season') ? `&season=${encodeURIComponent(urlParams.get('season'))}` : '');
+    const ids = urlParams.getAll('ids');
+    const eventName = urlParams.get('event') || '';
+    const gender = urlParams.get('gender') || '';
+    const season = urlParams.get('season') || '';
+    const style = urlParams.get('style') || '';
 
+    // Оновлюємо href усіх filter-btn щоб вони передавали ids
     document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const cat = this.dataset.cat;
-            const query = cat === 'all'
-                ? baseQuery
-                : `${baseQuery}&cat=${cat}`;
-            window.location.href = `/outfit-results/?${query}`;
-        });
+        const catKey = btn.dataset.cat;
+        if (!catKey) return;
+        const params = new URLSearchParams();
+        ids.forEach(id => params.append('ids', id));
+        params.set('cat', catKey);
+        if (eventName) params.set('event', eventName);
+        if (gender) params.set('gender', gender);
+        if (season) params.set('season', season);
+        if (style) params.set('style', style);
+        btn.href = '?' + params.toString();
     });
 });
