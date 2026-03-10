@@ -7,9 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Підбір образу — TrapDom</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
     <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
     <script>
         tailwind.config = {
@@ -39,33 +40,27 @@
             transition: all 0.2s ease;
             user-select: none;
         }
-
         .event-wheel-item:hover {
             color: #F5F5F0;
             background: #2A2A2A;
         }
-
         .event-wheel-item.active {
             color: #F5F5F0;
             border-left: 2px solid #8B0000;
             background: #2A2A2A;
         }
-
         .option-card {
             cursor: pointer;
             transition: all 0.2s ease;
             border: 1px solid #2A2A2A;
         }
-
         .option-card:hover {
             border-color: #A0A0A0;
         }
-
         .option-card.selected {
             border-color: #8B0000;
             background: #1E1E1E;
         }
-
         select {
             -webkit-appearance: none;
             appearance: none;
@@ -73,7 +68,6 @@
             background-repeat: no-repeat;
             background-position: right 16px center;
         }
-
         #submit-progress {
             position: absolute;
             bottom: 0;
@@ -89,67 +83,15 @@
 <body class="bg-charcoal-900 text-off-white min-h-screen">
     <div class="grunge-texture fixed inset-0 z-0"></div>
 
-    <!-- NAVBAR -->
-    <nav class="fixed w-full z-50 bg-charcoal-900/90 backdrop-blur-md border-b border-charcoal-700">
-        <div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
-            <button id="mobile-menu-btn"
-                class="text-off-white p-2 flex flex-col justify-center items-center w-10 h-10 gap-[6px]">
-                <span id="bar1" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
-                <span id="bar2" class="block w-7 h-[2px] bg-off-white transition-all duration-300"></span>
-                <span id="bar3" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
-            </button>
-            <div class="absolute left-1/2 -translate-x-1/2">
-                <a href="{% url 'index' %}">
-                    <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="160" height="43"
-                        style="object-fit:contain;">
-                </a>
-            </div>
-            <div class="flex items-center space-x-6">
-                <button class="text-off-white hover:text-grunge-gray transition-colors"><i
-                        class="fa-solid fa-magnifying-glass"></i></button>
-                <button class="text-off-white hover:text-grunge-gray transition-colors"><i
-                        class="fa-regular fa-user"></i></button>
-                <button class="text-off-white hover:text-grunge-gray transition-colors relative">
-                    <i class="fa-solid fa-bag-shopping"></i>
-                    <span
-                        class="absolute -top-2 -right-2 bg-off-white text-charcoal-900 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">2</span>
-                </button>
-            </div>
-        </div>
-    </nav>
+    {% include 'trapApp/partials/header.html' %}
 
-    <!-- SIDE OVERLAY -->
-    <div id="side-menu-overlay"
-        class="fixed inset-0 bg-black/60 z-[45] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm">
-    </div>
-
-    <!-- SIDE DRAWER -->
-    <div id="side-menu"
-        class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-charcoal-900 border-r border-charcoal-700 transform -translate-x-full transition-transform duration-300 z-[45] flex flex-col pt-28 px-8 pb-8 overflow-y-auto">
-        <nav class="flex flex-col space-y-6 flex-1">
-            <a href="{% url 'index' %}"
-                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">Головна</a>
-            <a href="{% url 'outfit_picker' %}"
-                class="text-sm font-mono uppercase tracking-widest text-off-white transition-colors w-fit">Підбір
-                одягу</a>
-        </nav>
-        <div class="mt-auto pt-8 flex space-x-6 justify-center">
-            <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
-                    class="fa-brands fa-instagram"></i></a>
-            <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i
-                    class="fa-brands fa-tiktok"></i></a>
-        </div>
-    </div>
-
-    <!-- MAIN -->
     <main class="relative z-10 pt-20 min-h-screen">
 
         <!-- Хедер -->
         <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
             <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray mb-2">AI-стиліст</p>
             <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">Підбір образу</h1>
-            <p class="text-grunge-gray font-mono text-xs mt-3 max-w-md">Оберіть подію, стать та сезон — штучний інтелект
-                підбере образ із нашого каталогу.</p>
+            <p class="text-grunge-gray font-mono text-xs mt-3 max-w-md">Оберіть подію, стать та сезон — штучний інтелект підбере образ із нашого каталогу.</p>
         </div>
 
         <!-- Форма -->
@@ -161,27 +103,19 @@
                     <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
                         <span class="text-accent-red mr-1">01</span> Оберіть подію
                     </p>
-
-                    <!-- Пошук події -->
                     <div class="relative mb-3">
                         <input id="event-input" type="text" placeholder="Або введіть свою подію..."
                             class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
-                        <i
-                            class="fa-solid fa-pen-to-square absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-700 text-xs"></i>
+                        <i class="fa-solid fa-pen-to-square absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-700 text-xs"></i>
                     </div>
-
-                    <!-- Wheel зі списком подій -->
                     <div class="border border-charcoal-700 bg-charcoal-800">
                         <div class="flex items-center justify-between px-5 py-2 border-b border-charcoal-700">
-                            <span class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700">Популярні
-                                події</span>
+                            <span class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700">Популярні події</span>
                             <div class="flex gap-2">
-                                <button type="button" id="wheel-up"
-                                    class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                <button type="button" id="wheel-up" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                                     <i class="fa-solid fa-chevron-up text-[10px]"></i>
                                 </button>
-                                <button type="button" id="wheel-down"
-                                    class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                <button type="button" id="wheel-down" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                                     <i class="fa-solid fa-chevron-down text-[10px]"></i>
                                 </button>
                             </div>
@@ -195,8 +129,6 @@
 
                 <!-- Колонка 2: Стать + Сезон -->
                 <div class="lg:col-span-1 flex flex-col gap-8">
-
-                    <!-- Стать -->
                     <div>
                         <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
                             <span class="text-accent-red mr-1">02</span> Стать
@@ -209,8 +141,6 @@
                             <option value="unisex" class="bg-charcoal-900">Унісекс</option>
                         </select>
                     </div>
-
-                    <!-- Сезон -->
                     <div>
                         <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
                             <span class="text-accent-red mr-1">03</span> Сезон
@@ -231,64 +161,39 @@
                     <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
                         <span class="text-accent-red mr-1">04</span> Запустити підбір
                     </p>
-
-                    <!-- Інфо блок -->
                     <div class="border border-charcoal-700 bg-charcoal-800 p-5 mb-6 flex-1">
-                        <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Як це працює
-                        </p>
+                        <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Як це працює</p>
                         <ul class="space-y-3">
                             <li class="flex items-start gap-3">
                                 <span class="text-accent-red text-[10px] font-mono mt-0.5">01</span>
-                                <span class="text-grunge-gray text-xs font-mono">Оберіть подію зі списку або введіть
-                                    власну</span>
+                                <span class="text-grunge-gray text-xs font-mono">Оберіть подію зі списку або введіть власну</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="text-accent-red text-[10px] font-mono mt-0.5">02</span>
-                                <span class="text-grunge-gray text-xs font-mono">Вкажіть стать та сезон для точнішого
-                                    результату</span>
+                                <span class="text-grunge-gray text-xs font-mono">Вкажіть стать та сезон для точнішого результату</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <span class="text-accent-red text-[10px] font-mono mt-0.5">03</span>
-                                <span class="text-grunge-gray text-xs font-mono">AI-стиліст підбере образ із каталогу
-                                    TrapDom</span>
+                                <span class="text-grunge-gray text-xs font-mono">AI-стиліст підбере образ із каталогу TrapDom</span>
                             </li>
                         </ul>
                     </div>
-
-                    <!-- Помилка -->
                     <div id="result-area" class="hidden mb-4 border border-accent-red bg-charcoal-800 px-4 py-3">
                         <p id="result-text" class="text-accent-red text-xs font-mono"></p>
                     </div>
-
-                    <!-- Кнопка -->
                     <button id="submit-btn" type="submit" disabled
                         class="w-full relative overflow-hidden bg-charcoal-700 text-grunge-gray border border-charcoal-700 px-6 py-5 font-bold tracking-widest uppercase text-sm cursor-not-allowed transition-all duration-300">
                         <span id="btn-text">Підібрати образ</span>
                         <div id="submit-progress"></div>
                     </button>
-                    <p class="text-[9px] font-mono text-charcoal-700 mt-2 text-center">Заповніть хоча б одне поле для
-                        активації</p>
+                    <p class="text-[9px] font-mono text-charcoal-700 mt-2 text-center">Заповніть хоча б одне поле для активації</p>
                 </div>
 
             </form>
         </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="relative z-10 border-t border-charcoal-700 bg-charcoal-900">
-        <div class="max-w-[1440px] mx-auto px-6 py-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p class="text-xs text-charcoal-700 font-mono">© 2024 Iron & Ink. All Rights Reserved.</p>
-                <div class="flex space-x-6">
-                    <a href="#"
-                        class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Privacy
-                        Policy</a>
-                    <a href="#"
-                        class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Terms</a>
-                </div>
-            </div>
-        </div>
-    </footer>
+    {% include 'trapApp/partials/footer.html' %}
 
     <script src="{% static 'trapApp/js/outfit_picker.js' %}"></script>
 </body>

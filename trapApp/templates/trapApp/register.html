@@ -1,0 +1,129 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Реєстрація — TrapDom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+    <script>
+        tailwind.config = {
+            theme: { extend: {
+                colors: {
+                    'charcoal-900': '#121212', 'charcoal-800': '#1E1E1E',
+                    'charcoal-700': '#2A2A2A', 'off-white': '#F5F5F0',
+                    'grunge-gray': '#A0A0A0',  'accent-red': '#8B0000',
+                },
+                fontFamily: {
+                    'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                    'bebas':  ['"Bebas Neue"', 'cursive'],
+                    'mono':   ['"Courier New"', 'monospace'],
+                },
+            }}
+        }
+    </script>
+</head>
+<body class="bg-charcoal-900 text-off-white min-h-screen">
+<div class="grunge-texture fixed inset-0 z-0"></div>
+
+{% include 'trapApp/partials/header.html' %}
+
+<main class="relative z-10 pt-20 min-h-screen flex items-center justify-center px-6">
+    <div class="w-full max-w-md">
+
+        <!-- Заголовок -->
+        <div class="mb-10">
+            <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Акаунт</p>
+            <h1 class="font-bebas text-6xl tracking-widest text-off-white">Реєстрація</h1>
+            <p class="text-grunge-gray font-mono text-xs mt-2">Вже є акаунт?
+                <a href="{% url 'login' %}" class="text-off-white border-b border-charcoal-700 hover:border-off-white transition-colors">Увійти</a>
+            </p>
+        </div>
+
+        <!-- Помилки -->
+        {% if form.non_field_errors %}
+        <div class="border border-accent-red bg-charcoal-800 px-4 py-3 mb-6">
+            {% for error in form.non_field_errors %}
+            <p class="text-accent-red text-xs font-mono">{{ error }}</p>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Форма -->
+        <form method="POST" class="flex flex-col gap-4">
+            {% csrf_token %}
+
+            <!-- Ім'я + Прізвище в один рядок -->
+            <div>
+                <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">
+                    <span class="text-accent-red mr-1">01</span> Ім'я та прізвище
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}"
+                            placeholder="Ім'я"
+                            class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                        {% if form.first_name.errors %}
+                        <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}"
+                            placeholder="Прізвище"
+                            class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                        {% if form.last_name.errors %}
+                        <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">
+                    <span class="text-accent-red mr-1">02</span> Email
+                </label>
+                <input type="email" name="email" value="{{ form.email.value|default:'' }}"
+                    placeholder="your@email.com"
+                    class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                {% if form.email.errors %}
+                <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">
+                    <span class="text-accent-red mr-1">03</span> Пароль
+                </label>
+                <input type="password" name="password1"
+                    placeholder="••••••••"
+                    class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+            </div>
+
+            <div>
+                <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">
+                    <span class="text-accent-red mr-1">04</span> Повторіть пароль
+                </label>
+                <input type="password" name="password2"
+                    placeholder="••••••••"
+                    class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                {% if form.password2.errors %}
+                <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.password2.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit"
+                class="w-full bg-off-white text-charcoal-900 px-6 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm mt-2">
+                Створити акаунт
+            </button>
+        </form>
+    </div>
+</main>
+
+{% include 'trapApp/partials/footer.html' %}
+<script src="{% static 'trapApp/js/script.js' %}"></script>
+</body>
+</html>

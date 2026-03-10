@@ -1,0 +1,135 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профіль — TrapDom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+    <script>
+        tailwind.config = {
+            theme: { extend: {
+                colors: {
+                    'charcoal-900': '#121212', 'charcoal-800': '#1E1E1E',
+                    'charcoal-700': '#2A2A2A', 'off-white': '#F5F5F0',
+                    'grunge-gray': '#A0A0A0',  'accent-red': '#8B0000',
+                },
+                fontFamily: {
+                    'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                    'bebas':  ['"Bebas Neue"', 'cursive'],
+                    'mono':   ['"Courier New"', 'monospace'],
+                },
+            }}
+        }
+    </script>
+</head>
+<body class="bg-charcoal-900 text-off-white min-h-screen">
+<div class="grunge-texture fixed inset-0 z-0"></div>
+
+{% include 'trapApp/partials/header.html' %}
+
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- Хедер сторінки -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Акаунт</p>
+        <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">Профіль</h1>
+        <p class="text-grunge-gray font-mono text-xs mt-2">{{ user.email }}</p>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+            <!-- Форма редагування -->
+            <div class="lg:col-span-2">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-6">
+                    <span class="text-accent-red mr-1">01</span> Особисті дані
+                </p>
+
+                {% if messages %}
+                {% for message in messages %}
+                <div class="border border-charcoal-700 bg-charcoal-800 px-4 py-3 mb-6">
+                    <p class="text-off-white text-xs font-mono">{{ message }}</p>
+                </div>
+                {% endfor %}
+                {% endif %}
+
+                <form method="POST" class="flex flex-col gap-4">
+                    {% csrf_token %}
+
+                    <div>
+                        <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">Ім'я та прізвище</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}"
+                                placeholder="Ім'я"
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                            <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}"
+                                placeholder="Прізвище"
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">Email</label>
+                        <input type="email" name="email" value="{{ form.email.value|default:'' }}"
+                            class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors">
+                        {% if form.email.errors %}
+                        <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit"
+                        class="w-full bg-off-white text-charcoal-900 px-6 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm mt-2">
+                        Зберегти зміни
+                    </button>
+                </form>
+            </div>
+
+            <!-- Інфо панель -->
+            <div class="lg:col-span-1">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-6">
+                    <span class="text-accent-red mr-1">02</span> Інформація
+                </p>
+                <div class="border border-charcoal-700 bg-charcoal-800 p-5">
+                    <ul class="space-y-4">
+                        <li class="flex items-start gap-3 border-b border-charcoal-700 pb-4">
+                            <i class="fa-regular fa-user text-accent-red text-xs mt-0.5"></i>
+                            <div>
+                                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-0.5">Ім'я</p>
+                                <p class="text-xs font-mono text-grunge-gray">{{ user.first_name }} {{ user.last_name }}</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3 border-b border-charcoal-700 pb-4">
+                            <i class="fa-regular fa-envelope text-accent-red text-xs mt-0.5"></i>
+                            <div>
+                                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-0.5">Email</p>
+                                <p class="text-xs font-mono text-grunge-gray">{{ user.email }}</p>
+                            </div>
+                        </li>
+                        <li class="flex items-start gap-3">
+                            <i class="fa-regular fa-calendar text-accent-red text-xs mt-0.5"></i>
+                            <div>
+                                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-0.5">Дата реєстрації</p>
+                                <p class="text-xs font-mono text-grunge-gray">{{ user.date_joined|date:"d.m.Y" }}</p>
+                            </div>
+                        </li>
+                    </ul>
+                    <a href="{% url 'logout' %}"
+                        class="mt-6 w-full flex items-center justify-center gap-2 border border-charcoal-700 hover:border-accent-red text-grunge-gray hover:text-accent-red font-mono text-xs uppercase tracking-widest px-4 py-3 transition-all duration-200">
+                        <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Вийти
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+{% include 'trapApp/partials/footer.html' %}
+<script src="{% static 'trapApp/js/script.js' %}"></script>
+</body>
+</html>

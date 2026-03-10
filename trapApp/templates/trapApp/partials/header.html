@@ -1,0 +1,98 @@
+{% load static %}
+
+<nav class="fixed w-full z-50 bg-charcoal-900/90 backdrop-blur-md border-b border-charcoal-700">
+    <div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
+        <button id="mobile-menu-btn"
+            class="text-off-white p-2 flex flex-col justify-center items-center w-10 h-10 gap-[6px] group"
+            aria-label="Toggle Menu">
+            <span id="bar1" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
+            <span id="bar2" class="block w-7 h-[2px] bg-off-white transition-all duration-300"></span>
+            <span id="bar3" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
+        </button>
+        <div class="absolute left-1/2 -translate-x-1/2">
+            <a href="{% url 'index' %}">
+                <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="160" height="43" style="object-fit: contain;">
+            </a>
+        </div>
+        <div class="flex items-center space-x-6">
+            <button class="text-off-white hover:text-grunge-gray transition-colors" aria-label="Search">
+                <i class="fa-solid fa-magnifying-glass"></i>
+            </button>
+
+            <!-- User dropdown -->
+            {% if user.is_authenticated %}
+            <div class="relative group">
+                <a href="{% url 'profile' %}" class="text-off-white hover:text-grunge-gray transition-colors">
+                    <i class="fa-regular fa-user"></i>
+                </a>
+                <!-- Dropdown -->
+                <div class="absolute right-0 top-full mt-0 w-48 bg-charcoal-900 border border-charcoal-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div class="px-4 py-3 border-b border-charcoal-700">
+                        <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700">Акаунт</p>
+                        <p class="text-xs font-mono text-grunge-gray truncate mt-0.5">{{ user.first_name }} {{ user.last_name }}</p>
+                    </div>
+                    <a href="{% url 'profile' %}"
+                        class="flex items-center gap-3 px-4 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white hover:bg-charcoal-800 transition-colors border-b border-charcoal-700">
+                        <i class="fa-regular fa-user text-accent-red text-[10px]"></i> Профіль
+                    </a>
+                    <a href="#"
+                        class="flex items-center gap-3 px-4 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white hover:bg-charcoal-800 transition-colors border-b border-charcoal-700">
+                        <i class="fa-solid fa-chart-simple text-accent-red text-[10px]"></i> Аналітика
+                    </a>
+                    <a href="{% url 'logout' %}"
+                        class="flex items-center gap-3 px-4 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white hover:bg-charcoal-800 transition-colors">
+                        <i class="fa-solid fa-right-from-bracket text-accent-red text-[10px]"></i> Вийти
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <a href="{% url 'login' %}" class="text-off-white hover:text-grunge-gray transition-colors" aria-label="Account">
+                <i class="fa-regular fa-user"></i>
+            </a>
+            {% endif %}
+
+            <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Cart">
+                <i class="fa-solid fa-bag-shopping"></i>
+                <span class="absolute -top-2 -right-2 bg-off-white text-charcoal-900 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">2</span>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Side Menu Overlay -->
+<div id="side-menu-overlay"
+    class="fixed inset-0 bg-black/60 z-[45] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm"></div>
+
+<!-- Side Drawer -->
+<div id="side-menu"
+    class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-charcoal-900 border-r border-charcoal-700 transform -translate-x-full transition-transform duration-300 z-[45] flex flex-col pt-28 px-8 pb-8 overflow-y-auto">
+    <nav class="flex flex-col space-y-6 flex-1">
+        <a href="{% url 'outfit_picker' %}"
+            class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">
+            Підбір одягу
+        </a>
+        {% if user.is_authenticated %}
+        <a href="{% url 'profile' %}"
+            class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">
+            Профіль
+        </a>
+        <a href="{% url 'logout' %}"
+            class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">
+            Вийти
+        </a>
+        {% else %}
+        <a href="{% url 'login' %}"
+            class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">
+            Увійти
+        </a>
+        <a href="{% url 'register' %}"
+            class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">
+            Реєстрація
+        </a>
+        {% endif %}
+    </nav>
+    <div class="mt-auto pt-8 flex space-x-6 justify-center">
+        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
+        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-tiktok"></i></a>
+    </div>
+</div>  

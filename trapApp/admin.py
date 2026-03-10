@@ -144,3 +144,8 @@ class OutfitAdmin(admin.ModelAdmin):
     @admin.display(description='Речей у луці')
     def item_count(self, obj):
         return obj.items.count()
+
+from django.contrib.auth.admin import UserAdmin
+from .models import CustomUser
+
+admin.site.register(CustomUser, UserAdmin)

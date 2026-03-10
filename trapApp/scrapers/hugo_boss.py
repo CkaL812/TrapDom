@@ -35,7 +35,7 @@ class HugoBossScraper(BaseScraper):
         for path, category, formality, gender in self.CATEGORY_MAP:
             self._scrape_category(path, category, formality, gender)
 
-    CATEGORY_LIMIT = 100
+    CATEGORY_LIMIT = 20
 
     def _scrape_category(self, path, category, formality, gender):
         start = 0

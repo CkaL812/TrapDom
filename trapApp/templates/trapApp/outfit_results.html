@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
     <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
     <script>
         tailwind.config = {
@@ -54,48 +56,8 @@
 <body class="bg-charcoal-900 text-off-white min-h-screen">
     <div class="grunge-texture fixed inset-0 z-0"></div>
 
-    <!-- NAVBAR -->
-    <nav class="fixed w-full z-50 bg-charcoal-900/90 backdrop-blur-md border-b border-charcoal-700">
-        <div class="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
-            <button id="mobile-menu-btn"
-                class="text-off-white p-2 flex flex-col justify-center items-center w-10 h-10 gap-[6px]">
-                <span id="bar1" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
-                <span id="bar2" class="block w-7 h-[2px] bg-off-white transition-all duration-300"></span>
-                <span id="bar3" class="block w-7 h-[2px] bg-off-white transition-all duration-300 origin-center"></span>
-            </button>
-            <div class="absolute left-1/2 -translate-x-1/2">
-                <a href="{% url 'index' %}">
-                    <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="160" height="43" style="object-fit:contain;">
-                </a>
-            </div>
-            <div class="flex items-center space-x-6">
-                <button class="text-off-white hover:text-grunge-gray transition-colors"><i class="fa-solid fa-magnifying-glass"></i></button>
-                <button class="text-off-white hover:text-grunge-gray transition-colors"><i class="fa-regular fa-user"></i></button>
-                <button class="text-off-white hover:text-grunge-gray transition-colors relative">
-                    <i class="fa-solid fa-bag-shopping"></i>
-                    <span class="absolute -top-2 -right-2 bg-off-white text-charcoal-900 text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full">2</span>
-                </button>
-            </div>
-        </div>
-    </nav>
+    {% include 'trapApp/partials/header.html' %}
 
-    <!-- SIDE OVERLAY -->
-    <div id="side-menu-overlay" class="fixed inset-0 bg-black/60 z-[45] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm"></div>
-
-    <!-- SIDE DRAWER -->
-    <div id="side-menu"
-        class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-charcoal-900 border-r border-charcoal-700 transform -translate-x-full transition-transform duration-300 z-[45] flex flex-col pt-28 px-8 pb-8 overflow-y-auto">
-        <nav class="flex flex-col space-y-6 flex-1">
-            <a href="{% url 'index' %}" class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors w-fit">Головна</a>
-            <a href="{% url 'outfit_picker' %}" class="text-sm font-mono uppercase tracking-widest text-off-white transition-colors w-fit">Підбір одягу</a>
-        </nav>
-        <div class="mt-auto pt-8 flex space-x-6 justify-center">
-            <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
-            <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-tiktok"></i></a>
-        </div>
-    </div>
-
-    <!-- MAIN -->
     <main class="relative z-10 pt-20 min-h-screen">
 
         <!-- Хедер -->
@@ -262,57 +224,10 @@
         </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="relative z-10 border-t border-charcoal-700 bg-charcoal-900">
-        <div class="max-w-[1440px] mx-auto px-6 py-8">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <p class="text-xs text-charcoal-700 font-mono">© 2024 Iron & Ink. All Rights Reserved.</p>
-                <div class="flex space-x-6">
-                    <a href="#" class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Privacy Policy</a>
-                    <a href="#" class="text-xs text-charcoal-700 font-mono hover:text-grunge-gray transition-colors uppercase">Terms</a>
-                </div>
-            </div>
-        </div>
-    </footer>
+    {% include 'trapApp/partials/footer.html' %}
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-
-            // ── Burger ───────────────────────────────────────────────
-            const menuBtn = document.getElementById('mobile-menu-btn');
-            const sideMenu = document.getElementById('side-menu');
-            const overlay  = document.getElementById('side-menu-overlay');
-            const bar1 = document.getElementById('bar1');
-            const bar2 = document.getElementById('bar2');
-            const bar3 = document.getElementById('bar3');
-            let isOpen = false;
-
-            function openMenu() {
-                isOpen = true;
-                bar1.style.transform = 'translateY(8px) rotate(45deg)';
-                bar2.style.opacity = '0';
-                bar3.style.transform = 'translateY(-8px) rotate(-45deg)';
-                sideMenu.classList.remove('-translate-x-full');
-                overlay.classList.remove('hidden');
-                requestAnimationFrame(() => overlay.classList.remove('opacity-0'));
-                document.body.style.overflow = 'hidden';
-            }
-
-            function closeMenu() {
-                isOpen = false;
-                bar1.style.transform = '';
-                bar2.style.opacity = '';
-                bar3.style.transform = '';
-                sideMenu.classList.add('-translate-x-full');
-                overlay.classList.add('opacity-0');
-                setTimeout(() => overlay.classList.add('hidden'), 300);
-                document.body.style.overflow = '';
-            }
-
-            if (menuBtn) menuBtn.addEventListener('click', () => isOpen ? closeMenu() : openMenu());
-            if (overlay)  overlay.addEventListener('click', closeMenu);
-
-            // ── Фільтрація по категоріях ─────────────────────────────
             const catBtns    = document.querySelectorAll('.cat-btn');
             const cards      = document.querySelectorAll('.item-card');
             const shownCount = document.getElementById('shown-count');

@@ -4,21 +4,24 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from .models import ClothingItem, Event
+from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from .models import ClothingItem, Event, CustomUser
+from .forms import RegisterForm, LoginForm, ProfileForm
 
 
 def index(request):
     return render(request, 'trapApp/index.html')
 
 
+@login_required(login_url='/login/')
 def outfit_picker(request):
     return render(request, 'trapApp/outfit_picker.html')
 
 
 def outfit_results(request):
-    """Сторінка результатів — дані беруться із session."""
     result = request.session.get('outfit_result')
-
     if not result:
         return redirect('outfit_picker')
 
@@ -27,14 +30,11 @@ def outfit_results(request):
     reason_map = {item['id']: item.get('reason', '') for item in items_data}
 
     items_qs = ClothingItem.objects.filter(id__in=ids).select_related('brand')
-
     for item in items_qs:
         item.reason = reason_map.get(item.id, '')
 
-    # Зберігаємо порядок як у LLM
     items_ordered = sorted(items_qs, key=lambda x: ids.index(x.id))
 
-    # Категорії з лічильниками
     category_labels = dict(ClothingItem.CATEGORY_CHOICES)
     cat_counts = {}
     for item in items_ordered:
@@ -57,7 +57,6 @@ def outfit_results(request):
     return render(request, 'trapApp/outfit_results.html', context)
 
 
-# Маппінг formality: яку formality речей показувати для кожної події
 FORMALITY_MAP = {
     'casual':       ['casual'],
     'smart_casual': ['casual', 'smart_casual'],
@@ -74,6 +73,7 @@ SEASON_LABELS = {'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осі
 
 
 @csrf_exempt
+@login_required(login_url='/login/')
 def generate_outfit(request):
     if request.method != 'POST':
         return JsonResponse({'status': 'error'}, status=400)
@@ -83,20 +83,17 @@ def generate_outfit(request):
     gender = data.get('gender', '')
     season = data.get('season', '')
 
-    # ── 1. Фільтрація каталогу в ORM ────────────────────────────────────
     qs = ClothingItem.objects.select_related('brand').all()
 
     if gender in GENDER_MAP:
         qs = qs.filter(gender__in=[GENDER_MAP[gender], 'U'])
 
-    # Фільтр по formality через Event з БД
     event_obj = Event.objects.filter(name__iexact=event).first()
     if event_obj and event_obj.formality in FORMALITY_MAP:
         qs = qs.filter(formality__in=FORMALITY_MAP[event_obj.formality])
 
     items = list(qs[:100])
 
-    # Fallback: якщо після фільтрації нічого — прибираємо formality фільтр
     if not items:
         items = list(
             ClothingItem.objects.select_related('brand')
@@ -106,7 +103,6 @@ def generate_outfit(request):
     if not items:
         return JsonResponse({'status': 'error', 'message': 'У базі даних немає речей для підбору.'}, status=404)
 
-    # ── 2. Серіалізація для промпту ──────────────────────────────────────
     catalog_lines = []
     for item in items:
         line = (
@@ -118,7 +114,6 @@ def generate_outfit(request):
         catalog_lines.append(line)
     catalog_text = "\n".join(catalog_lines)
 
-    # ── 3. Промпт ────────────────────────────────────────────────────────
     system_prompt = (
         "You are a professional fashion stylist AI. "
         "Select clothing items from the catalog to compose a complete, stylish outfit. "
@@ -140,7 +135,6 @@ def generate_outfit(request):
         f"Catalog:\n{catalog_text}"
     )
 
-    # ── 4. Запит до OpenRouter ───────────────────────────────────────────
     try:
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
@@ -165,10 +159,8 @@ def generate_outfit(request):
     except requests.RequestException as e:
         return JsonResponse({'status': 'error', 'message': f'OpenRouter помилка: {str(e)}'}, status=502)
 
-    # ── 5. Парсинг відповіді ─────────────────────────────────────────────
     try:
         raw = response.json()["choices"][0]["message"]["content"].strip()
-
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
@@ -184,7 +176,6 @@ def generate_outfit(request):
     except (KeyError, json.JSONDecodeError, IndexError) as e:
         return JsonResponse({'status': 'error', 'message': f'Помилка парсингу: {str(e)}'}, status=500)
 
-    # ── 6. Зберігаємо в session → redirect ──────────────────────────────
     selected_ids = [item['id'] for item in selected_items]
     reason_map   = {item['id']: item.get('reason', '') for item in selected_items}
 
@@ -203,3 +194,54 @@ def generate_outfit(request):
     }
 
     return JsonResponse({'status': 'ok', 'redirect': '/outfit-results/'})
+
+
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    if request.method == 'POST':
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('index')
+    else:
+        form = RegisterForm()
+    return render(request, 'trapApp/register.html', {'form': form})
+
+
+def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('index')
+    if request.method == 'POST':
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            email    = form.cleaned_data['email']
+            password = form.cleaned_data['password']
+            user     = authenticate(request, username=email, password=password)
+            if user:
+                login(request, user)
+                return redirect('index')
+            else:
+                form.add_error(None, 'Невірний email або пароль')
+    else:
+        form = LoginForm()
+    return render(request, 'trapApp/login.html', {'form': form})
+
+
+def logout_view(request):
+    logout(request)
+    return redirect('index')
+
+
+@login_required(login_url='/login/')
+def profile_view(request):
+    if request.method == 'POST':
+        form = ProfileForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Дані оновлено')
+            return redirect('profile')
+    else:
+        form = ProfileForm(instance=request.user)
+    return render(request, 'trapApp/profile.html', {'form': form})
