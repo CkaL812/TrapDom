@@ -1,10 +1,10 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streetwear Landing Page</title>
+    <title>TrapDom — Streetwear</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -19,30 +19,236 @@
                         'charcoal-900': '#121212',
                         'charcoal-800': '#1E1E1E',
                         'charcoal-700': '#2A2A2A',
-                        'off-white': '#F5F5F0',
-                        'grunge-gray': '#A0A0A0',
-                        'accent-red': '#8B0000',
+                        'off-white':    '#F5F5F0',
+                        'grunge-gray':  '#A0A0A0',
+                        'accent-red':   '#8B0000',
                     },
                     fontFamily: {
                         'gothic': ['"UnifrakturMaguntia"', 'cursive'],
-                        'bebas': ['"Bebas Neue"', 'cursive'],
-                        'sans': ['"Helvetica Neue"', 'Arial', 'sans-serif'],
-                        'mono': ['"Courier New"', 'monospace'],
+                        'bebas':  ['"Bebas Neue"', 'cursive'],
+                        'sans':   ['"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        'mono':   ['"Courier New"', 'monospace'],
                     },
                     spacing: { '128': '32rem' }
                 }
             }
         }
     </script>
+    <style>
+        /* ── Бренд-слайдер ───────────────────────────────────────────── */
+        #brands-track { display: flex; gap: 24px; transition: transform 0.4s cubic-bezier(0.4,0,0.2,1); }
+        .brand-slide  { flex: 0 0 calc((100% - 48px) / 3); }
+        @media (max-width: 768px) { .brand-slide { flex: 0 0 calc((100% - 24px) / 2); } }
+        @media (max-width: 480px) { .brand-slide { flex: 0 0 100%; } }
+
+        .brand-logo-card {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            transition: opacity .35s ease, transform .35s ease, filter .35s ease;
+        }
+        .brand-logo-card:hover { opacity: 1; filter: grayscale(0%); transform: scale(1.06); }
+
+        /* ── Картки одягу ────────────────────────────────────────────── */
+        .item-img { transition: transform 0.4s ease; }
+        .item-card:hover .item-img { transform: scale(1.04); }
+
+        /* ── Панелі брендів ──────────────────────────────────────────── */
+        .brand-panel { display: none; }
+        .brand-panel.active { display: grid; }
+
+        /* ══════════════════════════════════════════════════════════════
+           DRAWER  (відривна менюшка брендів)
+           ══════════════════════════════════════════════════════════════ */
+
+        /* Overlay */
+        #drawer-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 40;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .3s ease;
+            backdrop-filter: blur(2px);
+        }
+        #drawer-overlay.visible { opacity: 1; pointer-events: all; }
+
+        /* Drawer panel */
+        #brand-drawer {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 300px;
+            background: #1E1E1E;
+            border-right: 1px solid #2A2A2A;
+            z-index: 50;
+            transform: translateX(-100%);
+            transition: transform .4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #brand-drawer.open { transform: translateX(0); }
+
+        /* Drawer header */
+        .drawer-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 28px 28px 20px;
+            border-bottom: 1px solid #2A2A2A;
+            flex-shrink: 0;
+        }
+        .drawer-head-label {
+            font-size: 9px;
+            letter-spacing: .3em;
+            text-transform: uppercase;
+            color: #A0A0A0;
+            font-family: 'Courier New', monospace;
+        }
+        .drawer-close-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #2A2A2A;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #A0A0A0;
+            transition: all .2s;
+            font-size: 14px;
+            line-height: 1;
+            background: transparent;
+        }
+        .drawer-close-btn:hover { border-color: #A0A0A0; color: #F5F5F0; background: #2A2A2A; }
+
+        /* Drawer list */
+        .drawer-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+        }
+        .drawer-list::-webkit-scrollbar { width: 2px; }
+        .drawer-list::-webkit-scrollbar-track { background: transparent; }
+        .drawer-list::-webkit-scrollbar-thumb { background: #2A2A2A; }
+
+        /* Drawer item */
+        .drawer-brand-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 28px;
+            cursor: pointer;
+            border-left: 2px solid transparent;
+            transition: all .2s ease;
+            gap: 12px;
+        }
+        .drawer-brand-item:hover { background: #2A2A2A; border-left-color: #A0A0A0; }
+        .drawer-brand-item.active { border-left-color: #F5F5F0; background: #2A2A2A; }
+
+        .drawer-brand-name {
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: #A0A0A0;
+            transition: color .2s;
+        }
+        .drawer-brand-item:hover .drawer-brand-name,
+        .drawer-brand-item.active .drawer-brand-name { color: #F5F5F0; }
+
+        .drawer-brand-count {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            letter-spacing: .15em;
+            color: #A0A0A0;
+            border: 1px solid #2A2A2A;
+            padding: 2px 8px;
+            flex-shrink: 0;
+            transition: border-color .2s;
+        }
+        .drawer-brand-item.active .drawer-brand-count { border-color: #A0A0A0; }
+
+        /* Drawer trigger button */
+        #drawer-trigger {
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            border: 1px solid #2A2A2A;
+            padding: 14px 20px;
+            cursor: pointer;
+            transition: border-color .25s;
+            user-select: none;
+            background: transparent;
+        }
+        #drawer-trigger:hover { border-color: #A0A0A0; }
+
+        .trigger-label {
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: #A0A0A0;
+            margin-bottom: 4px;
+        }
+        .trigger-brand {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            letter-spacing: .2em;
+            text-transform: uppercase;
+            color: #F5F5F0;
+        }
+        .trigger-arrow {
+            color: #8B0000;
+            font-size: 12px;
+            transition: transform .3s;
+            margin-left: 8px;
+        }
+        #drawer-trigger.open .trigger-arrow { transform: rotate(180deg); }
+
+        /* Drawer footer */
+        .drawer-footer {
+            padding: 20px 28px;
+            border-top: 1px solid #2A2A2A;
+            flex-shrink: 0;
+        }
+        .drawer-footer-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 9px;
+            letter-spacing: .25em;
+            text-transform: uppercase;
+            color: #A0A0A0;
+            text-decoration: none;
+            transition: color .2s;
+        }
+        .drawer-footer-link:hover { color: #F5F5F0; }
+        .drawer-footer-link i { color: #8B0000; font-size: 9px; }
+
+        /* Active line indicator */
+        .drawer-active-line {
+            width: 20px;
+            height: 1px;
+            background: #8B0000;
+            flex-shrink: 0;
+            transition: opacity .2s;
+            opacity: 0;
+        }
+        .drawer-brand-item.active .drawer-active-line { opacity: 1; }
+    </style>
 </head>
 
+<body class="bg-charcoal-900 text-off-white min-h-screen">
 <div class="grunge-texture fixed inset-0 z-0"></div>
 
 {% include 'trapApp/partials/header.html' %}
 
 <main class="relative z-10 pt-20">
 
-    <!-- Hero -->
+    <!-- ── Hero ─────────────────────────────────────────────────────────── -->
     <section id="hero" class="relative w-full h-[850px] overflow-hidden flex items-center border-b border-charcoal-700">
         <div class="max-w-[1440px] mx-auto px-6 w-full relative z-10 grid grid-cols-12 gap-6 h-full items-center">
             <div class="col-span-12 md:col-span-8 flex flex-col justify-center h-full">
@@ -50,194 +256,332 @@
                     <span class="block text-8xl md:text-[11rem] text-stroke hover-text-fill transition-all duration-500">TRAPDOM</span>
                 </h1>
                 <p class="text-grunge-gray max-w-md text-base leading-relaxed mb-10 border-l border-charcoal-700 pl-6"
-                    style="font-family: 'Helvetica Neue', Arial, sans-serif;">
+                   style="font-family:'Helvetica Neue',Arial,sans-serif;">
                     Професійний підбір одягу для особливих подій. Ваш ідеальний образ починається тут. Просто натисніть кнопку нижче, щоб ми розпочали створення вашого унікального стилю.
                 </p>
                 <div class="flex space-x-6">
-                    <a href="#"
-                        class="bg-off-white text-charcoal-900 px-10 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm">
-                        Shop The Drop
+                    <a href="{% url 'outfit_picker' %}"
+                       class="bg-off-white text-charcoal-900 px-10 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm font-mono">
+                        Підібрати образ
+                    </a>
+                    <a href="{% url 'brands_list' %}"
+                       class="border border-charcoal-700 text-grunge-gray px-10 py-4 font-bold tracking-widest hover:border-grunge-gray hover:text-off-white transition-all uppercase text-sm font-mono">
+                        Всі бренди
                     </a>
                 </div>
             </div>
         </div>
-        <div class="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:block rotate-180" style="writing-mode: vertical-rl;">
+        <div class="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:block rotate-180" style="writing-mode:vertical-rl;">
             <span class="text-xs font-mono tracking-[0.3em] text-charcoal-700 uppercase">Scroll to explore the darkness</span>
         </div>
     </section>
 
-    <!-- Collections -->
-    <section id="collections" class="w-full border-b border-charcoal-700 py-8">
-        <div class="max-w-[1440px] mx-auto px-6 mb-16">
-            <h2 class="text-5xl md:text-6xl font-mono mb-2 tracking-widest uppercase cursor-pointer" style="color:#F5F5F0;">Наші події</h2>
-        </div>
-        <div class="flex items-center max-w-[1440px] mx-auto px-6 gap-6">
-            <button class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                <i class="fa-solid fa-arrow-left"></i>
-            </button>
-            <div class="grid grid-cols-1 md:grid-cols-3 flex-1 gap-6">
-                <div class="relative group border-r border-charcoal-700 overflow-hidden aspect-[3/4]">
-                    <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                        src="https://storage.googleapis.com/uxpilot-auth.appspot.com/ad086ad07c-2e19f77d6311c6e9c1a6.png"
-                        alt="streetwear male model" />
-                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500"></div>
-                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <h3 class="font-gothic text-5xl text-stroke">TRAPDOM</h3>
-                    </div>
-                    <div class="absolute bottom-0 left-0 p-8 w-full border-t border-charcoal-700 bg-charcoal-900/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <a href="#" class="text-xs font-mono uppercase tracking-widest border-b border-off-white pb-1">Shop Category</a>
-                    </div>
-                </div>
-                <div class="relative group border-r border-charcoal-700 overflow-hidden aspect-[3/4]">
-                    <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                        src="https://storage.googleapis.com/uxpilot-auth.appspot.com/edc3548f38-17cd902c88db32f63646.png"
-                        alt="streetwear female model" />
-                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500"></div>
-                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <h3 class="font-gothic text-5xl text-stroke">TRAPDOM</h3>
-                    </div>
-                    <div class="absolute bottom-0 left-0 p-8 w-full border-t border-charcoal-700 bg-charcoal-900/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <a href="#" class="text-xs font-mono uppercase tracking-widest border-b border-off-white pb-1">Shop Category</a>
-                    </div>
-                </div>
-                <div class="relative group overflow-hidden aspect-[3/4]">
-                    <img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0"
-                        src="https://storage.googleapis.com/uxpilot-auth.appspot.com/326dd9e430-2b3b997e5427a46de1bf.png"
-                        alt="streetwear accessories" />
-                    <div class="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all duration-500"></div>
-                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                        <h3 class="font-gothic text-5xl text-stroke">TRAPDOM</h3>
-                    </div>
-                    <div class="absolute bottom-0 left-0 p-8 w-full border-t border-charcoal-700 bg-charcoal-900/80 backdrop-blur-sm transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                        <a href="#" class="text-xs font-mono uppercase tracking-widest border-b border-off-white pb-1">Shop Category</a>
-                    </div>
-                </div>
-            </div>
-            <button class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                <i class="fa-solid fa-arrow-right"></i>
-            </button>
-        </div>
-    </section>
-
-    <!-- Brands -->
-    <section id="new-arrivals" class="py-24 border-b border-charcoal-700 relative">
+    <!-- ── Бренди (слайдер логотипів) ────────────────────────────────── -->
+    <section id="brands" class="w-full border-b border-charcoal-700 py-16">
         <div class="max-w-[1440px] mx-auto px-6">
-            <div class="flex justify-between items-end mb-16">
+            <div class="flex items-end justify-between mb-12">
                 <div>
-                    <h2 class="text-5xl md:text-6xl font-mono mb-2 tracking-widest uppercase cursor-pointer" style="color:#F5F5F0;">Наші бренди</h2>
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Каталог</p>
+                    <h2 class="text-5xl md:text-6xl font-mono tracking-widest uppercase text-off-white">Бренди</h2>
                 </div>
+                <a href="{% url 'brands_list' %}"
+                   class="hidden md:flex items-center gap-2 border border-charcoal-700 px-5 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                    Всі бренди <i class="fa-solid fa-arrow-right text-accent-red text-[10px]"></i>
+                </a>
             </div>
-            <div class="relative flex items-center gap-4">
-                <button class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                    <i class="fa-solid fa-arrow-left"></i>
+
+            <div class="flex items-center gap-4">
+                <button id="brands-prev"
+                    class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors text-off-white disabled:opacity-30 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-arrow-left text-sm"></i>
                 </button>
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 flex-1">
-                    <div class="group cursor-pointer">
-                        <div class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
-                            <span class="absolute top-4 left-4 z-10 bg-off-white text-charcoal-900 text-[10px] font-bold px-2 py-1 uppercase tracking-wider">New</span>
-                            <div class="absolute right-4 top-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center mb-2 hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                                    <i class="fa-regular fa-heart text-xs"></i>
-                                </button>
-                                <button class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                                    <i class="fa-solid fa-plus text-xs"></i>
-                                </button>
-                            </div>
-                            <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/322e505d55-565b2763c7a6fbd44948.png"
-                                alt="black oversized t-shirt" />
+
+                <div class="flex-1 overflow-hidden">
+                    <div id="brands-track">
+                        {% for brand in brands %}
+                        <a href="{% url 'brand_detail' brand.slug %}"
+                           class="brand-slide brand-logo-card flex items-center justify-center"
+                           style="height: 160px;">
+                            {% if brand.logo %}
+                                <img src="{{ brand.logo.url }}" alt="{{ brand.name }}"
+                                     class="max-w-full object-contain"
+                                     style="max-height: 110px;">
+                            {% else %}
+                                <span style="font-family:'UnifrakturMaguntia',cursive; font-size:4.5rem; color:#A0A0A0; line-height:1; user-select:none;">
+                                    {{ brand.name|slice:":1" }}
+                                </span>
+                            {% endif %}
+                        </a>
+                        {% empty %}
+                        <div class="brand-slide flex items-center justify-center" style="height:160px;">
+                            <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest">Бренди ще не додано</p>
                         </div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="font-bold text-sm uppercase tracking-wide mb-1 group-hover:text-grunge-gray transition-colors">Skull &amp; Roses Tee</h3>
-                                <p class="text-xs text-grunge-gray font-mono">100% Cotton / Black</p>
-                            </div>
-                            <span class="font-mono text-sm">$65.00</span>
-                        </div>
-                    </div>
-                    <div class="group cursor-pointer">
-                        <div class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
-                            <div class="absolute right-4 top-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center mb-2 hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                                    <i class="fa-regular fa-heart text-xs"></i>
-                                </button>
-                                <button class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                                    <i class="fa-solid fa-plus text-xs"></i>
-                                </button>
-                            </div>
-                            <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/1a5e800acc-537a9b39560c5c42749c.png"
-                                alt="distressed denim jacket" />
-                        </div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="font-bold text-sm uppercase tracking-wide mb-1 group-hover:text-grunge-gray transition-colors">Chaos Denim Jacket</h3>
-                                <p class="text-xs text-grunge-gray font-mono">Distressed / Grey</p>
-                            </div>
-                            <span class="font-mono text-sm">$220.00</span>
-                        </div>
-                    </div>
-                    <div class="group cursor-pointer">
-                        <div class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
-                            <span class="absolute top-4 left-4 z-10 bg-accent-red text-white text-[10px] font-bold px-2 py-1 uppercase tracking-wider">Hot</span>
-                            <div class="absolute right-4 top-4 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center mb-2 hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                                    <i class="fa-regular fa-heart text-xs"></i>
-                                </button>
-                                <button class="bg-charcoal-900/80 text-white w-8 h-8 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                                    <i class="fa-solid fa-plus text-xs"></i>
-                                </button>
-                            </div>
-                            <img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                src="https://storage.googleapis.com/uxpilot-auth.appspot.com/1278f01d94-ad888095acf6fa8b7b4b.png"
-                                alt="black cargo pants" />
-                        </div>
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <h3 class="font-bold text-sm uppercase tracking-wide mb-1 group-hover:text-grunge-gray transition-colors">Tactical Cargo V2</h3>
-                                <p class="text-xs text-grunge-gray font-mono">Techwear / Black</p>
-                            </div>
-                            <span class="font-mono text-sm">$145.00</span>
-                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                <button class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors">
-                    <i class="fa-solid fa-arrow-right"></i>
+
+                <button id="brands-next"
+                    class="shrink-0 w-12 h-12 border border-charcoal-700 flex items-center justify-center hover:bg-off-white hover:text-charcoal-900 transition-colors text-off-white disabled:opacity-30 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-arrow-right text-sm"></i>
                 </button>
             </div>
-            <div class="mt-16 text-center">
-                <a href="#" class="inline-block border border-charcoal-700 px-8 py-3 text-sm font-mono uppercase tracking-widest hover:bg-off-white hover:text-charcoal-900 transition-all">View All Products</a>
+
+            <div class="mt-6 flex items-center justify-center">
+                <span id="brands-counter" class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest"></span>
             </div>
         </div>
     </section>
 
-    <!-- Newsletter -->
-    <section id="newsletter" class="py-24 border-b border-charcoal-700">
+    <!-- ── Каталог (з drawer-менюшкою) ───────────────────────────────── -->
+    <section id="catalog" class="py-24 border-b border-charcoal-700">
         <div class="max-w-[1440px] mx-auto px-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                <div>
-                    <h2 class="text-5xl md:text-6xl font-sans font-bold mb-6" style="color: #8B0000;">Приєднуйся до TrapDom</h2>
-                    <p class="text-grunge-gray text-base leading-loose max-w-md" style="font-family: 'Helvetica Neue', Arial, sans-serif;">
-                        Підпишіться, щоб першими отримувати доступ до нових колекцій та індивідуального підбору вашого ідеального образу — жодного спаму, лише чистий стиль.
-                    </p>
-                </div>
-                <div>
-                    <div class="flex flex-col sm:flex-row gap-0">
-                        <input type="email" placeholder="YOUR EMAIL ADDRESS"
-                            class="bg-charcoal-800 border border-charcoal-700 text-off-white placeholder-charcoal-700 focus:outline-none focus:border-off-white px-6 py-4 text-sm font-mono flex-1 transition-colors">
-                        <button class="bg-off-white text-charcoal-900 px-8 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm whitespace-nowrap">
-                            Subscribe
-                        </button>
+
+            <div class="mb-12">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Асортимент</p>
+                <h2 class="text-5xl md:text-6xl font-mono tracking-widest uppercase text-off-white">Каталог</h2>
+            </div>
+
+            {% if brands %}
+
+            <!-- ── Drawer trigger ──────────────────────────────────────── -->
+            <div class="mb-10">
+                <button id="drawer-trigger" aria-label="Вибрати бренд">
+                    <div>
+                        <p class="trigger-label">Бренд</p>
+                        <p class="trigger-brand" id="trigger-brand-name">
+                            {{ brands.first.name }}
+                        </p>
                     </div>
-                    <p class="text-xs text-charcoal-700 mt-3 font-mono">By subscribing, you agree to our Privacy Policy.</p>
+                    <i class="fa-solid fa-chevron-down trigger-arrow"></i>
+                </button>
+            </div>
+
+            <!-- ── Overlay ─────────────────────────────────────────────── -->
+            <div id="drawer-overlay"></div>
+
+            <!-- ── Drawer ──────────────────────────────────────────────── -->
+            <div id="brand-drawer" role="dialog" aria-modal="true" aria-label="Вибір бренду">
+
+                <div class="drawer-head">
+                    <span class="drawer-head-label">Виберіть бренд</span>
+                    <button class="drawer-close-btn" id="drawer-close" aria-label="Закрити">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="drawer-list">
+                    {% for brand in brands %}
+                    <div class="drawer-brand-item {% if forloop.first %}active{% endif %}"
+                         data-brand="{{ brand.slug }}"
+                         role="button"
+                         tabindex="0">
+                        <div class="drawer-active-line"></div>
+                        <span class="drawer-brand-name">{{ brand.name }}</span>
+                        <span class="drawer-brand-count">{{ brand.items.count }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <div class="drawer-footer">
+                    <a href="{% url 'brands_list' %}" class="drawer-footer-link">
+                        Всі бренди
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
                 </div>
             </div>
+
+            <!-- ── Панелі з одягом ─────────────────────────────────────── -->
+            <div class="flex-1 min-w-0">
+                {% for brand in brands %}
+                <div class="brand-panel {% if forloop.first %}active{% endif %} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                     id="panel-{{ brand.slug }}">
+                    {% for item in brand.items.all|slice:":3" %}
+                    <div class="item-card group">
+                        <a href="{% url 'brand_detail' brand.slug %}">
+                            <div class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
+                                {% if item.image %}
+                                <img class="item-img w-full h-full object-cover"
+                                     src="{{ item.image.url }}"
+                                     alt="{{ item.name }}">
+                                {% endif %}
+                                <span class="absolute top-3 left-3 text-[9px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 bg-charcoal-900/80 px-2 py-1">
+                                    {{ item.get_category_display }}
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h3 class="font-mono text-xs uppercase tracking-widest text-off-white mb-1 group-hover:text-grunge-gray transition-colors">
+                                        {{ item.name }}
+                                    </h3>
+                                    <p class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest">
+                                        {{ brand.name }}{% if item.color %} / {{ item.color }}{% endif %}
+                                    </p>
+                                </div>
+                                {% if item.price %}
+                                <span class="font-mono text-xs text-grunge-gray shrink-0 ml-2">${{ item.price }}</span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+                <!-- Футер каталогу -->
+                <div class="mt-12 flex items-center justify-between border-t border-charcoal-700 pt-8">
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700" id="catalog-item-count"></p>
+                    <a id="catalog-view-all"
+                       href="{% url 'brand_detail' brands.first.slug %}"
+                       class="flex items-center gap-3 border border-charcoal-700 px-6 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                        Переглянути повний асортимент
+                        <i class="fa-solid fa-arrow-right text-accent-red text-[10px]"></i>
+                    </a>
+                </div>
+            </div>
+
+            {% else %}
+            <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest py-16 text-center">Бренди ще не додано</p>
+            {% endif %}
+
         </div>
     </section>
+
 </main>
 
 {% include 'trapApp/partials/footer.html' %}
 
 <script src="{% static 'trapApp/js/script.js' %}"></script>
+
+<!-- ── Слайдер логотипів ──────────────────────────────────────────────── -->
+<script>
+(function () {
+    const track   = document.getElementById('brands-track');
+    const btnPrev = document.getElementById('brands-prev');
+    const btnNext = document.getElementById('brands-next');
+    const counter = document.getElementById('brands-counter');
+    if (!track) return;
+
+    const slides = track.querySelectorAll('.brand-slide');
+    const total  = slides.length;
+    let current  = 0;
+    let perView  = getPerView();
+
+    function getPerView() {
+        if (window.innerWidth < 480) return 1;
+        if (window.innerWidth < 768) return 2;
+        return 3;
+    }
+    function maxIndex() { return Math.max(0, total - perView); }
+    function updateSlider() {
+        const slideWidth = slides[0]?.offsetWidth || 0;
+        track.style.transform = `translateX(-${current * (slideWidth + 24)}px)`;
+        btnPrev.disabled = current === 0;
+        btnNext.disabled = current >= maxIndex();
+        counter.textContent = total > 0
+            ? `${current + 1} – ${Math.min(current + perView, total)} / ${total}` : '';
+    }
+    btnPrev.addEventListener('click', () => { if (current > 0) { current--; updateSlider(); } });
+    btnNext.addEventListener('click', () => { if (current < maxIndex()) { current++; updateSlider(); } });
+    window.addEventListener('resize', () => {
+        perView = getPerView();
+        current = Math.min(current, maxIndex());
+        updateSlider();
+    });
+    updateSlider();
+})();
+</script>
+
+<!-- ── Каталог: Drawer + перемикання брендів ─────────────────────────── -->
+<script>
+(function () {
+    const brandUrls = {
+        {% for brand in brands %}"{{ brand.slug }}": "{% url 'brand_detail' brand.slug %}",
+        {% endfor %}
+    };
+    const brandCounts = {
+        {% for brand in brands %}"{{ brand.slug }}": {{ brand.items.count }},
+        {% endfor %}
+    };
+
+    /* ── елементи ── */
+    const trigger       = document.getElementById('drawer-trigger');
+    const drawer        = document.getElementById('brand-drawer');
+    const overlay       = document.getElementById('drawer-overlay');
+    const closeBtn      = document.getElementById('drawer-close');
+    const triggerName   = document.getElementById('trigger-brand-name');
+    const viewAllBtn    = document.getElementById('catalog-view-all');
+    const countEl       = document.getElementById('catalog-item-count');
+    const drawerItems   = document.querySelectorAll('.drawer-brand-item');
+    const panels        = document.querySelectorAll('.brand-panel');
+
+    if (!trigger || !drawer) return;
+
+    /* ── відкрити / закрити drawer ── */
+    function openDrawer() {
+        drawer.classList.add('open');
+        overlay.classList.add('visible');
+        trigger.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+        drawer.classList.remove('open');
+        overlay.classList.remove('visible');
+        trigger.classList.remove('open');
+        document.body.style.overflow = '';
+    }
+
+    trigger.addEventListener('click', () => {
+        drawer.classList.contains('open') ? closeDrawer() : openDrawer();
+    });
+    overlay.addEventListener('click', closeDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+
+    /* Клавіша Escape */
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeDrawer();
+    });
+
+    /* ── активувати бренд ── */
+    function activate(slug) {
+        /* drawer items */
+        drawerItems.forEach(item => {
+            item.classList.toggle('active', item.dataset.brand === slug);
+        });
+        /* panels */
+        panels.forEach(panel => {
+            panel.classList.toggle('active', panel.id === `panel-${slug}`);
+        });
+        /* trigger label */
+        const activeItem = document.querySelector(`.drawer-brand-item[data-brand="${slug}"]`);
+        if (activeItem && triggerName) {
+            triggerName.textContent = activeItem.querySelector('.drawer-brand-name').textContent;
+        }
+        /* view-all link */
+        if (viewAllBtn && brandUrls[slug]) viewAllBtn.href = brandUrls[slug];
+        /* item count */
+        if (countEl && brandCounts[slug] !== undefined) {
+            countEl.textContent = `${brandCounts[slug]} речей у каталозі`;
+        }
+
+        closeDrawer();
+    }
+
+    /* клік на drawer item */
+    drawerItems.forEach(item => {
+        item.addEventListener('click', () => activate(item.dataset.brand));
+        /* доступність з клавіатури */
+        item.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                activate(item.dataset.brand);
+            }
+        });
+    });
+
+    /* початковий стан */
+    if (drawerItems.length > 0) activate(drawerItems[0].dataset.brand);
+})();
+</script>
+
 </body>
 </html>

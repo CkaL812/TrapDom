@@ -1,0 +1,226 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ brand.name }}{% if category_label %} / {{ category_label }}{% endif %} — TrapDom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'charcoal-900': '#121212', 'charcoal-800': '#1E1E1E',
+                        'charcoal-700': '#2A2A2A', 'off-white': '#F5F5F0',
+                        'grunge-gray': '#A0A0A0',
+                    },
+                    fontFamily: {
+                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                        'bebas':  ['"Bebas Neue"', 'cursive'],
+                        'mono':   ['"Courier New"', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .item-card { transition: border-color 0.2s ease; border: 1px solid #2A2A2A; }
+        .item-card:hover { border-color: #A0A0A0; }
+        .color-dot { width:12px; height:12px; border-radius:50%; border:1px solid #2A2A2A; display:inline-block; flex-shrink:0; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);} }
+        .fade-up { animation: fadeUp 0.3s ease forwards; }
+        .cat-btn {
+            display:block; width:100%; text-align:left;
+            padding:12px 16px;
+            font-family:'Courier New',monospace; font-size:10px;
+            text-transform:uppercase; letter-spacing:0.1em;
+            color:#A0A0A0;
+            border-left:2px solid transparent;
+            border-top:none; border-right:none;
+            border-bottom:1px solid #2A2A2A;
+            background:none; cursor:pointer;
+            transition:all 0.2s ease;
+            text-decoration:none;
+        }
+        .cat-btn:last-child { border-bottom:none; }
+        .cat-btn:hover { color:#F5F5F0; background:#2A2A2A; }
+        .cat-btn.active { color:#F5F5F0 !important; border-left-color:#F5F5F0; background:#1E1E1E; }
+        .sidebar-sticky { position:sticky; top:88px; max-height:calc(100vh - 100px); overflow-y:auto; }
+        .sidebar-sticky::-webkit-scrollbar { width:2px; }
+        .sidebar-sticky::-webkit-scrollbar-thumb { background:#2A2A2A; }
+    </style>
+</head>
+<body class="bg-charcoal-900 text-off-white min-h-screen">
+<div class="grunge-texture fixed inset-0 z-0"></div>
+{% include 'trapApp/partials/header.html' %}
+
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- Хедер бренду -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <div class="flex items-center gap-2 mb-4 text-[10px] font-mono uppercase tracking-widest text-grunge-gray">
+            <a href="{% url 'brands_list' %}" class="hover:text-off-white transition-colors">Бренди</a>
+            <span class="text-charcoal-700">/</span>
+            <a href="{% url 'brand_detail' brand.slug %}" class="hover:text-off-white transition-colors">{{ brand.name }}</a>
+            {% if category_label %}
+            <span class="text-charcoal-700">/</span>
+            <span class="text-off-white">{{ category_label }}</span>
+            {% endif %}
+        </div>
+        <div class="flex items-center gap-8 flex-wrap">
+            <div class="flex flex-col items-center gap-2">
+                <div class="w-20 h-20 border border-charcoal-700 bg-charcoal-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                    {% if brand.logo %}
+                        <img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="w-full h-full object-contain p-2">
+                    {% else %}
+                        <span class="font-gothic text-2xl text-grunge-gray">{{ brand.name|slice:":1" }}</span>
+                    {% endif %}
+                </div>
+                <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
+                    {{ items|length }} речей
+                </span>
+            </div>
+            <div>
+                {% if category_label %}
+                <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white leading-none">
+                    {{ category_label }}
+                </h1>
+                {% endif %}
+            </div>
+            <a href="{% url 'brands_list' %}"
+               class="ml-auto self-end border border-charcoal-700 bg-charcoal-800 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-5 py-3 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-rotate-left mr-1"></i> Всі бренди
+            </a>
+        </div>
+    </div>
+
+    <!-- Контент -->
+    <div class="max-w-[1440px] mx-auto px-6 py-10 flex gap-8 items-start">
+
+        <!-- Sidebar зліва -->
+        <aside class="hidden lg:block w-48 flex-shrink-0">
+            <div class="sidebar-sticky">
+                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3 px-1">Категорії</p>
+                <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
+                    <a href="{% url 'brand_detail' brand.slug %}"
+                       class="cat-btn {% if not category_key %}active{% endif %}">
+                        Весь одяг
+                        <span class="text-charcoal-700 ml-1">({{ total_items }})</span>
+                    </a>
+                    {% for cat_key, cat_label, cat_count in all_categories %}
+                    {% if cat_count %}
+                    <a href="{% url 'brand_category' brand.slug cat_key %}"
+                       class="cat-btn {% if cat_key == category_key %}active{% endif %}">
+                        {% if cat_key == 'tops' %}Верх
+                        {% elif cat_key == 'layering' %}Другий шар
+                        {% elif cat_key == 'bottoms' %}Низ
+                        {% elif cat_key == 'onepiece' %}Суцільний одяг
+                        {% elif cat_key == 'outerwear' %}Верхній одяг
+                        {% elif cat_key == 'footwear' %}Взуття
+                        {% elif cat_key == 'accessory' %}Аксесуари
+                        {% else %}{{ cat_label }}{% endif %}
+                        <span class="text-charcoal-700 ml-1">({{ cat_count }})</span>
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+
+        <!-- Картки -->
+        <div class="flex-1 min-w-0">
+
+            <!-- Мобільні категорії -->
+            <div class="lg:hidden mb-6 overflow-x-auto">
+                <div class="flex gap-2 w-max">
+                    <a href="{% url 'brand_detail' brand.slug %}"
+                       class="border border-charcoal-700 bg-charcoal-800 px-4 py-2 text-[10px] font-mono uppercase tracking-widest whitespace-nowrap {% if not category_key %}text-off-white{% else %}text-grunge-gray{% endif %}">
+                        Весь одяг ({{ total_items }})
+                    </a>
+                    {% for cat_key, cat_label, cat_count in all_categories %}
+                    {% if cat_count %}
+                    <a href="{% url 'brand_category' brand.slug cat_key %}"
+                       class="border border-charcoal-700 bg-charcoal-800 px-4 py-2 text-[10px] font-mono uppercase tracking-widest whitespace-nowrap {% if cat_key == category_key %}text-off-white{% else %}text-grunge-gray{% endif %}">
+                        {% if cat_key == 'tops' %}Верх
+                        {% elif cat_key == 'layering' %}Другий шар
+                        {% elif cat_key == 'bottoms' %}Низ
+                        {% elif cat_key == 'onepiece' %}Суцільний одяг
+                        {% elif cat_key == 'outerwear' %}Верхній одяг
+                        {% elif cat_key == 'footwear' %}Взуття
+                        {% elif cat_key == 'accessory' %}Аксесуари
+                        {% else %}{{ cat_label }}{% endif %}
+                        ({{ cat_count }})
+                    </a>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if items %}
+            <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+                {% for item in items %}
+                <div class="item-card bg-charcoal-800 fade-up" style="animation-delay:{{ forloop.counter0 }}0ms">
+                    <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                        {% if item.image_local %}
+                            <img src="{{ item.image_local.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+                        {% elif item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="fa-solid fa-shirt text-charcoal-700 text-3xl"></i>
+                            </div>
+                        {% endif %}
+                        {% if item.sale_price %}
+                        <span class="absolute top-2 right-2 bg-off-white text-charcoal-900 text-[9px] font-mono uppercase px-2 py-0.5">SALE</span>
+                        {% endif %}
+                    </div>
+                    <div class="p-3">
+                        <p class="text-sm font-mono text-off-white leading-tight mb-2 line-clamp-2">{{ item.name }}</p>
+                        <div class="flex flex-wrap gap-x-3 gap-y-1 mb-2">
+                            {% if item.color %}
+                            <span class="flex items-center gap-1 text-[10px] font-mono text-grunge-gray">
+                                {% if item.color_hex %}<span class="color-dot" style="background-color:{{ item.color_hex }}"></span>{% endif %}
+                                {{ item.color }}
+                            </span>
+                            {% endif %}
+                            {% if item.material %}
+                            <span class="text-[10px] font-mono text-grunge-gray">{{ item.material }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-charcoal-700">
+                            <div>
+                                {% if item.sale_price %}
+                                    <span class="text-off-white font-mono text-xs font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                    <span class="text-charcoal-700 font-mono text-[10px] line-through ml-1">{{ item.price }}</span>
+                                {% elif item.price %}
+                                    <span class="text-off-white font-mono text-xs">{{ item.price }} {{ item.currency }}</span>
+                                {% else %}
+                                    <span class="text-charcoal-700 font-mono text-[10px]">— ціна —</span>
+                                {% endif %}
+                            </div>
+                            <a href="{{ item.source_url }}" target="_blank" rel="noopener"
+                               class="text-[9px] font-mono text-grunge-gray hover:text-off-white transition-colors">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="border border-charcoal-700 bg-charcoal-800 p-16 text-center">
+                <i class="fa-solid fa-shirt text-charcoal-700 text-4xl mb-4 block"></i>
+                <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest">Одяг у цій категорії ще не додано</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</main>
+{% include 'trapApp/partials/footer.html' %}
+<script src="{% static 'trapApp/js/script.js' %}"></script>
+</body>
+</html>

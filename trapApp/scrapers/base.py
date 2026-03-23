@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from trapApp.models import Brand, ClothingItem, ClothingSize
+from trapApp.models import Brand, ClothingItem, ClothingSize, Season
 import time
 
 
@@ -35,16 +35,29 @@ class BaseScraper:
     def save_item(self, data: dict, sizes: list[str]) -> ClothingItem | None:
         """data — словник полів ClothingItem (без id/brand). sizes — список рядків."""
         brand = self.get_brand()
+
+        # ManyToMany поля не можна передавати в update_or_create — витягуємо окремо
+        season_names = data.pop('seasons', [])
+
         item, created = ClothingItem.objects.update_or_create(
             source_url=data['source_url'],
             defaults={**data, 'brand': brand}
         )
+
+        # Встановлюємо сезони через .set() після збереження об'єкта
+        if season_names:
+            season_objs = []
+            for name in season_names:
+                season, _ = Season.objects.get_or_create(name=name)
+                season_objs.append(season)
+            item.seasons.set(season_objs)
+
         for size_label in sizes:
             ClothingSize.objects.get_or_create(item=item, size_label=size_label)
+
         action = 'Додано' if created else 'Оновлено'
         print(f'[{self.brand_name}] {action}: {item.name}')
         return item
 
     def run(self):
         raise NotImplementedError('Реалізуй метод run() у підкласі')
-

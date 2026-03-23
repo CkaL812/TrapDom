@@ -1,0 +1,6 @@
+[
+  {"model": "trapApp.season", "pk": 1, "fields": {"name": "spring"}},
+  {"model": "trapApp.season", "pk": 2, "fields": {"name": "summer"}},
+  {"model": "trapApp.season", "pk": 3, "fields": {"name": "autumn"}},
+  {"model": "trapApp.season", "pk": 4, "fields": {"name": "winter"}}
+]

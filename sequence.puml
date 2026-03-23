@@ -1,0 +1,71 @@
+@startuml ComponentDiagram
+title TrapDom — Component Diagram
+
+skinparam componentStyle rectangle
+
+actor User
+
+package "Browser" {
+    [outfit_picker.html] as PickerUI
+    [outfit_results.html] as ResultsUI
+}
+
+package "Django App (trapApp)" {
+    [URLs Router] as Router
+
+    package "Views" {
+        [generate_outfit] as GenView
+        [outfit_results] as ResView
+        [auth views] as AuthView
+    }
+
+    package "Forms" {
+        [RegisterForm] as RegForm
+        [LoginForm] as LogForm
+    }
+
+    package "Models" {
+        [ClothingItem] as Item
+        [Event] as Ev
+        [Brand] as Br
+        [CustomUser] as CUser
+    }
+
+    package "Scrapers" {
+        [ZaraScraper] as Zara
+        [HugoBossScraper] as Hugo
+        [BaseScraper] as Base
+    }
+}
+
+database "MySQL DB" as DB
+cloud "OpenRouter AI\n(Gemini 2.0)" as AI
+
+User --> PickerUI
+PickerUI --> Router : POST /generate-outfit/
+Router --> GenView
+GenView --> Item : filter by gender/formality
+GenView --> Ev : lookup event
+Item --> DB
+Ev --> DB
+GenView --> AI : catalog + params
+AI --> GenView : outfit JSON
+GenView --> ResView : session data
+ResView --> ResultsUI
+ResultsUI --> User
+
+Router --> AuthView
+AuthView --> RegForm
+AuthView --> LogForm
+RegForm --> CUser
+LogForm --> CUser
+CUser --> DB
+
+Base <|-- Zara
+Base <|-- Hugo
+Zara --> Item : update_or_create
+Hugo --> Item : update_or_create
+Item --> Br
+Item --> Ev
+
+@enduml

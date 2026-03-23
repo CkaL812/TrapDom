@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -17,7 +18,6 @@ from trapApp.models import ClothingItem
 
 
 OPENROUTER_API_KEY = os.environ['OPENROUTER_API_KEY']
-
 MODEL = 'google/gemini-2.0-flash-001'
 
 PROMPT = """Analyze this clothing item image and return JSON with:
@@ -33,31 +33,46 @@ def tag_item(item: ClothingItem):
         print(f'  [skip] {item.name} — немає image_url')
         return
 
-    resp = requests.post(
-        'https://openrouter.ai/api/v1/chat/completions',
-        headers={
-            'Authorization': f'Bearer {OPENROUTER_API_KEY}',
-            'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://trapdom.local',
-            'X-Title': 'TrapDom',
-        },
-        json={
-            'model': MODEL,
-            'messages': [{
-                'role': 'user',
-                'content': [
-                    {'type': 'text', 'text': PROMPT},
-                    {'type': 'image_url', 'image_url': {'url': item.image_url}}
-                ]
-            }],
-            'max_tokens': 200,
-        },
-        timeout=30,
-    )
+    resp = None
+    for attempt in range(1, 4):  # 3 спроби
+        try:
+            resp = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers={
+                    'Authorization': f'Bearer {OPENROUTER_API_KEY}',
+                    'Content-Type': 'application/json',
+                    'HTTP-Referer': 'https://trapdom.local',
+                    'X-Title': 'TrapDom',
+                },
+                json={
+                    'model': MODEL,
+                    'messages': [{
+                        'role': 'user',
+                        'content': [
+                            {'type': 'text', 'text': PROMPT},
+                            {'type': 'image_url', 'image_url': {'url': item.image_url}}
+                        ]
+                    }],
+                    'max_tokens': 200,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            break  # успіх
+
+        except requests.HTTPError as e:
+            print(f'  [✗] HTTP error для {item.name}: {e} | {resp.text[:300]}')
+            return
+        except requests.RequestException as e:
+            print(f'  [!] Спроба {attempt}/3 для {item.name}: {e}')
+            if attempt == 3:
+                print(f'  [✗] Пропускаємо {item.name}')
+                return
+            time.sleep(3 * attempt)  # 3с, 6с між спробами
+    else:
+        return
 
     try:
-        resp.raise_for_status()
-
         raw = resp.json()['choices'][0]['message']['content']
 
         clean = (
@@ -78,10 +93,8 @@ def tag_item(item: ClothingItem):
 
         print(f'  [✓] {item.name} → {result}')
 
-    except requests.HTTPError as e:
-        print(f'  [✗] HTTP error для {item.name}: {e} | {resp.text[:200]}')
-    except Exception as e:
-        print(f'  [✗] Помилка для {item.name}: {e} | {resp.text[:200]}')
+    except (KeyError, json.JSONDecodeError) as e:
+        print(f'  [✗] Помилка парсингу для {item.name}: {e} | {resp.text[:200]}')
 
 
 def run_tagging(limit: int = 500):

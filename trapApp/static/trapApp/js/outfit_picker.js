@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
         counter.textContent = `${offset + 1} – ${Math.min(offset + VISIBLE, TOTAL)} / ${TOTAL}`;
     }
 
-    btnUp.addEventListener('click',   () => { if (offset > 0)                    { offset--; renderWheel(); } });
-    btnDown.addEventListener('click', () => { if (offset + VISIBLE < TOTAL)      { offset++; renderWheel(); } });
+    btnUp.addEventListener('click',   () => { if (offset > 0)               { offset--; renderWheel(); } });
+    btnDown.addEventListener('click', () => { if (offset + VISIBLE < TOTAL) { offset++; renderWheel(); } });
 
     viewport.addEventListener('wheel', (e) => {
         e.preventDefault();
@@ -99,30 +99,27 @@ document.addEventListener('DOMContentLoaded', function () {
         if (e.deltaY < 0 && offset > 0)               { offset--; renderWheel(); }
     }, { passive: false });
 
-    document.getElementById('wheel-viewport').parentElement
-        .addEventListener('wheel', (e) => {
-            e.preventDefault();
-            if (e.deltaY > 0 && offset + VISIBLE < TOTAL) { offset++; renderWheel(); }
-            if (e.deltaY < 0 && offset > 0)               { offset--; renderWheel(); }
-        }, { passive: false });
-
     renderWheel();
 
 
     // ── Форма ────────────────────────────────────────────────
-    const form        = document.getElementById('outfit-form');
-    const submitBtn   = document.getElementById('submit-btn');
-    const btnText     = document.getElementById('btn-text');
-    const progress    = document.getElementById('submit-progress');
-    const resultArea  = document.getElementById('result-area');
-    const resultText  = document.getElementById('result-text');
+    const form         = document.getElementById('outfit-form');
+    const submitBtn    = document.getElementById('submit-btn');
+    const btnText      = document.getElementById('btn-text');
+    const progress     = document.getElementById('submit-progress');
+    const resultArea   = document.getElementById('result-area');
+    const resultText   = document.getElementById('result-text');
     const genderSelect = document.getElementById('gender-select');
     const seasonSelect = document.getElementById('season-select');
 
+    // ── tick зберігаємо зовні щоб showError міг його зупинити ──
+    let progressTick = null;
+
     function checkReady() {
         const hasEvent  = eventInput.value.trim().length > 0;
-        const allSelect = genderSelect.value && seasonSelect.value;
-        const ready     = hasEvent || allSelect;
+        const hasGender = genderSelect.value !== '';
+        const hasSeason = seasonSelect.value !== '';
+        const ready     = hasEvent && hasGender && hasSeason;
 
         if (ready) {
             submitBtn.disabled = false;
@@ -137,26 +134,51 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ── showError винесено на рівень модуля — доступна скрізь ──
+    function showError(msg) {
+        clearInterval(progressTick);
+        progress.style.width = '0%';
+        btnText.textContent  = 'Підібрати образ';
+        submitBtn.disabled   = false;
+        checkReady();
+        resultText.textContent = msg;
+        resultArea.classList.remove('hidden');
+    }
+
     eventInput.addEventListener('input',    checkReady);
     genderSelect.addEventListener('change', checkReady);
     seasonSelect.addEventListener('change', checkReady);
 
+    // ── Отримання CSRF токена ─────────────────────────────────
+    function getCsrfToken() {
+        const fromCookie = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+        if (fromCookie) return fromCookie;
+        const fromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (fromMeta) return fromMeta;
+        const fromInput = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        return fromInput || '';
+    }
 
     // ── Сабміт ───────────────────────────────────────────────
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        submitBtn.disabled = true;
+        if (!eventInput.value.trim() || !genderSelect.value || !seasonSelect.value) {
+            showError('⚠ Будь ласка, заповніть всі поля: подію, стать та сезон.');
+            return;
+        }
+
+        submitBtn.disabled  = true;
         btnText.textContent = 'Підбираємо...';
         resultArea.classList.add('hidden');
         progress.style.width = '0%';
 
         let pct = 0;
-        const tick = setInterval(() => {
-            pct += Math.random() * 12;
-            if (pct >= 88) { pct = 88; clearInterval(tick); }
+        progressTick = setInterval(() => {
+            pct += Math.random() * 10;
+            if (pct >= 85) { pct = 85; clearInterval(progressTick); }
             progress.style.width = pct + '%';
-        }, 180);
+        }, 200);
 
         const payload = {
             event:  eventInput.value.trim(),
@@ -165,37 +187,54 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         try {
-            const res  = await fetch('/generate-outfit/', {
+            const res = await fetch('/generate-outfit/', {
                 method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken':  getCsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify(payload),
             });
-            const data = await res.json();
 
-            clearInterval(tick);
+            if (res.status === 401 || res.status === 403) {
+                showError('Сесія закінчилась. Перенаправляємо на сторінку входу...');
+                setTimeout(() => { window.location.href = '/login/'; }, 1500);
+                return;
+            }
+
+            if (res.redirected) {
+                window.location.href = res.url;
+                return;
+            }
+
+            let data;
+            const contentType = res.headers.get('content-type') || '';
+
+            if (contentType.includes('application/json')) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                console.error('Non-JSON response:', text.substring(0, 200));
+                showError('Помилка сервера. Спробуйте ще раз або оновіть сторінку.');
+                return;
+            }
+
+            clearInterval(progressTick);
             progress.style.width = '100%';
 
             setTimeout(() => {
-                progress.style.width = '0%';
-                btnText.textContent  = 'Підібрати образ';
-                submitBtn.disabled   = false;
-                checkReady();
-
-                if (data.redirect) {
+                if (data.status === 'ok' && data.redirect) {
                     window.location.href = data.redirect;
                 } else {
-                    btnText.textContent  = 'Помилка';
-                    submitBtn.disabled   = false;
-                    checkReady();
+                    const msg = data.message || 'Невідома помилка. Спробуйте ще раз.';
+                    showError('⚠ ' + msg);
                 }
             }, 400);
 
         } catch (err) {
-            clearInterval(tick);
-            progress.style.width = '0%';
-            btnText.textContent  = 'Помилка. Спробуй знову';
-            submitBtn.disabled   = false;
-            console.error(err);
+            showError('Помилка з\'єднання. Перевірте інтернет та спробуйте знову.');
+            console.error('Fetch error:', err);
         }
     });
 });

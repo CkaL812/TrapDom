@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бренди — TrapDom</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'charcoal-900': '#121212',
+                        'charcoal-800': '#1E1E1E',
+                        'charcoal-700': '#2A2A2A',
+                        'off-white':    '#F5F5F0',
+                        'grunge-gray':  '#A0A0A0',
+                        'accent-red':   '#8B0000',
+                    },
+                    fontFamily: {
+                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                        'bebas':  ['"Bebas Neue"', 'cursive'],
+                        'sans':   ['"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        'mono':   ['"Courier New"', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .brand-logo-card {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            transition: opacity 0.35s ease, transform 0.35s ease, filter 0.35s ease;
+        }
+        .brand-logo-card:hover {
+            opacity: 1;
+            filter: grayscale(0%);
+            transform: scale(1.06);
+        }
+    </style>
+</head>
+
+<body class="bg-charcoal-900 text-off-white min-h-screen">
+    <div class="grunge-texture fixed inset-0 z-0"></div>
+
+    {% include 'trapApp/partials/header.html' %}
+
+    <main class="relative z-10 pt-20 min-h-screen">
+
+        <!-- Хедер -->
+        <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+            <h1 class="font-mono text-5xl md:text-7xl uppercase tracking-widest text-off-white">Бренди</h1>
+            <p class="text-grunge-gray font-mono text-xs mt-3">{{ brands.count }} брендів у каталозі</p>
+        </div>
+
+        <!-- Сітка брендів -->
+        <div class="max-w-[1440px] mx-auto px-6 py-10">
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+
+                {% for brand in brands %}
+                <a href="{% url 'brand_detail' brand.slug %}"
+                   class="brand-logo-card flex items-center justify-center"
+                   style="height: 120px;">
+
+                    {% if brand.logo %}
+                        <img src="{{ brand.logo.url }}" alt="{{ brand.name }}"
+                             class="max-w-full object-contain"
+                             style="max-height: 90px;">
+                    {% else %}
+                        <span style="font-family:'UnifrakturMaguntia',cursive; font-size:3.5rem; color:#A0A0A0; line-height:1; user-select:none;">
+                            {{ brand.name|slice:":1" }}
+                        </span>
+                    {% endif %}
+
+                </a>
+                {% empty %}
+                <div class="col-span-full flex items-center justify-center py-24">
+                    <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest">Бренди ще не додано</p>
+                </div>
+                {% endfor %}
+
+            </div>
+        </div>
+
+    </main>
+
+    {% include 'trapApp/partials/footer.html' %}
+
+    <script src="{% static 'trapApp/js/script.js' %}"></script>
+</body>
+</html>

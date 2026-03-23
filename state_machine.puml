@@ -1,0 +1,186 @@
+@startuml TrapDom State Machine
+
+skinparam state {
+    BackgroundColor White
+    BorderColor #444444
+    FontStyle bold
+    StartColor #2C3E50
+    EndColor #2C3E50
+    ArrowColor #444444
+    ArrowFontColor #333333
+    ArrowFontSize 11
+    AttributeFontSize 11
+}
+
+skinparam backgroundColor #FAFAFA
+skinparam shadowing false
+skinparam linetype ortho
+
+' ============================================================
+' USER AUTHENTICATION
+' ============================================================
+state "USER AUTH" as AUTH #EEFAF5 {
+    [*] --> Anonymous
+
+    state Anonymous {
+        Anonymous : User is not logged in
+    }
+
+    state Registering {
+        Registering : Fills RegisterForm\n(first_name, last_name, email, password)
+    }
+
+    state RegisterError {
+        RegisterError : Validation failed\n(password mismatch, email taken)
+    }
+
+    state LoggingIn {
+        LoggingIn : Fills LoginForm\n(email, password)
+    }
+
+    state LoginError {
+        LoginError : authenticate() returned None\n(wrong credentials)
+    }
+
+    state Authenticated {
+        Authenticated : Session active\nrequest.user is set
+    }
+
+    state LoggingOut {
+        LoggingOut : POST /logout
+    }
+
+    Anonymous --> Registering    : GET /register
+    Registering --> RegisterError : POST invalid form
+    RegisterError --> Registering : retry
+    Registering --> Authenticated : POST valid → save() → login()
+
+    Anonymous --> LoggingIn      : GET /login
+    LoggingIn --> LoginError     : POST wrong credentials
+    LoginError --> LoggingIn     : retry
+    LoggingIn --> Authenticated  : POST valid → authenticate() → login()
+
+    Authenticated --> LoggingOut : POST /logout
+    LoggingOut --> Anonymous     : logout() → redirect /
+}
+
+' ============================================================
+' OUTFIT GENERATION
+' ============================================================
+state "OUTFIT GENERATION" as OUTFIT #EEF5FA {
+    [*] --> PickerIdle
+
+    state PickerIdle {
+        PickerIdle : GET /outfit-picker\nShows form (event, gender, season)
+    }
+
+    state Generating {
+        Generating : POST /generate-outfit\nFilters ClothingItem queryset\nCalls OpenRouter API (Gemini 2.0 Flash)\nParses LLM JSON response
+    }
+
+    state GenerationError {
+        GenerationError : API error / empty queryset\nNo items match filters
+    }
+
+    state ResultReady {
+        ResultReady : outfit_result stored in session\nJSON: {top, bottom, outerwear, footwear, accessory}
+    }
+
+    state ShowingResults {
+        ShowingResults : GET /outfit-results\nQueries ClothingItem by IDs from session\nRenders outfit_results.html
+    }
+
+    state SessionExpired {
+        SessionExpired : session["outfit_result"] missing\nNo outfit to display
+    }
+
+    PickerIdle --> Generating      : POST {event, gender, season} [user authenticated]
+    Generating --> GenerationError : API fail / no items
+    GenerationError --> PickerIdle : retry
+    Generating --> ResultReady     : LLM returns valid outfit
+    ResultReady --> ShowingResults : redirect /outfit-results
+    ShowingResults --> SessionExpired : session cleared
+    SessionExpired --> PickerIdle  : redirect /outfit-picker
+    ShowingResults --> PickerIdle  : "Try again"
+}
+
+' ============================================================
+' CLOTHING ITEM (SCRAPING LIFECYCLE)
+' ============================================================
+state "CLOTHING ITEM LIFECYCLE" as SCRAPE #F5EEFA {
+    [*] --> Pending
+
+    state Pending {
+        Pending : Item URL discovered\nNot yet scraped
+    }
+
+    state Fetching {
+        Fetching : fetch(url) → BeautifulSoup\nHTTP GET with delay
+    }
+
+    state FetchError {
+        FetchError : HTTP error / timeout\nItem skipped
+    }
+
+    state Parsed {
+        Parsed : HTML parsed\nData extracted (name, price, sizes, image)
+    }
+
+    state Saved {
+        Saved : save_item(data, sizes) called\nClothingItem created in DB\nClothingSize records created
+    }
+
+    state AiTagging {
+        AiTagging : tag_item(item) called\nOpenRouter API → Gemini\nUpdates: color, material, pattern, formality
+    }
+
+    state TagError {
+        TagError : API error / malformed JSON\nfields remain unchanged
+    }
+
+    state Tagged {
+        Tagged : Item fully enriched\nAll fields populated
+    }
+
+    Pending --> Fetching    : BaseScraper.run()
+    Fetching --> FetchError : HTTP error
+    FetchError --> [*]      : skip
+    Fetching --> Parsed     : HTML parsed OK
+    Parsed --> Saved        : save_item()
+    Saved --> AiTagging     : AiTagger.run_tagging()
+    AiTagging --> TagError  : API / JSON error
+    TagError --> Tagged     : partial update kept
+    AiTagging --> Tagged    : fields updated
+    Tagged --> [*]
+}
+
+' ============================================================
+' PROFILE MANAGEMENT
+' ============================================================
+state "USER PROFILE" as PROFILE #FAFAEE {
+    [*] --> ViewingProfile
+
+    state ViewingProfile {
+        ViewingProfile : GET /profile\nRenders ProfileForm with current data
+    }
+
+    state EditingProfile {
+        EditingProfile : User edits\n(first_name, last_name, email)
+    }
+
+    state ProfileError {
+        ProfileError : Validation error\n(email conflict, blank field)
+    }
+
+    state ProfileSaved {
+        ProfileSaved : POST valid → save() CustomUser\nSuccess message shown
+    }
+
+    ViewingProfile --> EditingProfile : user edits form
+    EditingProfile --> ProfileError   : POST invalid
+    ProfileError --> EditingProfile   : retry
+    EditingProfile --> ProfileSaved   : POST valid → save()
+    ProfileSaved --> ViewingProfile   : redirect /profile
+}
+
+@enduml

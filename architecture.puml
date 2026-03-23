@@ -1,0 +1,295 @@
+@startuml TrapDom Architecture
+skinparam classAttributeIconSize 0
+skinparam classFontStyle bold
+skinparam packageStyle rectangle
+skinparam linetype ortho
+
+skinparam class {
+    BackgroundColor White
+    BorderColor #444444
+    HeaderBackgroundColor #2C3E50
+    HeaderFontColor White
+    ArrowColor #444444
+}
+
+skinparam package {
+    BorderColor #888888
+    FontColor #333333
+}
+
+' ============================================================
+' PACKAGE: trapApp.models (Django Models)
+' ============================================================
+package "trapApp :: models" #EEFAF5 {
+
+    class Brand {
+        + id : AutoField
+        + name : CharField [unique]
+        + website : URLField
+        + formality_range : CharField
+        --
+        + __str__() : str
+    }
+
+    class Season {
+        + id : AutoField
+        + name : CharField [choices: spring|summer|autumn|winter, unique]
+        --
+        + __str__() : str
+    }
+
+    class Event {
+        + id : AutoField
+        + name : CharField
+        + formality : CharField [choices: casual..white_tie]
+        + description : TextField
+        --
+        + __str__() : str
+    }
+
+    class ClothingItem {
+        + id : AutoField
+        + name : CharField
+        + description : TextField
+        + category : CharField [choices: tops|layering|bottoms|onepiece|outerwear|footwear|accessory]
+        + formality : CharField [choices: casual..black_tie]
+        + source_url : CharField [unique]
+        + scraped_at : DateTimeField [auto]
+        + color : CharField
+        + color_hex : CharField
+        + material : CharField
+        + pattern : CharField [choices: solid|striped|checked|print|floral|abstract]
+        + gender : CharField [choices: M|F|U]
+        + is_set : BooleanField
+        + price : DecimalField
+        + currency : CharField
+        + sale_price : DecimalField
+        + image_url : URLField
+        + image_local : ImageField
+        --
+        + brand : ForeignKey → Brand
+        + events : ManyToManyField → Event
+        + seasons : ManyToManyField → Season
+        --
+        + __str__() : str
+    }
+
+    class ClothingSize {
+        + id : AutoField
+        + size_label : CharField
+        + size_type : CharField [choices: alpha|numeric]
+        + in_stock : BooleanField
+        + quantity : PositiveIntegerField
+        --
+        + item : ForeignKey → ClothingItem
+        --
+        + __str__() : str
+    }
+
+    class Outfit {
+        + id : AutoField
+        + name : CharField
+        + created : DateTimeField [auto]
+        + notes : TextField
+        --
+        + event : ForeignKey → Event [nullable]
+        + items : ManyToManyField → ClothingItem
+        --
+        + __str__() : str
+    }
+
+    class CustomUser {
+        + id : AutoField
+        + first_name : CharField
+        + last_name : CharField
+        + email : EmailField [unique]
+        + username : CharField
+        + password : CharField [hashed]
+        --
+        ' Inherits from AbstractUser
+        + USERNAME_FIELD = "email"
+        --
+        + __str__() : str
+    }
+
+}
+
+' ============================================================
+' PACKAGE: trapApp.forms
+' ============================================================
+package "trapApp :: forms" #EEF5FA {
+
+    class RegisterForm {
+        + password1 : CharField
+        + password2 : CharField
+        --
+        ' ModelForm for CustomUser
+        ' fields: first_name, last_name, email
+        --
+        + clean() : dict
+        + save(commit) : CustomUser
+    }
+
+    class LoginForm {
+        + email : EmailField
+        + password : CharField
+    }
+
+    class ProfileForm {
+        ' ModelForm for CustomUser
+        ' fields: first_name, last_name, email
+    }
+
+}
+
+' ============================================================
+' PACKAGE: trapApp.views
+' ============================================================
+package "trapApp :: views" #FAFAEE {
+
+    class "index" as view_index <<function>> {
+        + GET → render index.html
+    }
+
+    class "outfit_picker" as view_outfit_picker <<function>> {
+        ' @login_required
+        + GET → render outfit_picker.html
+    }
+
+    class "outfit_results" as view_outfit_results <<function>> {
+        + GET → reads session["outfit_result"]
+        - queries ClothingItem by ids
+        + → render outfit_results.html
+    }
+
+    class "generate_outfit" as view_generate_outfit <<function>> {
+        ' @csrf_exempt @login_required
+        + POST : json {event, gender, season}
+        - filters ClothingItem queryset
+        - calls OpenRouter API (Gemini 2.0 Flash)
+        - parses LLM JSON response
+        - stores result in session
+        + → JsonResponse {status, redirect}
+    }
+
+    class "register_view" as view_register <<function>> {
+        + GET → render register.html {RegisterForm}
+        + POST : RegisterForm → save CustomUser → login → redirect
+    }
+
+    class "login_view" as view_login <<function>> {
+        + GET → render login.html {LoginForm}
+        + POST : LoginForm → authenticate → login → redirect
+    }
+
+    class "logout_view" as view_logout <<function>> {
+        + POST → logout → redirect index
+    }
+
+    class "profile_view" as view_profile <<function>> {
+        ' @login_required
+        + GET → render profile.html {ProfileForm}
+        + POST : ProfileForm → save CustomUser
+    }
+
+}
+
+' ============================================================
+' PACKAGE: trapApp.scrapers
+' ============================================================
+package "trapApp :: scrapers" #F5EEFA {
+
+    class BaseScraper {
+        # brand_name : str
+        # base_url : str
+        # headers : dict
+        # delay : float
+        --
+        + get_brand() : Brand
+        + fetch(url) : BeautifulSoup
+        + save_item(data, sizes) : ClothingItem
+        + run() : void  /' abstract '/
+    }
+
+    class ZaraScraper <<scraper>> {
+        + brand_name = "Zara"
+        + run() : void
+    }
+
+    class HugoBossScraper <<scraper>> {
+        + brand_name = "Hugo Boss"
+        + run() : void
+    }
+
+}
+
+' ============================================================
+' PACKAGE: trapApp.ai_tagger
+' ============================================================
+package "trapApp :: ai_tagger" #FDEBD0 {
+
+    class "AiTagger" as AiTagger <<module>> {
+        - OPENROUTER_API_KEY : str
+        - MODEL : str = "google/gemini-2.0-flash-001"
+        - PROMPT : str
+        --
+        + tag_item(item: ClothingItem) : void
+        + run_tagging(limit: int) : void
+    }
+
+}
+
+' ============================================================
+' PACKAGE: Django Auth (external)
+' ============================================================
+package "django.contrib.auth" #F0F0F0 {
+    abstract class AbstractUser {
+        + username
+        + email
+        + password
+        + first_name
+        + last_name
+        + is_active
+        + is_staff
+        + ...
+    }
+}
+
+' ============================================================
+' RELATIONSHIPS
+' ============================================================
+
+' Models
+ClothingItem "n" --> "1" Brand : brand (FK)
+ClothingItem "n" --> "*" Event : events (M2M)
+ClothingItem "n" --> "*" Season : seasons (M2M)
+ClothingSize "n" --> "1" ClothingItem : item (FK)
+Outfit "n" --> "0..1" Event : event (FK, nullable)
+Outfit "n" --> "*" ClothingItem : items (M2M)
+CustomUser --|> AbstractUser : extends
+
+' Forms → Models
+RegisterForm ..> CustomUser : creates
+ProfileForm ..> CustomUser : updates
+
+' Views → Models
+view_outfit_results ..> ClothingItem : queries
+view_generate_outfit ..> ClothingItem : filters & queries
+view_generate_outfit ..> Event : looks up formality
+view_register ..> RegisterForm : uses
+view_login ..> LoginForm : uses
+view_profile ..> ProfileForm : uses
+
+' Scrapers
+ZaraScraper --|> BaseScraper
+HugoBossScraper --|> BaseScraper
+
+BaseScraper ..> Brand : get_or_create
+BaseScraper ..> ClothingItem : save_item
+BaseScraper ..> ClothingSize : get_or_create
+BaseScraper ..> Season : get_or_create
+
+' AI Tagger
+AiTagger ..> ClothingItem : reads & updates (color, material, pattern, formality)
+
+@enduml
