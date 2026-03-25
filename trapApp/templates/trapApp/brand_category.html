@@ -1,52 +1,13 @@
+{% extends 'trapApp/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ brand.name }} / {{ category_label }} — TrapDom</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'charcoal-900': '#121212', 'charcoal-800': '#1E1E1E',
-                        'charcoal-700': '#2A2A2A', 'off-white': '#F5F5F0',
-                        'grunge-gray': '#A0A0A0',  'accent-red': '#8B0000',
-                    },
-                    fontFamily: {
-                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
-                        'bebas':  ['"Bebas Neue"', 'cursive'],
-                        'mono':   ['"Courier New"', 'monospace'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        .item-card { transition: border-color 0.2s ease; border: 1px solid #2A2A2A; }
-        .item-card:hover { border-color: #A0A0A0; }
-        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #2A2A2A; display: inline-block; flex-shrink: 0; }
-        @keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .fade-up { animation: fadeUp 0.3s ease forwards; }
 
-        .cat-btn { transition: all 0.2s ease; border-left: 2px solid transparent; }
-        .cat-btn:hover { color: #F5F5F0 !important; background: #2A2A2A; }
-        .cat-btn.active { color: #F5F5F0 !important; border-left-color: #8B0000; background: #1E1E1E; }
+{% block title %}{{ brand.name }} / {{ category_label }} — TrapDom{% endblock %}
 
-        .sidebar-sticky { position: sticky; top: 88px; max-height: calc(100vh - 100px); overflow-y: auto; }
-        .sidebar-sticky::-webkit-scrollbar { width: 2px; }
-        .sidebar-sticky::-webkit-scrollbar-thumb { background: #2A2A2A; }
-    </style>
-</head>
-<body class="bg-charcoal-900 text-off-white min-h-screen">
-<div class="grunge-texture fixed inset-0 z-0"></div>
-{% include 'trapApp/partials/header.html' %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/brand_category.css' %}">
+{% endblock %}
 
+{% block content %}
 <main class="relative z-10 pt-20 min-h-screen">
 
     <!-- Хедер -->
@@ -167,7 +128,4 @@
 
     </div>
 </main>
-{% include 'trapApp/partials/footer.html' %}
-</body>
-<script src="{% static 'trapApp/js/script.js' %}"></script>
-</html>
+{% endblock %}

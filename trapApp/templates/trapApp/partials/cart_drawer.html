@@ -1,0 +1,268 @@
+{% load static %}
+{# trapApp/partials/cart_drawer.html — вставляється в header.html #}
+
+{# ── Overlay ──────────────────────────────────────────────────────────────── #}
+<div id="cart-overlay"
+     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+{# ── Drawer ───────────────────────────────────────────────────────────────── #}
+<div id="cart-drawer"
+     class="fixed top-0 left-0 bottom-0 w-full sm:w-[420px] bg-charcoal-900 border-r border-charcoal-700 z-[70]
+            flex flex-col transform -translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+
+    {# HEAD #}
+    <div class="flex items-center justify-between px-6 py-5 border-b border-charcoal-700 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <span class="font-bebas text-2xl tracking-widest text-off-white">КОШИК</span>
+            <span id="drawer-count-badge"
+                  class="text-[9px] font-mono text-charcoal-900 bg-off-white px-2 py-0.5 tracking-widest">
+                {{ cart_count }}
+            </span>
+        </div>
+        <button id="cart-drawer-close"
+                class="w-9 h-9 border border-charcoal-700 flex items-center justify-center text-grunge-gray
+                       hover:border-grunge-gray hover:text-off-white transition-all duration-200"
+                aria-label="Закрити кошик">
+            <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+    </div>
+
+    {# ITEMS LIST #}
+    <div id="cart-drawer-items" class="flex-1 overflow-y-auto">
+        {# Рендериться JS-ом після кожної зміни кошика #}
+    </div>
+
+    {# EMPTY STATE (прихований якщо є товари) #}
+    <div id="cart-drawer-empty" class="flex-1 flex-col items-center justify-center px-6 py-16 text-center hidden">
+        <i class="fa-solid fa-bag-shopping text-charcoal-700 text-5xl mb-5 block"></i>
+        <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest mb-2">Кошик порожній</p>
+        <p class="text-charcoal-700 font-mono text-[10px] mb-8">Додайте речі зі сторінок брендів</p>
+        <button id="cart-continue-shopping"
+                class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white
+                       font-mono text-xs uppercase tracking-widest px-6 py-3 transition-all duration-200">
+            Продовжити покупки
+        </button>
+    </div>
+
+    {# FOOTER — сума + кнопка оформлення #}
+    <div id="cart-drawer-footer" class="border-t border-charcoal-700 px-6 py-5 flex-shrink-0">
+        <div class="flex items-center justify-between mb-4">
+            <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Всього</span>
+            <span id="drawer-total" class="font-bebas text-2xl tracking-widest text-off-white">0 UAH</span>
+        </div>
+        <a href="{% url 'cart' %}"
+           class="block w-full bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest
+                  text-center py-4 hover:bg-grunge-gray transition-colors duration-200">
+            Переглянути кошик
+        </a>
+    </div>
+</div>
+
+{# ── Глобальний JS кошика ─────────────────────────────────────────────────── #}
+<script>
+(function () {
+    /* ── DOM ── */
+    const overlay      = document.getElementById('cart-overlay');
+    const drawer       = document.getElementById('cart-drawer');
+    const closeBtn     = document.getElementById('cart-drawer-close');
+    const continuBtn   = document.getElementById('cart-continue-shopping');
+    const itemsWrap    = document.getElementById('cart-drawer-items');
+    const emptyState   = document.getElementById('cart-drawer-empty');
+    const footer       = document.getElementById('cart-drawer-footer');
+    const totalEl      = document.getElementById('drawer-total');
+    const countBadge   = document.getElementById('drawer-count-badge');
+
+    /* лічильник в header-іконці */
+    const headerBadge  = document.getElementById('header-cart-badge');
+
+    /* ── Відкрити / закрити ── */
+    function openDrawer() {
+        drawer.classList.remove('-translate-x-full');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        overlay.classList.add('opacity-100');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+        drawer.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        overlay.classList.remove('opacity-100');
+        document.body.style.overflow = '';
+    }
+
+    overlay.addEventListener('click', closeDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+    if (continuBtn) continuBtn.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+    /* ── Рендер списку ── */
+    function renderItems(items, total, currency) {
+        const count = items.reduce((s, e) => s + e.quantity, 0);
+
+        /* Badge оновлення */
+        if (countBadge) countBadge.textContent = count;
+        if (headerBadge) {
+            headerBadge.textContent = count;
+            headerBadge.style.display = count > 0 ? 'flex' : 'none';
+        }
+
+        /* Загальна сума */
+        if (totalEl) totalEl.textContent = `${total} ${currency}`;
+
+        if (items.length === 0) {
+            itemsWrap.innerHTML = '';
+            itemsWrap.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            emptyState.classList.add('flex');
+            footer.classList.add('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        emptyState.classList.remove('flex');
+        itemsWrap.classList.remove('hidden');
+        footer.classList.remove('hidden');
+
+        itemsWrap.innerHTML = items.map(entry => `
+            <div class="cart-row flex gap-4 px-6 py-5 border-b border-charcoal-700 group"
+                 data-key="${entry.key}">
+
+                <!-- Фото -->
+                <div class="w-20 h-24 flex-shrink-0 bg-charcoal-800 border border-charcoal-700 overflow-hidden">
+                    ${entry.image
+                        ? `<img src="${entry.image}" alt="${entry.name}"
+                               class="w-full h-full object-cover">`
+                        : `<div class="w-full h-full flex items-center justify-center">
+                               <i class="fa-solid fa-shirt text-charcoal-700 text-2xl"></i>
+                           </div>`}
+                </div>
+
+                <!-- Інфо -->
+                <div class="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-accent-red mb-0.5">
+                            ${entry.brand}
+                        </p>
+                        <p class="text-xs font-mono text-off-white leading-snug line-clamp-2 mb-1">
+                            ${entry.name}
+                        </p>
+                        ${entry.size
+                            ? `<p class="text-[9px] font-mono text-grunge-gray uppercase tracking-widest">
+                                   ${entry.size}
+                               </p>`
+                            : ''}
+                    </div>
+
+                    <!-- Ціна + контроли -->
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-0">
+                            <button class="qty-btn minus w-7 h-7 border border-charcoal-700 flex items-center justify-center
+                                           text-grunge-gray hover:border-grunge-gray hover:text-off-white
+                                           transition-all duration-150 text-xs"
+                                    data-key="${entry.key}" data-delta="-1">
+                                <i class="fa-solid fa-minus text-[9px]"></i>
+                            </button>
+                            <span class="qty-val w-8 text-center font-mono text-xs text-off-white border-y border-charcoal-700 h-7 flex items-center justify-center">
+                                ${entry.quantity}
+                            </span>
+                            <button class="qty-btn plus w-7 h-7 border border-charcoal-700 flex items-center justify-center
+                                           text-grunge-gray hover:border-grunge-gray hover:text-off-white
+                                           transition-all duration-150 text-xs"
+                                    data-key="${entry.key}" data-delta="1">
+                                <i class="fa-solid fa-plus text-[9px]"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-3">
+                            <span class="font-mono text-sm text-off-white">
+                                ${entry.subtotal} ${entry.currency}
+                            </span>
+                            <button class="remove-btn text-charcoal-700 hover:text-accent-red transition-colors duration-150"
+                                    data-key="${entry.key}" aria-label="Видалити">
+                                <i class="fa-solid fa-xmark text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        /* qty buttons */
+        itemsWrap.querySelectorAll('.qty-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key   = btn.dataset.key;
+                const delta = parseInt(btn.dataset.delta);
+                const row   = itemsWrap.querySelector(`.cart-row[data-key="${key}"]`);
+                const val   = row ? parseInt(row.querySelector('.qty-val').textContent) : 1;
+                updateQty(key, val + delta);
+            });
+        });
+
+        /* remove buttons */
+        itemsWrap.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', () => removeItem(btn.dataset.key));
+        });
+    }
+
+    /* ── API: оновити кількість ── */
+    function updateQty(key, quantity) {
+        fetch('/cart/update/', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ key, quantity }),
+        })
+        .then(r => r.json())
+        .then(data => renderItems(data.cart_items || [], data.cart_total, data.cart_currency));
+    }
+
+    /* ── API: видалити ── */
+    function removeItem(key) {
+        fetch('/cart/remove/', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ key }),
+        })
+        .then(r => r.json())
+        .then(data => renderItems(data.cart_items || [], data.cart_total, data.cart_currency));
+    }
+
+    /* ── Глобальна функція: додати в кошик (викликається з карток) ── */
+    window.trapAddToCart = function(itemId, size, quantity, btn) {
+        const origContent = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i>';
+        }
+
+        fetch(`/cart/add/${itemId}/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ size: size || '', quantity: quantity || 1 }),
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                renderItems(data.cart_items || [], data.cart_total, data.cart_currency);
+                openDrawer();
+            }
+        })
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origContent;
+            }
+        });
+    };
+
+    /* ── Ініціалізація з контексту ── */
+    const initItems    = JSON.parse(document.getElementById('cart-init-data')?.textContent || '[]');
+    const initTotal    = parseFloat(document.getElementById('cart-init-total')?.textContent || '0');
+    const initCurrency = document.getElementById('cart-init-currency')?.textContent?.trim() || 'UAH';
+    renderItems(initItems, initTotal, initCurrency);
+
+})();
+</script>
+
+{# Передаємо початкові дані кошика з Django в JS #}
+<script id="cart-init-data" type="application/json">{{ cart_items|safe }}</script>
+<script id="cart-init-total" type="application/json">{{ cart_total }}</script>
+<script id="cart-init-currency" type="application/json">"{{ cart_currency }}"</script>

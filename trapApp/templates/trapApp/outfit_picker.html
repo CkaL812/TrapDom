@@ -1,180 +1,101 @@
+{% extends 'trapApp/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="uk">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Підбір образу — TrapDom</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
-    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'charcoal-900': '#121212',
-                        'charcoal-800': '#1E1E1E',
-                        'charcoal-700': '#2A2A2A',
-                        'off-white': '#F5F5F0',
-                        'grunge-gray': '#A0A0A0',
-                        'accent-red': '#8B0000',
-                    },
-                    fontFamily: {
-                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
-                        'bebas': ['"Bebas Neue"', 'cursive'],
-                        'sans': ['"Helvetica Neue"', 'Arial', 'sans-serif'],
-                        'mono': ['"Courier New"', 'monospace'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        .event-wheel-item {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-        .event-wheel-item:hover {
-            color: #F5F5F0;
-            background: #2A2A2A;
-        }
-        .event-wheel-item.active {
-            color: #F5F5F0;
-            border-left: 2px solid #8B0000;
-            background: #2A2A2A;
-        }
-        .option-card {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border: 1px solid #2A2A2A;
-        }
-        .option-card:hover {
-            border-color: #A0A0A0;
-        }
-        .option-card.selected {
-            border-color: #8B0000;
-            background: #1E1E1E;
-        }
-        select {
-            -webkit-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23A0A0A0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 16px center;
-        }
-        #submit-progress {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            height: 2px;
-            background: #8B0000;
-            width: 0%;
-            transition: width 0.2s ease;
-        }
-    </style>
-</head>
+{% block title %}Підбір образу — TrapDom{% endblock %}
 
-<body class="bg-charcoal-900 text-off-white min-h-screen">
-    <div class="grunge-texture fixed inset-0 z-0"></div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/outfit_picker.css' %}">
+{% endblock %}
 
-    {% include 'trapApp/partials/header.html' %}
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
 
-    <main class="relative z-10 pt-20 min-h-screen">
+    <!-- Хедер -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <h1 class="font-mono text-5xl md:text-7xl uppercase tracking-widest text-off-white">Підбір образу</h1>
+        <p class="text-grunge-gray font-mono text-xs mt-3 max-w-md">Оберіть подію, стать та сезон — штучний інтелект підбере образ із нашого каталогу.</p>
+    </div>
 
-        <!-- Хедер -->
-        <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
-            <h1 class="font-mono text-5xl md:text-7xl uppercase tracking-widest text-off-white">Підбір образу</h1>
-            <p class="text-grunge-gray font-mono text-xs mt-3 max-w-md">Оберіть подію, стать та сезон — штучний інтелект підбере образ із нашого каталогу.</p>
-        </div>
+    <!-- Форма -->
+    <div class="max-w-[1440px] mx-auto px-6 py-12">
+        <form id="outfit-form" class="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
-        <!-- Форма -->
-        <div class="max-w-[1440px] mx-auto px-6 py-12">
-            <form id="outfit-form" class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+            <!-- Колонка 1: Подія -->
+            <div class="lg:col-span-1">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
+                    Оберіть подію
+                </p>
+                <div class="relative mb-3">
+                    <input id="event-input" type="text" placeholder="Або введіть свою подію..."
+                        class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                    <i class="fa-solid fa-pen-to-square absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-700 text-xs"></i>
+                </div>
+                <div class="border border-charcoal-700 bg-charcoal-800">
+                    <div class="flex items-center justify-between px-5 py-2 border-b border-charcoal-700">
+                        <span class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700">Популярні події</span>
+                        <div class="flex gap-2">
+                            <button type="button" id="wheel-up" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-chevron-up text-[10px]"></i>
+                            </button>
+                            <button type="button" id="wheel-down" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="wheel-viewport"></div>
+                    <div class="px-5 py-2 border-t border-charcoal-700">
+                        <span id="wheel-counter" class="text-[9px] font-mono text-charcoal-700"></span>
+                    </div>
+                </div>
+            </div>
 
-                <!-- Колонка 1: Подія -->
-                <div class="lg:col-span-1">
+            <!-- Колонка 2: Стать + Сезон + Кнопка -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <div>
                     <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
-                        Оберіть подію
+                        Стать
                     </p>
-                    <div class="relative mb-3">
-                        <input id="event-input" type="text" placeholder="Або введіть свою подію..."
-                            class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
-                        <i class="fa-solid fa-pen-to-square absolute right-4 top-1/2 -translate-y-1/2 text-charcoal-700 text-xs"></i>
-                    </div>
-                    <div class="border border-charcoal-700 bg-charcoal-800">
-                        <div class="flex items-center justify-between px-5 py-2 border-b border-charcoal-700">
-                            <span class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700">Популярні події</span>
-                            <div class="flex gap-2">
-                                <button type="button" id="wheel-up" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                                    <i class="fa-solid fa-chevron-up text-[10px]"></i>
-                                </button>
-                                <button type="button" id="wheel-down" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div id="wheel-viewport"></div>
-                        <div class="px-5 py-2 border-t border-charcoal-700">
-                            <span id="wheel-counter" class="text-[9px] font-mono text-charcoal-700"></span>
-                        </div>
-                    </div>
+                    <select id="gender-select"
+                        class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
+                        <option value="" class="bg-charcoal-900">— оберіть —</option>
+                        <option value="male" class="bg-charcoal-900">Чоловіча</option>
+                        <option value="female" class="bg-charcoal-900">Жіноча</option>
+                        <option value="unisex" class="bg-charcoal-900">Унісекс</option>
+                    </select>
+                </div>
+                <div>
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
+                        Сезон
+                    </p>
+                    <select id="season-select"
+                        class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
+                        <option value="" class="bg-charcoal-900">— оберіть —</option>
+                        <option value="spring" class="bg-charcoal-900">Весна</option>
+                        <option value="summer" class="bg-charcoal-900">Літо</option>
+                        <option value="autumn" class="bg-charcoal-900">Осінь</option>
+                        <option value="winter" class="bg-charcoal-900">Зима</option>
+                    </select>
                 </div>
 
-                <!-- Колонка 2: Стать + Сезон + Кнопка -->
-                <div class="lg:col-span-1 flex flex-col gap-6">
-                    <div>
-                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
-                            Стать
-                        </p>
-                        <select id="gender-select"
-                            class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
-                            <option value="" class="bg-charcoal-900">— оберіть —</option>
-                            <option value="male" class="bg-charcoal-900">Чоловіча</option>
-                            <option value="female" class="bg-charcoal-900">Жіноча</option>
-                            <option value="unisex" class="bg-charcoal-900">Унісекс</option>
-                        </select>
+                <!-- Кнопка під селектами -->
+                <div class="mt-2">
+                    <div id="result-area" class="hidden mb-4 border border-accent-red bg-charcoal-800 px-4 py-3">
+                        <p id="result-text" class="text-accent-red text-xs font-mono"></p>
                     </div>
-                    <div>
-                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
-                            Сезон
-                        </p>
-                        <select id="season-select"
-                            class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
-                            <option value="" class="bg-charcoal-900">— оберіть —</option>
-                            <option value="spring" class="bg-charcoal-900">Весна</option>
-                            <option value="summer" class="bg-charcoal-900">Літо</option>
-                            <option value="autumn" class="bg-charcoal-900">Осінь</option>
-                            <option value="winter" class="bg-charcoal-900">Зима</option>
-                        </select>
-                    </div>
-
-                    <!-- Кнопка під селектами -->
-                    <div class="mt-2">
-                        <div id="result-area" class="hidden mb-4 border border-accent-red bg-charcoal-800 px-4 py-3">
-                            <p id="result-text" class="text-accent-red text-xs font-mono"></p>
-                        </div>
-                        <button id="submit-btn" type="submit" disabled
-                            class="w-full relative overflow-hidden bg-charcoal-700 text-grunge-gray border border-charcoal-700 px-6 py-5 font-bold tracking-widest uppercase text-sm cursor-not-allowed transition-all duration-300">
-                            <span id="btn-text">Підібрати образ</span>
-                            <div id="submit-progress"></div>
-                        </button>
-                        <p class="text-[9px] font-mono text-charcoal-700 mt-2 text-center">Заповніть хоча б одне поле для активації</p>
-                    </div>
+                    <button id="submit-btn" type="submit" disabled
+                        class="w-full relative overflow-hidden bg-charcoal-700 text-grunge-gray border border-charcoal-700 px-6 py-5 font-bold tracking-widest uppercase text-sm cursor-not-allowed transition-all duration-300">
+                        <span id="btn-text">Підібрати образ</span>
+                        <div id="submit-progress"></div>
+                    </button>
+                    <p class="text-[9px] font-mono text-charcoal-700 mt-2 text-center">Заповніть хоча б одне поле для активації</p>
                 </div>
+            </div>
 
-            </form>
-        </div>
-    </main>
+        </form>
+    </div>
+</main>
+{% endblock %}
 
-    {% include 'trapApp/partials/footer.html' %}
-
-    <script src="{% static 'trapApp/js/outfit_picker.js' %}"></script>
-</body>
-
-</html>
+{% block extra_js %}
+<script src="{% static 'trapApp/js/outfit_picker.js' %}"></script>
+{% endblock %}

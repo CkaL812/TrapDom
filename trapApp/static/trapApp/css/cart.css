@@ -1,0 +1,7 @@
+/* ── Cart page styles ── */
+.cart-row {
+    transition: background 0.15s ease;
+}
+.cart-row:hover {
+    background: #1a1a1a;
+}

@@ -51,9 +51,18 @@
             </a>
             {% endif %}
 
-            <button class="text-off-white hover:text-grunge-gray transition-colors relative" aria-label="Cart">
+            <!-- ── Кнопка кошика з лічильником ── -->
+            <a href="{% url 'cart' %}" id="header-cart-btn"
+                    class="text-off-white hover:text-grunge-gray transition-colors relative"
+                    aria-label="Кошик">
                 <i class="fa-solid fa-bag-shopping"></i>
-            </button>
+                <span id="header-cart-badge"
+                      class="absolute -top-2 -right-2 min-w-[16px] h-4 bg-off-white text-charcoal-900
+                             font-mono text-[8px] font-bold flex items-center justify-center px-1
+                             {% if cart_count == 0 %}hidden{% endif %}">
+                    {{ cart_count }}
+                </span>
+            </a>
         </div>
     </div>
 </nav>
@@ -62,16 +71,14 @@
 <div id="side-menu-overlay"
     class="fixed inset-0 bg-black/60 z-[45] hidden opacity-0 transition-opacity duration-300 backdrop-blur-sm"></div>
 
-<!-- Side Drawer -->
+<!-- Side Drawer (бургер-меню) -->
 <div id="side-menu"
     class="fixed inset-y-0 left-0 w-80 sm:w-96 bg-charcoal-900 border-r border-charcoal-700 transform -translate-x-full transition-transform duration-300 z-[45] flex flex-col pt-28 px-8 pb-8 overflow-y-auto">
 
     <nav class="flex flex-col flex-1">
 
-        <!-- Головні посилання -->
         <div class="flex flex-col space-y-1 mb-8">
             <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Навігація</p>
-
             <a href="{% url 'index' %}"
                 class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
                 Головна
@@ -86,7 +93,6 @@
             </a>
         </div>
 
-        <!-- Бренди список -->
         <div class="mb-8">
             <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Бренди</p>
             <div class="flex flex-col space-y-1">
@@ -103,7 +109,6 @@
                 {% empty %}
                 <p class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest">Бренди не додано</p>
                 {% endfor %}
-
                 <a href="{% url 'brands_list' %}"
                     class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors pt-3 flex items-center gap-2">
                     Всі бренди <i class="fa-solid fa-arrow-right text-[9px]"></i>
@@ -111,7 +116,6 @@
             </div>
         </div>
 
-        <!-- Акаунт -->
         <div class="mt-auto">
             <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Акаунт</p>
             {% if user.is_authenticated %}
@@ -137,9 +141,11 @@
 
     </nav>
 
-    <!-- Соцмережі -->
     <div class="pt-8 flex space-x-6 justify-center border-t border-charcoal-700">
         <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
         <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-tiktok"></i></a>
     </div>
 </div>
+
+{# ── Cart Drawer ── #}
+{% include 'trapApp/partials/cart_drawer.html' %}

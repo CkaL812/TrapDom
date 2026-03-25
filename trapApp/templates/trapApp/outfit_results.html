@@ -1,262 +1,177 @@
+{% extends 'trapApp/base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="uk">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Результат підбору — TrapDom</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
-    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'charcoal-900': '#121212',
-                        'charcoal-800': '#1E1E1E',
-                        'charcoal-700': '#2A2A2A',
-                        'off-white': '#F5F5F0',
-                        'grunge-gray': '#A0A0A0',
-                        'accent-red': '#8B0000',
-                    },
-                    fontFamily: {
-                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
-                        'bebas': ['"Bebas Neue"', 'cursive'],
-                        'sans': ['"Helvetica Neue"', 'Arial', 'sans-serif'],
-                        'mono': ['"Courier New"', 'monospace'],
-                    },
-                }
-            }
-        }
-    </script>
-    <style>
-        .cat-btn {
-            cursor: pointer;
-            transition: all 0.2s ease;
-            border-left: 2px solid transparent;
-        }
-        .cat-btn:hover { color: #F5F5F0; background: #2A2A2A; }
-        .cat-btn.active { color: #F5F5F0; border-left-color: #8B0000; background: #2A2A2A; }
-        .item-card { transition: all 0.2s ease; border: 1px solid #2A2A2A; }
-        .item-card:hover { border-color: #A0A0A0; }
-        .color-dot { width: 12px; height: 12px; border-radius: 50%; border: 1px solid #2A2A2A; display: inline-block; flex-shrink: 0; }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(12px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-        .fade-up { animation: fadeUp 0.3s ease forwards; }
-    </style>
-</head>
+{% block title %}Результат підбору — TrapDom{% endblock %}
 
-<body class="bg-charcoal-900 text-off-white min-h-screen">
-    <div class="grunge-texture fixed inset-0 z-0"></div>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/outfit_results.css' %}">
+{% endblock %}
 
-    {% include 'trapApp/partials/header.html' %}
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
 
-    <main class="relative z-10 pt-20 min-h-screen">
-
-        <!-- Хедер -->
-        <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
-            <div class="flex items-start justify-between flex-wrap gap-4">
-                <div>
-                    <p class="text-xs font-mono uppercase tracking-widest text-grunge-gray mb-2">AI-стиліст / результат</p>
-                    <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">
-                        {{ outfit_name|default:"Підібраний образ" }}
-                    </h1>
-                    <div class="flex flex-wrap gap-3 mt-3">
-                        {% if event_name %}
-                        <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
-                            <i class="fa-regular fa-calendar mr-1 text-accent-red"></i>{{ event_name }}
-                        </span>
-                        {% endif %}
-                        {% if gender %}
-                        <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
-                            <i class="fa-solid fa-person mr-1 text-accent-red"></i>{{ gender }}
-                        </span>
-                        {% endif %}
-                        {% if season %}
-                        <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
-                            <i class="fa-solid fa-leaf mr-1 text-accent-red"></i>{{ season }}
-                        </span>
-                        {% endif %}
-                    </div>
+    <!-- Хедер -->
+    <div class="border-b border-charcoal-700 px-6 py-6 max-w-[1440px] mx-auto">
+        <div class="flex items-start justify-between flex-wrap gap-4">
+            <div>
+                <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">
+                    {{ outfit_name|default:"Підібраний образ" }}
+                </h1>
+                <div class="flex flex-wrap gap-3 mt-3">
+                    {% if event_name %}
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
+                        {{ event_name }}
+                    </span>
+                    {% endif %}
+                    {% if gender %}
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
+                        {{ gender }}
+                    </span>
+                    {% endif %}
+                    {% if season %}
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1">
+                        {{ season }}
+                    </span>
+                    {% endif %}
                 </div>
-                <a href="{% url 'outfit_picker' %}"
-                    class="self-end border border-charcoal-700 bg-charcoal-800 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-5 py-3 transition-all duration-200 flex items-center gap-2">
-                    <i class="fa-solid fa-rotate-left text-accent-red"></i> Підібрати знову
-                </a>
             </div>
-
-            {% if stylist_comment %}
-            <div class="mt-6 border-l-2 border-accent-red pl-4 max-w-2xl">
-                <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700 mb-1">Коментар стиліста</p>
-                <p class="text-grunge-gray font-mono text-xs leading-relaxed">{{ stylist_comment }}</p>
-            </div>
-            {% endif %}
+            <a href="{% url 'outfit_picker' %}"
+                class="self-end border border-charcoal-700 bg-charcoal-800 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-5 py-3 transition-all duration-200 flex items-center gap-2">
+                Підібрати знову
+            </a>
         </div>
 
-        <!-- Контент -->
-        <div class="max-w-[1440px] mx-auto px-6 py-10 flex gap-8">
+        {% if stylist_comment %}
+        <div class="mt-6 border-l-2 border-accent-red pl-4 max-w-2xl">
+            <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700 mb-1">Коментар стиліста</p>
+            <p class="text-grunge-gray font-mono text-xs leading-relaxed">{{ stylist_comment }}</p>
+        </div>
+        {% endif %}
+    </div>
 
-            <!-- SIDEBAR -->
-            <aside class="hidden lg:block w-48 flex-shrink-0">
-                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3 px-4">Категорії</p>
-                <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
-                    <button class="cat-btn active w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-off-white" data-cat="all">
-                        <span class="text-accent-red mr-2 text-[9px]">00</span>Всі
-                        <span class="ml-1 text-charcoal-700">({{ items|length }})</span>
-                    </button>
-                    {% for cat in categories %}
-                    <button class="cat-btn w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-grunge-gray border-t border-charcoal-700" data-cat="{{ cat.key }}">
-                        <span class="text-accent-red mr-2 text-[9px]">{{ forloop.counter|stringformat:"02d" }}</span>{{ cat.label }}
-                        <span class="ml-1 text-charcoal-700">({{ cat.count }})</span>
-                    </button>
-                    {% endfor %}
-                </div>
-                <p class="text-[9px] font-mono text-charcoal-700 mt-3 px-1">
-                    <span id="shown-count">{{ items|length }}</span> речей у образі
-                </p>
-            </aside>
+    <!-- Контент -->
+    <div class="max-w-[1440px] mx-auto px-6 py-6 flex gap-8">
 
-            <!-- MOBILE категорії -->
-            <div class="lg:hidden w-full mb-6 -mx-6 px-6 overflow-x-auto">
-                <div class="flex gap-2 w-max">
-                    <button class="cat-btn active border border-charcoal-700 bg-charcoal-800 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-off-white whitespace-nowrap" data-cat="all">
-                        Всі ({{ items|length }})
-                    </button>
-                    {% for cat in categories %}
-                    <button class="cat-btn border border-charcoal-700 bg-charcoal-800 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-grunge-gray whitespace-nowrap" data-cat="{{ cat.key }}">
-                        {{ cat.label }} ({{ cat.count }})
-                    </button>
-                    {% endfor %}
-                </div>
+        <!-- SIDEBAR -->
+        <aside class="hidden lg:block w-48 flex-shrink-0">
+            <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3 px-4">Категорії</p>
+            <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
+                <button class="cat-btn active w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-off-white" data-cat="all">
+                    Всі
+                    <span class="ml-1 text-charcoal-700">({{ items|length }})</span>
+                </button>
+                {% for cat in categories %}
+                <button class="cat-btn w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-grunge-gray border-t border-charcoal-700" data-cat="{{ cat.key }}">
+                    {{ cat.label }}
+                    <span class="ml-1 text-charcoal-700">({{ cat.count }})</span>
+                </button>
+                {% endfor %}
             </div>
+            <p class="text-[9px] font-mono text-charcoal-700 mt-3 px-1">
+                <span id="shown-count">{{ items|length }}</span> речей у образі
+            </p>
+        </aside>
 
-            <!-- КАРТКИ -->
-            <div class="flex-1">
-                <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {% for item in items %}
-                    <div class="item-card bg-charcoal-800 fade-up" data-cat="{{ item.category }}"
-                         style="animation-delay: {{ forloop.counter0 }}00ms">
+        <!-- MOBILE категорії -->
+        <div class="lg:hidden w-full mb-6 -mx-6 px-6 overflow-x-auto">
+            <div class="flex gap-2 w-max">
+                <button class="cat-btn active border border-charcoal-700 bg-charcoal-800 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-off-white whitespace-nowrap" data-cat="all">
+                    Всі ({{ items|length }})
+                </button>
+                {% for cat in categories %}
+                <button class="cat-btn border border-charcoal-700 bg-charcoal-800 px-4 py-2 text-[10px] font-mono uppercase tracking-widest text-grunge-gray whitespace-nowrap" data-cat="{{ cat.key }}">
+                    {{ cat.label }} ({{ cat.count }})
+                </button>
+                {% endfor %}
+            </div>
+        </div>
 
-                        <!-- Фото -->
-                        <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
-                            {% if item.image_local %}
-                                <img src="{{ item.image_local.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
-                            {% elif item.image_url %}
-                                <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
-                            {% else %}
-                                <div class="w-full h-full flex items-center justify-center">
-                                    <i class="fa-solid fa-shirt text-charcoal-700 text-4xl"></i>
-                                </div>
-                            {% endif %}
-                            <span class="absolute top-3 left-3 bg-charcoal-900/80 backdrop-blur-sm text-[9px] font-mono uppercase tracking-widest text-grunge-gray px-2 py-1">
-                                {{ item.get_category_display }}
+        <!-- КАРТКИ -->
+        <div class="flex-1">
+            <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {% for item in items %}
+                <div class="item-card bg-charcoal-800 fade-up" data-cat="{{ item.category }}"
+                     style="animation-delay: {{ forloop.counter0 }}00ms">
+
+                    <!-- Фото -->
+                    <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                        {% if item.image_local %}
+                            <img src="{{ item.image_local.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+                        {% elif item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
+                        {% else %}
+                            <div class="w-full h-full flex items-center justify-center">
+                                <i class="fa-solid fa-shirt text-charcoal-700 text-4xl"></i>
+                            </div>
+                        {% endif %}
+                        <span class="absolute top-3 left-3 bg-charcoal-900/80 backdrop-blur-sm text-[9px] font-mono uppercase tracking-widest text-grunge-gray px-2 py-1">
+                            {{ item.get_category_display }}
+                        </span>
+                        {% if item.sale_price %}
+                        <span class="absolute top-3 right-3 bg-accent-red text-off-white text-[9px] font-mono uppercase tracking-widest px-2 py-1">SALE</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Інфо -->
+                    <div class="p-4">
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-accent-red mb-1">{{ item.brand.name }}</p>
+                        <p class="text-sm font-mono text-off-white leading-tight mb-3">{{ item.name }}</p>
+
+                        <div class="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
+                            {% if item.color %}
+                            <span class="flex items-center gap-1.5 text-[10px] font-mono text-grunge-gray">
+                                {% if item.color_hex %}<span class="color-dot" style="background-color: {{ item.color_hex }}"></span>{% endif %}
+                                {{ item.color }}
                             </span>
-                            {% if item.sale_price %}
-                            <span class="absolute top-3 right-3 bg-accent-red text-off-white text-[9px] font-mono uppercase tracking-widest px-2 py-1">SALE</span>
+                            {% endif %}
+                            {% if item.material %}
+                            <span class="text-[10px] font-mono text-grunge-gray">{{ item.material }}</span>
+                            {% endif %}
+                            {% if item.pattern and item.pattern != 'solid' %}
+                            <span class="text-[10px] font-mono text-grunge-gray">{{ item.get_pattern_display }}</span>
                             {% endif %}
                         </div>
 
-                        <!-- Інфо -->
-                        <div class="p-4">
-                            <p class="text-[9px] font-mono uppercase tracking-widest text-accent-red mb-1">{{ item.brand.name }}</p>
-                            <p class="text-sm font-mono text-off-white leading-tight mb-3">{{ item.name }}</p>
+                        {% if item.reason %}
+                        <div class="border-l border-accent-red pl-2 mb-3">
+                            <p class="text-[10px] font-mono text-grunge-gray leading-relaxed italic">{{ item.reason }}</p>
+                        </div>
+                        {% endif %}
 
-                            <div class="flex flex-wrap gap-x-4 gap-y-1.5 mb-3">
-                                {% if item.color %}
-                                <span class="flex items-center gap-1.5 text-[10px] font-mono text-grunge-gray">
-                                    {% if item.color_hex %}<span class="color-dot" style="background-color: {{ item.color_hex }}"></span>{% endif %}
-                                    {{ item.color }}
-                                </span>
-                                {% endif %}
-                                {% if item.material %}
-                                <span class="text-[10px] font-mono text-grunge-gray">
-                                    <i class="fa-solid fa-scissors text-charcoal-700 mr-1"></i>{{ item.material }}
-                                </span>
-                                {% endif %}
-                                {% if item.pattern and item.pattern != 'solid' %}
-                                <span class="text-[10px] font-mono text-grunge-gray">{{ item.get_pattern_display }}</span>
+                        <div class="flex items-center justify-between mt-auto pt-2 border-t border-charcoal-700">
+                            <div>
+                                {% if item.sale_price %}
+                                    <span class="text-accent-red font-mono text-sm font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                    <span class="text-charcoal-700 font-mono text-xs line-through ml-1">{{ item.price }}</span>
+                                {% elif item.price %}
+                                    <span class="text-off-white font-mono text-sm">{{ item.price }} {{ item.currency }}</span>
+                                {% else %}
+                                    <span class="text-charcoal-700 font-mono text-xs">— ціна —</span>
                                 {% endif %}
                             </div>
-
-                            {% if item.reason %}
-                            <div class="border-l border-accent-red pl-2 mb-3">
-                                <p class="text-[10px] font-mono text-grunge-gray leading-relaxed italic">{{ item.reason }}</p>
-                            </div>
-                            {% endif %}
-
-                            <div class="flex items-center justify-between mt-auto pt-2 border-t border-charcoal-700">
-                                <div>
-                                    {% if item.sale_price %}
-                                        <span class="text-accent-red font-mono text-sm font-bold">{{ item.sale_price }} {{ item.currency }}</span>
-                                        <span class="text-charcoal-700 font-mono text-xs line-through ml-1">{{ item.price }}</span>
-                                    {% elif item.price %}
-                                        <span class="text-off-white font-mono text-sm">{{ item.price }} {{ item.currency }}</span>
-                                    {% else %}
-                                        <span class="text-charcoal-700 font-mono text-xs">— ціна —</span>
-                                    {% endif %}
-                                </div>
-                                <a href="{{ item.source_url }}" target="_blank" rel="noopener"
-                                    class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white border border-charcoal-700 hover:border-grunge-gray px-3 py-1.5 transition-all duration-200 flex items-center gap-1">
-                                    В магазин <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
-                                </a>
-                            </div>
+                            <a href="{{ item.source_url }}" target="_blank" rel="noopener"
+                                class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white border border-charcoal-700 hover:border-grunge-gray px-3 py-1.5 transition-all duration-200 flex items-center gap-1">
+                                В магазин <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
+                            </a>
                         </div>
                     </div>
-                    {% empty %}
-                    <div class="col-span-3 border border-charcoal-700 bg-charcoal-800 p-12 text-center">
-                        <i class="fa-solid fa-shirt text-charcoal-700 text-4xl mb-4 block"></i>
-                        <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest mb-2">Нічого не знайдено</p>
-                        <p class="text-charcoal-700 font-mono text-xs mb-6">Спробуйте інший запит або перевірте базу даних</p>
-                        <a href="{% url 'outfit_picker' %}" class="inline-block border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-6 py-3 transition-all duration-200">
-                            Спробувати знову
-                        </a>
-                    </div>
-                    {% endfor %}
                 </div>
+                {% empty %}
+                <div class="col-span-3 border border-charcoal-700 bg-charcoal-800 p-12 text-center">
+                    <i class="fa-solid fa-shirt text-charcoal-700 text-4xl mb-4 block"></i>
+                    <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest mb-2">Нічого не знайдено</p>
+                    <p class="text-charcoal-700 font-mono text-xs mb-6">Спробуйте інший запит або перевірте базу даних</p>
+                    <a href="{% url 'outfit_picker' %}" class="inline-block border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-6 py-3 transition-all duration-200">
+                        Спробувати знову
+                    </a>
+                </div>
+                {% endfor %}
             </div>
         </div>
-    </main>
+    </div>
+</main>
+{% endblock %}
 
-    {% include 'trapApp/partials/footer.html' %}
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const catBtns    = document.querySelectorAll('.cat-btn');
-            const cards      = document.querySelectorAll('.item-card');
-            const shownCount = document.getElementById('shown-count');
-
-            catBtns.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const cat = this.dataset.cat;
-
-                    catBtns.forEach(b => b.classList.remove('active'));
-                    document.querySelectorAll(`.cat-btn[data-cat="${cat}"]`).forEach(b => b.classList.add('active'));
-
-                    let count = 0;
-                    cards.forEach(card => {
-                        const show = cat === 'all' || card.dataset.cat === cat;
-                        if (show) {
-                            card.style.display = '';
-                            card.classList.remove('fade-up');
-                            void card.offsetWidth;
-                            card.classList.add('fade-up');
-                            count++;
-                        } else {
-                            card.style.display = 'none';
-                        }
-                    });
-
-                    if (shownCount) shownCount.textContent = count;
-                });
-            });
-        });
-    </script>
-</body>
-</html>
+{% block extra_js %}
+<script src="{% static 'trapApp/js/outfit_results_page.js' %}"></script>
+{% endblock %}

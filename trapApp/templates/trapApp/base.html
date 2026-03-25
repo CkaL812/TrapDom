@@ -1,0 +1,52 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TrapDom — Streetwear{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script> window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'charcoal-900': '#121212',
+                        'charcoal-800': '#1E1E1E',
+                        'charcoal-700': '#2A2A2A',
+                        'off-white':    '#F5F5F0',
+                        'grunge-gray':  '#A0A0A0',
+                        'accent-red':   '#8B0000',
+                    },
+                    fontFamily: {
+                        'gothic': ['"UnifrakturMaguntia"', 'cursive'],
+                        'bebas':  ['"Bebas Neue"', 'cursive'],
+                        'sans':   ['"Helvetica Neue"', 'Arial', 'sans-serif'],
+                        'mono':   ['"Courier New"', 'monospace'],
+                    },
+                    spacing: { '128': '32rem' }
+                }
+            }
+        }
+    </script>
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body class="bg-charcoal-900 text-off-white min-h-screen">
+<div class="grunge-texture fixed inset-0 z-0"></div>
+
+{% include 'trapApp/partials/header.html' %}
+
+{% block content %}{% endblock %}
+
+{% include 'trapApp/partials/footer.html' %}
+
+<script src="{% static 'trapApp/js/header.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

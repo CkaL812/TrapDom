@@ -1,0 +1,170 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Кошик — TrapDom{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/cart.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- Заголовок -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Ваш вибір</p>
+        <div class="flex items-end justify-between gap-4 flex-wrap">
+            <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">КОШИК</h1>
+            {% if cart_items %}
+            <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1 self-end mb-1">
+                {{ cart_items|length }} позиц{{ cart_items|length|pluralize:"ія,ії,ій" }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if cart_items %}
+
+    <div class="max-w-[1440px] mx-auto px-6 py-10 flex flex-col lg:flex-row gap-10 items-start">
+
+        <!-- Ліва колонка: список товарів -->
+        <div class="flex-1 min-w-0" id="cart-page-list">
+
+            <!-- Заголовки таблиці -->
+            <div class="hidden md:grid grid-cols-[1fr_auto_auto] gap-6 pb-3 border-b border-charcoal-700 mb-2">
+                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700">Продукт</p>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 text-center w-24">Кількість</p>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 text-right w-28">Всього</p>
+            </div>
+
+            <!-- Рядки товарів -->
+            {% for entry in cart_items %}
+            <div class="cart-row fade-up flex gap-5 py-6 border-b border-charcoal-700"
+                 data-key="{{ entry.key }}"
+                 style="animation-delay: {{ forloop.counter0 }}0ms">
+
+                <!-- Фото -->
+                <div class="w-24 h-28 sm:w-28 sm:h-32 flex-shrink-0 border border-charcoal-700 bg-charcoal-800 overflow-hidden">
+                    {% if entry.image %}
+                        <img src="{{ entry.image }}" alt="{{ entry.name }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fa-solid fa-shirt text-charcoal-700 text-2xl"></i>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Інфо -->
+                <div class="flex-1 min-w-0 flex flex-col justify-between">
+                    <div>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-accent-red mb-1">{{ entry.brand }}</p>
+                        <p class="text-sm font-mono text-off-white leading-snug mb-1">{{ entry.name }}</p>
+                        {% if entry.size %}
+                        <p class="text-[9px] font-mono text-grunge-gray uppercase tracking-widest">Розмір: {{ entry.size }}</p>
+                        {% endif %}
+                        <p class="text-[10px] font-mono text-grunge-gray mt-1">{{ entry.price }} {{ entry.currency }}</p>
+                    </div>
+
+                    <!-- Кількість + видалити -->
+                    <div class="flex items-center justify-between mt-3 flex-wrap gap-3">
+                        <div class="flex items-center">
+                            <button class="qty-btn w-8 h-8 border border-charcoal-700 flex items-center justify-center
+                                           text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all"
+                                    data-key="{{ entry.key }}" data-qty="{{ entry.quantity }}" data-delta="-1">
+                                <i class="fa-solid fa-minus text-[9px]"></i>
+                            </button>
+                            <span class="qty-display w-10 text-center font-mono text-sm text-off-white border-y border-charcoal-700 h-8 flex items-center justify-center">
+                                {{ entry.quantity }}
+                            </span>
+                            <button class="qty-btn w-8 h-8 border border-charcoal-700 flex items-center justify-center
+                                           text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all"
+                                    data-key="{{ entry.key }}" data-qty="{{ entry.quantity }}" data-delta="1">
+                                <i class="fa-solid fa-plus text-[9px]"></i>
+                            </button>
+                        </div>
+
+                        <div class="flex items-center gap-4">
+                            <span class="subtotal font-mono text-sm text-off-white">
+                                {{ entry.subtotal }} {{ entry.currency }}
+                            </span>
+                            <button class="remove-btn text-charcoal-700 hover:text-accent-red transition-colors font-mono text-xs uppercase tracking-widest"
+                                    data-key="{{ entry.key }}">
+                                Видалити
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <!-- Продовжити покупки -->
+            <div class="pt-6">
+                <a href="{% url 'brands_list' %}"
+                   class="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest
+                          text-grunge-gray hover:text-off-white transition-colors">
+                    <i class="fa-solid fa-arrow-left text-[9px]"></i>
+                    Продовжити покупки
+                </a>
+            </div>
+        </div>
+
+        <!-- Права колонка: підсумок -->
+        <div class="w-full lg:w-80 flex-shrink-0">
+            <div class="border border-charcoal-700 bg-charcoal-800 p-6" id="cart-summary">
+                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-5">Підсумок</p>
+
+                <div class="flex items-center justify-between py-3 border-b border-charcoal-700">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Товари</span>
+                    <span class="font-mono text-sm text-off-white" id="page-total">
+                        {{ cart_total }} {{ cart_currency }}
+                    </span>
+                </div>
+                <div class="flex items-center justify-between py-3 border-b border-charcoal-700">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Доставка</span>
+                    <span class="text-[10px] font-mono text-grunge-gray">Розраховується при оформленні</span>
+                </div>
+                <div class="flex items-center justify-between pt-4 pb-5">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-off-white">Всього</span>
+                    <span class="font-bebas text-3xl tracking-widest text-off-white" id="page-total-big">
+                        {{ cart_total }} {{ cart_currency }}
+                    </span>
+                </div>
+
+                <button class="w-full bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest
+                               py-4 hover:bg-grunge-gray transition-colors duration-200 mb-3">
+                    Оформити замовлення
+                </button>
+                <a href="{% url 'brands_list' %}"
+                   class="block w-full border border-charcoal-700 hover:border-grunge-gray text-grunge-gray
+                          hover:text-off-white font-mono text-xs uppercase tracking-widest py-3
+                          text-center transition-all duration-200">
+                    Продовжити покупки
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    {% else %}
+
+    <!-- Порожній кошик -->
+    <div class="max-w-[1440px] mx-auto px-6 py-32 text-center">
+        <i class="fa-solid fa-bag-shopping text-charcoal-700 text-6xl mb-6 block"></i>
+        <p class="font-bebas text-4xl tracking-widest text-grunge-gray mb-2">Кошик порожній</p>
+        <p class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest mb-10">
+            Додайте речі зі сторінок брендів
+        </p>
+        <a href="{% url 'brands_list' %}"
+           class="inline-block border border-charcoal-700 hover:border-grunge-gray text-grunge-gray
+                  hover:text-off-white font-mono text-xs uppercase tracking-widest px-8 py-4 transition-all">
+            Перейти до каталогу
+        </a>
+    </div>
+
+    {% endif %}
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'trapApp/js/cart.js' %}"></script>
+{% endblock %}

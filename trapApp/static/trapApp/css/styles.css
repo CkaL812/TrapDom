@@ -44,3 +44,20 @@ body {
 #mobile-menu-btn.open #bar1 { transform: translateY(8px) rotate(45deg); }
 #mobile-menu-btn.open #bar2 { opacity: 0; transform: scaleX(0); }
 #mobile-menu-btn.open #bar3 { transform: translateY(-8px) rotate(-45deg); }
+
+/* ── Shared animation ── */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.3s ease forwards; }
+
+/* ── Shared component: color-dot ── */
+.color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid #2A2A2A;
+    display: inline-block;
+    flex-shrink: 0;
+}

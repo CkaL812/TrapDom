@@ -14,4 +14,10 @@ urlpatterns = [
     path('brands/',                            views.brands_list,    name='brands_list'),
     path('brands/<slug:slug>/',                views.brand_detail,   name='brand_detail'),
     path('brands/<slug:slug>/<str:category>/', views.brand_category, name='brand_category'),
+
+    # ── Кошик ──────────────────────────────────────────────────────────────
+    path('cart/',                     views.cart_view,   name='cart'),
+    path('cart/add/<int:item_id>/',   views.cart_add,    name='cart_add'),
+    path('cart/update/',              views.cart_update, name='cart_update'),
+    path('cart/remove/',              views.cart_remove, name='cart_remove'),
 ]

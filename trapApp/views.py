@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import ClothingItem, Event, CustomUser, Brand
 from .forms import RegisterForm, LoginForm, ProfileForm
-
+from .cart import Cart
 logger = logging.getLogger(__name__)
 
 
@@ -444,3 +444,111 @@ def brand_category(request, slug, category):
 def nav_brands(request):
     brands = Brand.objects.all().order_by('name')
     return {'nav_brands': brands}
+
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# КРОК 1: Додай імпорт на початок views.py (після наявних імпортів):
+# from .cart import Cart
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# КРОК 2: Додай ці функції в КІНЕЦЬ views.py
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+# ── Кошик ─────────────────────────────────────────────────────────────────────
+
+def cart_view(request):
+    """Повна сторінка кошика."""
+    cart = Cart(request)
+    return render(request, 'trapApp/cart.html', {
+        'cart_items': cart.to_list(),
+        'cart_total': cart.total,
+        'cart_currency': cart.currency,
+    })
+
+
+@csrf_exempt
+def cart_add(request, item_id):
+    """POST /cart/add/<id>/ — додати товар у кошик, повернути JSON."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+
+    item = get_object_or_404(ClothingItem.objects.select_related('brand'), id=item_id)
+    cart = Cart(request)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        body = {}
+
+    size     = body.get('size', '')
+    quantity = max(1, int(body.get('quantity', 1)))
+    cart.add(item, size=size, quantity=quantity)
+
+    # Повертаємо оновлений список для drawer
+    return JsonResponse({
+        'status':      'ok',
+        'cart_count':  len(cart),
+        'cart_total':  cart.total,
+        'cart_currency': cart.currency,
+        'cart_items':  cart.to_list(),
+    })
+
+
+@csrf_exempt
+def cart_update(request):
+    """POST /cart/update/ — змінити кількість."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad request'}, status=400)
+
+    cart     = Cart(request)
+    key      = body.get('key', '')
+    quantity = int(body.get('quantity', 0))
+    cart.update(key, quantity)
+
+    subtotal = None
+    for entry in cart:
+        if entry['key'] == key:
+            subtotal = entry['subtotal']
+            break
+
+    return JsonResponse({
+        'status':      'ok',
+        'cart_count':  len(cart),
+        'cart_total':  cart.total,
+        'cart_currency': cart.currency,
+        'subtotal':    subtotal,
+        'removed':     quantity <= 0,
+        'cart_items':  cart.to_list(),
+    })
+
+
+@csrf_exempt
+def cart_remove(request):
+    """POST /cart/remove/ — видалити рядок."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad request'}, status=400)
+
+    cart = Cart(request)
+    key  = body.get('key', '')
+    cart.remove(key)
+
+    return JsonResponse({
+        'status':      'ok',
+        'cart_count':  len(cart),
+        'cart_total':  cart.total,
+        'cart_currency': cart.currency,
+        'cart_items':  cart.to_list(),
+    })

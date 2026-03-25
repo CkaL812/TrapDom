@@ -1,0 +1,14 @@
+/* ── Outfit results page styles ── */
+.cat-btn {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 2px solid transparent;
+}
+.cat-btn:hover { color: #F5F5F0; background: #2A2A2A; }
+.cat-btn.active { color: #F5F5F0; border-left-color: #8B0000; background: #2A2A2A; }
+
+.item-card {
+    transition: all 0.2s ease;
+    border: 1px solid #2A2A2A;
+}
+.item-card:hover { border-color: #A0A0A0; }

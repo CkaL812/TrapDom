@@ -47,9 +47,12 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # 'trapApp.context_processors.nav_brands',   # вже є у тебе
+                'trapApp.context_processors.cart_context', # ← ДОДАЙ ЦЕ
             ],
         },
     },
@@ -101,3 +104,4 @@ SESSION_COOKIE_AGE = 86400        # 24 години
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_SECURE = False     # False бо DEBUG=True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
