@@ -132,17 +132,7 @@
                         <span class="absolute top-2 right-2 bg-off-white text-charcoal-900 text-[9px] font-mono uppercase px-2 py-0.5">SALE</span>
                         {% endif %}
 
-                        <!-- Кнопка з'являється при hover -->
-                        <div class="cart-btn-wrap">
-                            <button
-                                onclick="trapAddToCart({{ item.id }}, '', 1, this)"
-                                class="w-full bg-off-white text-charcoal-900 font-mono text-[10px] uppercase
-                                       tracking-widest py-3 hover:bg-grunge-gray transition-colors duration-200
-                                       flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-bag-shopping text-[9px]"></i>
-                                В кошик
-                            </button>
-                        </div>
+
                     </div>
 
                     <!-- Інфо -->
@@ -170,10 +160,12 @@
                                     <span class="text-charcoal-700 font-mono text-[10px]">— ціна —</span>
                                 {% endif %}
                             </div>
-                            <a href="{{ item.source_url }}" target="_blank" rel="noopener"
-                               class="text-[9px] font-mono text-grunge-gray hover:text-off-white transition-colors">
-                                <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
-                            </a>
+                            <button
+                                onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                aria-label="Додати в кошик">
+                                <i class="fa-solid fa-bag-shopping text-base"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -149,10 +149,12 @@
                                     <span class="text-charcoal-700 font-mono text-xs">— ціна —</span>
                                 {% endif %}
                             </div>
-                            <a href="{{ item.source_url }}" target="_blank" rel="noopener"
-                                class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white border border-charcoal-700 hover:border-grunge-gray px-3 py-1.5 transition-all duration-200 flex items-center gap-1">
-                                В магазин <i class="fa-solid fa-arrow-up-right-from-square text-[8px]"></i>
-                            </a>
+                            <button
+                                onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                aria-label="Додати в кошик">
+                                <i class="fa-solid fa-bag-shopping text-base"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
