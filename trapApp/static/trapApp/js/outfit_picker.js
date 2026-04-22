@@ -109,14 +109,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ── STYLES ──
     const STYLES = [
-        { value: 'classic', label: 'Класичний' },
-        { value: 'minimal', label: 'Мінімалізм' },
-        { value: 'street',  label: 'Street' },
-        { value: 'elegant', label: 'Елегантний' },
-        { value: 'sporty',  label: 'Спортивний' },
-        { value: 'vintage', label: 'Вінтаж' },
-        { value: 'boho',    label: 'Boho' },
-        { value: 'avantgarde', label: 'Авангард' },
+        { value: 'minimalism',    label: 'Minimalism' },
+        { value: 'old_money',     label: 'Old Money' },
+        { value: 'streetwear',    label: 'Streetwear' },
+        { value: 'gorpcore',      label: 'Gorpcore' },
+        { value: 'grunge',        label: 'Grunge' },
+        { value: 'cyberpunk',     label: 'Cyberpunk / Techwear' },
+        { value: 'vintage',       label: 'Vintage / Retro' },
+        { value: 'dark_academia', label: 'Dark Academia' },
+        { value: 'avant_garde',   label: 'Avant-Garde' },
+        { value: 'workwear',      label: 'Workwear' },
     ];
 
     const stylesMenu    = document.getElementById('styles-menu');
