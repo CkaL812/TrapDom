@@ -10,9 +10,7 @@ class Brand(models.Model):
         max_length=50,
         help_text="Наприклад: 'casual', 'smart_casual', 'formal', 'black_tie'"
     )
-    # ✅ НОВЕ: логотип бренду
     logo            = models.ImageField(upload_to='brands/logos/', blank=True, null=True)
-    # ✅ НОВЕ: slug для URL /brands/zara/
     slug            = models.SlugField(max_length=120, unique=True, blank=True)
 
     def save(self, *args, **kwargs):

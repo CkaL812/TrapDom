@@ -145,7 +145,7 @@
                     {% for item in brand.items.all|slice:":3" %}
                     <div class="item-card group flex flex-col">
 
-                        <div class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700">
+                        <a href="{% url 'product_detail' item.pk %}" class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700 block">
                             {% if item.image_local %}
                             <img class="item-img w-full h-full object-cover"
                                  src="{{ item.image_local.url }}"
@@ -161,7 +161,7 @@
                                 </span>
                             </div>
                             {% endif %}
-                        </div>
+                        </a>
 
                         <div class="flex justify-between items-start mb-4">
                             <div>

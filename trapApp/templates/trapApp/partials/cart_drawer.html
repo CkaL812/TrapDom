@@ -13,7 +13,7 @@
     {# HEAD #}
     <div class="flex items-center justify-between px-6 py-5 border-b border-charcoal-700 flex-shrink-0">
         <div class="flex items-center gap-3">
-            <span class="font-bebas text-2xl tracking-widest text-off-white">КОШИК</span>
+            <span class="font-mono text-xl uppercase tracking-widest text-off-white">КОШИК</span>
             <span id="drawer-count-badge"
                   class="text-[9px] font-mono text-charcoal-900 bg-off-white px-2 py-0.5 tracking-widest">
                 {{ cart_count }}
@@ -48,7 +48,7 @@
     <div id="cart-drawer-footer" class="border-t border-charcoal-700 px-6 py-5 flex-shrink-0">
         <div class="flex items-center justify-between mb-4">
             <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Всього</span>
-            <span id="drawer-total" class="font-bebas text-2xl tracking-widest text-off-white">0 UAH</span>
+            <span id="drawer-total" class="font-mono text-xl uppercase tracking-widest text-off-white">0 UAH</span>
         </div>
         <a href="{% url 'cart' %}"
            class="block w-full bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest

@@ -14,7 +14,7 @@
     <div class="border-b border-charcoal-700 px-6 py-6 max-w-[1440px] mx-auto">
         <div class="flex items-start justify-between flex-wrap gap-4">
             <div>
-                <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">
+                <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white">
                     {{ outfit_name|default:"Підібраний образ" }}
                 </h1>
                 <div class="flex flex-wrap gap-3 mt-3">
@@ -94,7 +94,7 @@
                      style="animation-delay: {{ forloop.counter0 }}00ms">
 
                     <!-- Фото -->
-                    <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                    <a href="{% url 'product_detail' item.pk %}" class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden block">
                         {% if item.image_local %}
                             <img src="{{ item.image_local.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
                         {% elif item.image_url %}
@@ -110,7 +110,7 @@
                         {% if item.sale_price %}
                         <span class="absolute top-3 right-3 bg-accent-red text-off-white text-[9px] font-mono uppercase tracking-widest px-2 py-1">SALE</span>
                         {% endif %}
-                    </div>
+                    </a>
 
                     <!-- Інфо -->
                     <div class="p-4">

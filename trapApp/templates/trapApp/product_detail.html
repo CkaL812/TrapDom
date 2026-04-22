@@ -1,0 +1,159 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}{{ item.name }} — {{ item.brand.name }} — TrapDom{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/product_detail.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- Breadcrumb -->
+    <div class="max-w-[1200px] mx-auto px-6 pt-6 flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-grunge-gray">
+        <a href="{% url 'index' %}" class="hover:text-off-white transition-colors">Головна</a>
+        <span class="text-charcoal-700">/</span>
+        <a href="{% url 'brand_detail' item.brand.slug %}" class="hover:text-off-white transition-colors">{{ item.brand.name }}</a>
+        <span class="text-charcoal-700">/</span>
+        <span class="text-off-white">{{ item.name|truncatewords:4 }}</span>
+    </div>
+
+    <!-- Product -->
+    <div class="product-grid">
+
+        <!-- Gallery -->
+        <div>
+            <div class="gallery-main">
+                {% if item.image_local %}
+                    <img id="main-img" src="{{ item.image_local.url }}" alt="{{ item.name }}">
+                {% elif item.image_url %}
+                    <img id="main-img" src="{{ item.image_url }}" alt="{{ item.name }}">
+                {% else %}
+                    <div class="w-full h-full flex items-center justify-center">
+                        <i class="fa-solid fa-shirt text-charcoal-700 text-5xl"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="gallery-thumbs">
+                {% if item.image_local %}
+                    <div class="thumb active" data-src="{{ item.image_local.url }}">
+                        <img src="{{ item.image_local.url }}" alt="">
+                    </div>
+                {% elif item.image_url %}
+                    <div class="thumb active" data-src="{{ item.image_url }}">
+                        <img src="{{ item.image_url }}" alt="">
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Info -->
+        <div class="info-col">
+            <p class="brand-label">{{ item.brand.name }}</p>
+            <h1 class="title">{{ item.name }}</h1>
+
+            <div class="price-block">
+                {% if item.sale_price %}
+                    {{ item.sale_price }} {{ item.currency }}
+                    <span class="old-price">{{ item.price }} {{ item.currency }}</span>
+                {% elif item.price %}
+                    {{ item.price }} {{ item.currency }}
+                {% else %}
+                    — ціна —
+                {% endif %}
+            </div>
+
+            <input type="hidden" id="sel-size" value="">
+
+            {% if sizes %}
+            <p class="section-label">Розмір</p>
+            <div class="sizes">
+                {% for s in sizes %}
+                <button class="size-btn {% if not s.in_stock %}no-stock{% endif %}"
+                        data-size="{{ s.size_label }}"
+                        {% if not s.in_stock %}disabled{% endif %}>
+                    {{ s.size_label }}
+                </button>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if item.color %}
+            <p class="section-label">Колір</p>
+            <div class="color-tag">
+                {% if item.color_hex %}
+                <span class="swatch" style="background:{{ item.color_hex }}"></span>
+                {% endif %}
+                {{ item.color }}
+            </div>
+            {% endif %}
+
+            <p class="section-label">Кількість</p>
+            <div class="qty">
+                <button id="qty-m"><i class="fa-solid fa-minus text-xs"></i></button>
+                <span class="num" id="qty-num">1</span>
+                <button id="qty-p"><i class="fa-solid fa-plus text-xs"></i></button>
+            </div>
+
+            {% if item.description %}
+            <div class="desc">{{ item.description }}</div>
+            {% endif %}
+
+            {% if item.material or item.pattern and item.pattern != 'solid' %}
+            <div class="flex flex-wrap gap-2 mb-6">
+                {% if item.material %}
+                <span class="text-[9px] font-mono uppercase tracking-widest px-3 py-1 border border-charcoal-700 text-grunge-gray">{{ item.material }}</span>
+                {% endif %}
+                {% if item.pattern and item.pattern != 'solid' %}
+                <span class="text-[9px] font-mono uppercase tracking-widest px-3 py-1 border border-charcoal-700 text-grunge-gray">{{ item.get_pattern_display }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <div class="btns">
+                <button id="btn-cart" class="btn-cart" data-id="{{ item.id }}">
+                    <i class="fa-solid fa-bag-shopping"></i> Add to cart
+                </button>
+                <button id="btn-buy" class="btn-buy" data-id="{{ item.id }}">
+                    Buy now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {% if related %}
+    <div class="related">
+        <p class="section-label" style="padding-top:2rem; border-top:1px solid #2A2A2A; margin-bottom:1.5rem;">
+            Інші товари {{ item.brand.name }}
+        </p>
+        <div class="related-items">
+            {% for r in related %}
+            <a href="{% url 'product_detail' r.pk %}" class="rel-card">
+                <div class="ri">
+                    {% if r.image_local %}
+                        <img src="{{ r.image_local.url }}" alt="{{ r.name }}">
+                    {% elif r.image_url %}
+                        <img src="{{ r.image_url }}" alt="{{ r.name }}">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fa-solid fa-shirt text-charcoal-700 text-2xl"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="rb">
+                    <p class="rn">{{ r.name }}</p>
+                    <p class="rp">{% if r.price %}{{ r.price }} {{ r.currency }}{% endif %}</p>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'trapApp/js/product_detail.js' %}"></script>
+{% endblock %}

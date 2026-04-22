@@ -21,7 +21,7 @@
         </div>
         <div class="flex items-end justify-between flex-wrap gap-4">
             <div>
-                <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">{{ category_label }}</h1>
+                <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white">{{ category_label }}</h1>
                 <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mt-1">
                     {{ brand.name }} · {{ items|length }} речей
                 </p>
@@ -42,7 +42,7 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {% for item in items %}
                 <div class="item-card bg-charcoal-800 fade-up" style="animation-delay:{{ forloop.counter0 }}0ms">
-                    <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                    <a href="{% url 'product_detail' item.pk %}" class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden block">
                         {% if item.image_local %}
                             <img src="{{ item.image_local.url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
                         {% elif item.image_url %}
@@ -58,7 +58,7 @@
                         <span class="absolute top-2 left-2 text-[9px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 bg-charcoal-900/80 px-2 py-0.5">
                             {{ item.get_formality_display }}
                         </span>
-                    </div>
+                    </a>
                     <div class="p-3">
                         <p class="text-sm font-mono text-off-white leading-tight mb-2 line-clamp-2">{{ item.name }}</p>
                         <div class="flex flex-wrap gap-x-3 gap-y-1 mb-2">

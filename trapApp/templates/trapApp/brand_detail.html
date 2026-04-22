@@ -36,7 +36,7 @@
             </div>
             <div>
                 {% if category_label %}
-                <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white leading-none">
+                <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white leading-none">
                     {{ category_label }}
                 </h1>
                 {% endif %}
@@ -116,7 +116,7 @@
                 <div class="item-card bg-charcoal-800 fade-up" style="animation-delay:{{ forloop.counter0 }}0ms">
 
                     <!-- Фото + кнопка кошика -->
-                    <div class="item-img-wrap aspect-[3/4] bg-charcoal-700">
+                    <a href="{% url 'product_detail' item.pk %}" class="item-img-wrap aspect-[3/4] bg-charcoal-700 block">
                         {% if item.image_local %}
                             <img src="{{ item.image_local.url }}" alt="{{ item.name }}"
                                  class="w-full h-full object-cover">
@@ -133,7 +133,7 @@
                         {% endif %}
 
 
-                    </div>
+                    </a>
 
                     <!-- Інфо -->
                     <div class="p-3">

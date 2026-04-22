@@ -14,7 +14,7 @@
     <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
         <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Ваш вибір</p>
         <div class="flex items-end justify-between gap-4 flex-wrap">
-            <h1 class="font-bebas text-5xl md:text-7xl tracking-widest text-off-white">КОШИК</h1>
+            <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white">КОШИК</h1>
             {% if cart_items %}
             <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray border border-charcoal-700 px-3 py-1 self-end mb-1">
                 {{ cart_items|length }} позиц{{ cart_items|length|pluralize:"ія,ії,ій" }}
@@ -125,7 +125,7 @@
                 </div>
                 <div class="flex items-center justify-between pt-4 pb-5">
                     <span class="text-[10px] font-mono uppercase tracking-widest text-off-white">Всього</span>
-                    <span class="font-bebas text-3xl tracking-widest text-off-white" id="page-total-big">
+                    <span class="font-mono text-2xl uppercase tracking-widest text-off-white" id="page-total-big">
                         {{ cart_total }} {{ cart_currency }}
                     </span>
                 </div>
@@ -150,7 +150,7 @@
     <!-- Порожній кошик -->
     <div class="max-w-[1440px] mx-auto px-6 py-32 text-center">
         <i class="fa-solid fa-bag-shopping text-charcoal-700 text-6xl mb-6 block"></i>
-        <p class="font-bebas text-4xl tracking-widest text-grunge-gray mb-2">Кошик порожній</p>
+        <p class="font-mono text-3xl uppercase tracking-widest text-grunge-gray mb-2">Кошик порожній</p>
         <p class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest mb-10">
             Додайте речі зі сторінок брендів
         </p>

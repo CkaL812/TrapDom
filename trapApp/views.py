@@ -81,32 +81,9 @@ SEASON_LABELS = {'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осі
 ITEMS_PER_CATEGORY = 8  # збільшено з 5
 
 MODELS_TO_TRY = [
-    "openai/gpt-oss-120b:free",
-    "openai/gpt-oss-20b:free",
-    "qwen/qwen3-next-80b-a3b-instruct:free",
+    
     "nvidia/nemotron-3-super-120b-a12b:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/mistral-small-3.1-24b-instruct:free",
-    "nousresearch/hermes-3-llama-3.1-405b:free",
-    "google/gemma-3-27b-it:free",
-    "google/gemma-3-12b-it:free",
-    "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
-    "arcee-ai/trinity-large-preview:free",
-    "nvidia/nemotron-3-nano-30b-a3b:free",
-    "z-ai/glm-4.5-air:free",
-    "google/gemma-3n-e4b-it:free",
-    "google/gemma-3n-e2b-it:free",
-    "google/gemma-3-4b-it:free",
-    "qwen/qwen3-4b:free",
-    "meta-llama/llama-3.2-3b-instruct:free",
-    "nvidia/nemotron-nano-9b-v2:free",
-    "arcee-ai/trinity-mini:free",
-    "liquid/lfm-2.5-1.2b-instruct:free",
-    "minimax/minimax-m2.5:free",
-    "stepfun/step-3.5-flash:free",
-    "qwen/qwen3-coder:free",
-    "liquid/lfm-2.5-1.2b-thinking:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
+    
 ]
 
 
@@ -334,6 +311,13 @@ def generate_outfit(request):
     request.session.modified = True
 
     return JsonResponse({'status': 'ok', 'redirect': '/outfit-results/'})
+
+
+def product_detail(request, pk):
+    item = get_object_or_404(ClothingItem.objects.select_related('brand').prefetch_related('sizes'), pk=pk)
+    sizes = item.sizes.all().order_by('size_label')
+    related = ClothingItem.objects.filter(brand=item.brand).exclude(pk=pk).select_related('brand').order_by('?')[:4]
+    return render(request, 'trapApp/product_detail.html', {'item': item, 'sizes': sizes, 'related': related})
 
 
 # ─── Auth ─────────────────────────────────────────────────────────────────────
