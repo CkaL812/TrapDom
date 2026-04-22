@@ -1,4 +1,17 @@
-/* ── Outfit picker page styles ── */
+/* ═══════════════════════════════════════════════════
+   OUTFIT PICKER STYLES
+   ═══════════════════════════════════════════════════ */
+
+/* ── Collapsible ── */
+.collapsible-menu.is-open { border-color: #A0A0A0; }
+.collapsible-trigger      { cursor: pointer; }
+.collapsible-body {
+    overflow: hidden;
+    max-height: 0;
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Events ── */
 .event-wheel-item {
     cursor: pointer;
     transition: all 0.2s ease;
@@ -14,19 +27,24 @@
     background: #2A2A2A;
 }
 
-.option-card {
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #2A2A2A;
-}
-.option-card:hover {
-    border-color: #A0A0A0;
-}
-.option-card.selected {
-    border-color: #A0A0A0;
-    background: #1E1E1E;
-}
+/* ── Legacy ── */
+.option-card            { cursor: pointer; transition: all 0.2s ease; border: 1px solid #2A2A2A; }
+.option-card:hover      { border-color: #A0A0A0; }
+.option-card.selected   { border-color: #A0A0A0; background: #1E1E1E; }
 
+/* ── Style chips ── */
+.style-chip {
+    background: #1E1E1E;
+    border-color: #2A2A2A;
+    color: #A0A0A0;
+    cursor: pointer;
+    user-select: none;
+}
+.style-chip:hover          { border-color: #A0A0A0; color: #F5F5F0; }
+.style-chip.selected       { background: #F5F5F0; border-color: #F5F5F0; color: #1E1E1E; }
+.style-chip.selected:hover { background: #A0A0A0; border-color: #A0A0A0; }
+
+/* ── Selects ── */
 select {
     -webkit-appearance: none;
     appearance: none;
@@ -35,6 +53,7 @@ select {
     background-position: right 16px center;
 }
 
+/* ── Progress ── */
 #submit-progress {
     position: absolute;
     bottom: 0;
@@ -44,3 +63,284 @@ select {
     width: 0%;
     transition: width 0.2s ease;
 }
+
+.tabular-nums { font-variant-numeric: tabular-nums; }
+
+
+/* ═══════════════════════════════════════════════════
+   AGE MODULE — digital display + scan track
+   ═══════════════════════════════════════════════════ */
+
+.age-module {
+    position: relative;
+    transition: border-color 0.3s ease;
+}
+.age-module.is-active { border-color: #A0A0A0; }
+
+/* Великий display (як на старому цифровому приладі) */
+.age-display-box {
+    position: relative;
+    padding: 6px 12px 4px;
+    background: #0F0F0F;
+    border: 1px solid #2A2A2A;
+    min-width: 70px;
+    text-align: center;
+    /* тонка підсвітка знизу */
+    box-shadow: inset 0 -1px 0 0 rgba(245, 245, 240, 0.04);
+}
+
+/* Subtle "scanline" всередині */
+.age-display-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+        to bottom,
+        transparent 0,
+        transparent 2px,
+        rgba(255, 255, 255, 0.015) 2px,
+        rgba(255, 255, 255, 0.015) 3px
+    );
+    pointer-events: none;
+}
+
+.age-module.is-active .age-display-box {
+    border-color: #A0A0A0;
+}
+
+.age-display {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 32px;
+    line-height: 0.95;
+    color: #A0A0A0;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+.age-module.is-active .age-display {
+    color: #F5F5F0;
+    text-shadow: 0 0 12px rgba(245, 245, 240, 0.25);
+}
+
+.age-plus {
+    font-size: 20px;
+    vertical-align: top;
+    margin-left: 2px;
+    opacity: 0.7;
+}
+
+.age-display-label {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.3em;
+    color: #3A3A3A;
+    margin-top: 4px;
+}
+
+/* Кнопки −/+ */
+.age-btn {
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #2A2A2A;
+    background: #1E1E1E;
+    color: #A0A0A0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+.age-btn:hover  { border-color: #F5F5F0; color: #F5F5F0; background: #2A2A2A; }
+.age-btn:active { transform: scale(0.92); }
+
+/* Scan track з ticks */
+.age-scan-wrap {
+    position: relative;
+    height: 24px;
+}
+
+.age-ticks {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.age-tick {
+    flex: 1;
+    height: 6px;
+    background: #2A2A2A;
+    transition: background 0.15s ease, height 0.15s ease, box-shadow 0.15s ease;
+    margin: 0 0.5px;
+}
+.age-tick.age-tick-major {
+    height: 12px;
+    background: #3A3A3A;
+}
+.age-tick.active {
+    background: #A0A0A0;
+}
+.age-tick.active.age-tick-major {
+    background: #F5F5F0;
+}
+.age-tick.is-current {
+    background: #F5F5F0;
+    height: 16px;
+    box-shadow: 0 0 8px rgba(245, 245, 240, 0.5);
+}
+
+/* Сам range-slider — прозорий, ловить драг */
+.age-slider {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    cursor: grab;
+    -webkit-appearance: none;
+    appearance: none;
+    opacity: 0;  /* повністю прозорий — візуал через ticks */
+}
+.age-slider:active { cursor: grabbing; }
+.age-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 24px;
+    background: transparent;
+    cursor: grab;
+}
+.age-slider::-moz-range-thumb {
+    width: 20px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    cursor: grab;
+}
+
+
+/* ═══════════════════════════════════════════════════
+   BUDGET MODULE — equalizer bars
+   ═══════════════════════════════════════════════════ */
+
+.budget-module {
+    position: relative;
+    transition: border-color 0.3s ease;
+}
+.budget-module.is-active { border-color: #A0A0A0; }
+
+.eq-canvas {
+    position: relative;
+    height: 44px;
+    display: flex;
+    align-items: flex-end;
+    gap: 2px;
+    padding: 8px 4px 4px;
+    background: #0F0F0F;
+    border: 1px solid #2A2A2A;
+    cursor: pointer;
+    user-select: none;
+    touch-action: none;
+    overflow: hidden;
+}
+
+.budget-module.is-active .eq-canvas {
+    border-color: #3A3A3A;
+}
+
+/* Сітка на фоні canvas (subtle) */
+.eq-canvas::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 25% 25%;
+    pointer-events: none;
+}
+
+.eq-bar {
+    position: relative;
+    flex: 1;
+    background: transparent;
+    transition: transform 0.15s ease;
+}
+
+/* Внутрішній fill бару */
+.eq-bar-fill {
+    position: absolute;
+    inset: 0;
+    background: #2A2A2A;
+    transition: background 0.15s ease, box-shadow 0.2s ease;
+}
+
+.eq-bar.active .eq-bar-fill {
+    background: linear-gradient(to top, #F5F5F0 0%, #FFFFFF 100%);
+    box-shadow:
+        0 0 8px rgba(245, 245, 240, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.eq-bar.edge-min .eq-bar-fill,
+.eq-bar.edge-max .eq-bar-fill {
+    background: #FFFFFF;
+    box-shadow:
+        0 0 14px rgba(245, 245, 240, 0.6),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* "Точки-маркери" зверху на краях діапазону */
+.eq-bar.edge-min::before,
+.eq-bar.edge-max::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    background: #F5F5F0;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(245, 245, 240, 0.8);
+}
+
+.eq-bar:hover {
+    transform: translateY(-2px);
+}
+
+/* Divider між min/max labels */
+.eq-divider {
+    flex: 1;
+    height: 1px;
+    background: #2A2A2A;
+    margin: 0 16px;
+    align-self: center;
+    position: relative;
+}
+.eq-divider::before,
+.eq-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 3px;
+    height: 3px;
+    background: #2A2A2A;
+    border-radius: 50%;
+    transform: translateY(-50%);
+}
+.eq-divider::before { left: 0; }
+.eq-divider::after  { right: 0; }

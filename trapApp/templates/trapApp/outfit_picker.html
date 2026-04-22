@@ -13,81 +13,234 @@
     <!-- Хедер -->
     <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
         <h1 class="font-mono text-5xl md:text-7xl uppercase tracking-widest text-off-white">Підбір образу</h1>
-        <p class="text-grunge-gray font-mono text-xs mt-3 max-w-md">Оберіть подію, стать та сезон — штучний інтелект підбере образ із нашого каталогу.</p>
+        <p class="text-grunge-gray font-mono text-xs mt-3 max-w-md">Оберіть подію та кілька деталей — штучний інтелект підбере образ із нашого каталогу.</p>
     </div>
 
     <!-- Форма -->
     <div class="max-w-[1440px] mx-auto px-6 py-12">
-        <form id="outfit-form" class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+        <form id="outfit-form" class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
 
-            <!-- Колонка 1: Подія -->
-            <div class="lg:col-span-1">
-                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
-                    Оберіть подію
-                </p>
-                <div class="relative mb-3">
-                    <input id="event-input" type="text" placeholder="Або введіть свою подію..."
-                        class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
-                    <i class="fa-solid fa-pen-to-square absolute right-4 top-1/2 -translate-y-1/2 text-grunge-gray text-xs"></i>
-                </div>
-                <div class="border border-charcoal-700 bg-charcoal-800">
-                    <div class="flex items-center justify-between px-5 py-2 border-b border-charcoal-700">
-                        <span class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Популярні події</span>
-                        <div class="flex gap-2">
-                            <button type="button" id="wheel-up" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                                <i class="fa-solid fa-chevron-up text-[10px]"></i>
+            <!-- Ліва колонка: Подія, Стиль, Бюджет -->
+            <div class="flex flex-col gap-8 lg:gap-10">
+                <!-- Подія + Стиль -->
+                <div class="flex flex-col">
+                    <div>
+                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
+                            Оберіть подію
+                        </p>
+                        <div class="relative mb-3">
+                            <input id="event-input" type="text" placeholder="Або введіть свою подію..."
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
+                            <i class="fa-solid fa-pen-to-square absolute right-4 top-1/2 -translate-y-1/2 text-grunge-gray text-xs"></i>
+                        </div>
+
+                        <!-- Events -->
+                        <div id="events-menu" class="collapsible-menu border border-charcoal-700 bg-charcoal-800">
+                            <button type="button" id="events-trigger"
+                                class="collapsible-trigger w-full flex items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-charcoal-900">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray flex-shrink-0">Популярні події</span>
+                                    <span id="events-selected-badge" class="hidden text-[10px] font-mono text-off-white truncate"></span>
+                                </div>
+                                <i id="events-chevron" class="fa-solid fa-chevron-down text-grunge-gray text-[10px] transition-transform duration-300 flex-shrink-0 ml-2"></i>
                             </button>
-                            <button type="button" id="wheel-down" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                            <div id="events-body" class="collapsible-body">
+                                <div class="border-t border-charcoal-700">
+                                    <div id="wheel-viewport"></div>
+                                    <div class="flex items-center justify-between px-5 py-2 border-t border-charcoal-700">
+                                        <span id="wheel-counter" class="text-[9px] font-mono text-grunge-gray"></span>
+                                        <div class="flex gap-3">
+                                            <button type="button" id="wheel-up" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                                <i class="fa-solid fa-chevron-up text-[10px]"></i>
+                                            </button>
+                                            <button type="button" id="wheel-down" class="text-grunge-gray hover:text-off-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                                                <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p id="events-hint" class="text-[9px] font-mono text-grunge-gray mt-1.5 transition-opacity duration-300">
+                            Натисніть, щоб переглянути <span id="events-total"></span> варіантів
+                        </p>
+                    </div>
+
+                    <!-- Styles -->
+                    <div class="mt-3">
+                        <div id="styles-menu" class="collapsible-menu border border-charcoal-700 bg-charcoal-800">
+                            <button type="button" id="styles-trigger"
+                                class="collapsible-trigger w-full flex items-center justify-between px-5 py-3.5 text-left transition-colors hover:bg-charcoal-900">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray flex-shrink-0">
+                                        Стиль <span class="text-charcoal-700 normal-case">(опційно)</span>
+                                    </span>
+                                    <span id="styles-selected-badge" class="hidden text-[10px] font-mono text-off-white truncate"></span>
+                                </div>
+                                <i id="styles-chevron" class="fa-solid fa-chevron-down text-grunge-gray text-[10px] transition-transform duration-300 flex-shrink-0 ml-2"></i>
+                            </button>
+                            <div id="styles-body" class="collapsible-body">
+                                <div class="border-t border-charcoal-700">
+                                    <div id="style-chips" class="flex flex-wrap gap-2 p-4"></div>
+                                    <div id="styles-footer" class="hidden items-center justify-between px-5 py-2 border-t border-charcoal-700">
+                                        <span id="styles-counter" class="text-[9px] font-mono text-grunge-gray"></span>
+                                        <button type="button" id="style-clear" class="text-[9px] font-mono text-grunge-gray hover:text-off-white transition-colors">
+                                            Очистити все
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <p id="styles-hint" class="text-[9px] font-mono text-grunge-gray mt-1.5 transition-opacity duration-300">
+                            Можна обрати кілька — необов'язково
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Бюджет -->
+                <div>
+                    <!-- ══════════════════════════════════════════════ -->
+                    <!-- БЮДЖЕТ — equalizer                              -->
+                    <!-- ══════════════════════════════════════════════ -->
+                    <div class="budget-module border border-charcoal-700 bg-charcoal-800 p-3">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray">Бюджет</p>
+                                <p class="text-[8px] font-mono uppercase tracking-[0.3em] text-charcoal-700 mt-0.5">budget / uah</p>
+                            </div>
+                            <button type="button" id="budget-reset" class="hidden text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors">
+                                × скинути
                             </button>
                         </div>
-                    </div>
-                    <div id="wheel-viewport"></div>
-                    <div class="px-5 py-2 border-t border-charcoal-700">
-                        <span id="wheel-counter" class="text-[9px] font-mono text-grunge-gray"></span>
+
+                        <!-- Equalizer -->
+                        <div id="eq-canvas" class="eq-canvas">
+                            <!-- бари генеруються JS -->
+                        </div>
+
+                        <!-- Значення -->
+                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-charcoal-700">
+                            <div>
+                                <p class="text-[8px] font-mono uppercase tracking-widest text-charcoal-700">min</p>
+                                <p id="eq-min-label" class="text-sm font-mono text-grunge-gray tabular-nums mt-0.5">1 000 ₴</p>
+                            </div>
+                            <div class="eq-divider"></div>
+                            <div class="text-right">
+                                <p class="text-[8px] font-mono uppercase tracking-widest text-charcoal-700">max</p>
+                                <p id="eq-max-label" class="text-sm font-mono text-grunge-gray tabular-nums mt-0.5">10 000 ₴</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Колонка 2: Стать + Сезон + Кнопка -->
-            <div class="lg:col-span-1 flex flex-col gap-6">
-                <div>
-                    <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
-                        Стать
-                    </p>
-                    <select id="gender-select"
-                        class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
-                        <option value="" class="bg-charcoal-900">— оберіть —</option>
-                        <option value="male" class="bg-charcoal-900">Чоловіча</option>
-                        <option value="female" class="bg-charcoal-900">Жіноча</option>
-                        <option value="unisex" class="bg-charcoal-900">Унісекс</option>
-                    </select>
-                </div>
-                <div>
-                    <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-4">
-                        Сезон
-                    </p>
-                    <select id="season-select"
-                        class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
-                        <option value="" class="bg-charcoal-900">— оберіть —</option>
-                        <option value="spring" class="bg-charcoal-900">Весна</option>
-                        <option value="summer" class="bg-charcoal-900">Літо</option>
-                        <option value="autumn" class="bg-charcoal-900">Осінь</option>
-                        <option value="winter" class="bg-charcoal-900">Зима</option>
-                    </select>
+            <!-- Права колонка: Параметри, Вік, Кнопка -->
+            <div class="flex flex-col gap-8 lg:gap-10">
+                <!-- Параметри (Стать, Сезон, Дрес-код, Час) -->
+                <div class="flex flex-col gap-4 mt-0 lg:mt-[34px]">
+                    <!-- Стать + Сезон -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <select id="gender-select"
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
+                                <option value="" class="bg-charcoal-900">Стать</option>
+                                <option value="male" class="bg-charcoal-900">Чоловіча</option>
+                                <option value="female" class="bg-charcoal-900">Жіноча</option>
+                                <option value="unisex" class="bg-charcoal-900">Унісекс</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="season-select"
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
+                                <option value="" class="bg-charcoal-900">Сезон</option>
+                                <option value="spring" class="bg-charcoal-900">Весна</option>
+                                <option value="summer" class="bg-charcoal-900">Літо</option>
+                                <option value="autumn" class="bg-charcoal-900">Осінь</option>
+                                <option value="winter" class="bg-charcoal-900">Зима</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Дрес-код + Час -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <select id="dresscode-select"
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
+                                <option value="" class="bg-charcoal-900">Дрес-код</option>
+                                <option value="casual" class="bg-charcoal-900">Casual</option>
+                                <option value="smart_casual" class="bg-charcoal-900">Smart Casual</option>
+                                <option value="business" class="bg-charcoal-900">Business</option>
+                                <option value="cocktail" class="bg-charcoal-900">Cocktail</option>
+                                <option value="formal" class="bg-charcoal-900">Formal / Black Tie</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select id="time-select"
+                                class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors cursor-pointer">
+                                <option value="" class="bg-charcoal-900">Час доби</option>
+                                <option value="morning" class="bg-charcoal-900">Ранок</option>
+                                <option value="day" class="bg-charcoal-900">День</option>
+                                <option value="evening" class="bg-charcoal-900">Вечір</option>
+                                <option value="night" class="bg-charcoal-900">Ніч</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Кнопка під селектами -->
-                <div class="mt-2">
-                    <div id="result-area" class="hidden mb-4 border border-accent-red bg-charcoal-800 px-4 py-3">
-                        <p id="result-text" class="text-accent-red text-xs font-mono"></p>
+                <!-- Вік + Кнопка -->
+                <div class="flex flex-col gap-6">
+                    <!-- ══════════════════════════════════════════════ -->
+                    <!-- ВІК — великий display + scan track             -->
+                    <!-- ══════════════════════════════════════════════ -->
+                    <div class="age-module border border-charcoal-700 bg-charcoal-800 p-3">
+                        <div class="flex items-start justify-between mb-3">
+                            <div>
+                                <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray">Вік</p>
+                                <p class="text-[8px] font-mono uppercase tracking-[0.3em] text-charcoal-700 mt-0.5">age / yrs</p>
+                            </div>
+                            <button type="button" id="age-reset" class="hidden text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors">
+                                × скинути
+                            </button>
+                        </div>
+
+                        <div class="flex items-end gap-5">
+                            <!-- Великий цифровий дисплей -->
+                            <div class="age-display-box">
+                                <div class="age-display">
+                                    <span id="age-number">25</span><span id="age-plus" class="age-plus hidden">+</span>
+                                </div>
+                                <div class="age-display-label">yrs</div>
+                            </div>
+
+                            <!-- Контроли -->
+                            <div class="flex-1 pb-1">
+                                <div class="flex items-center gap-2 mb-3">
+                                    <button type="button" id="age-minus" class="age-btn" aria-label="Зменшити">−</button>
+                                    <button type="button" id="age-plus-btn" class="age-btn" aria-label="Збільшити">+</button>
+                                    <span class="text-[8px] font-mono text-charcoal-700 uppercase tracking-widest ml-auto">drag ↔</span>
+                                </div>
+                                <div class="age-scan-wrap">
+                                    <div class="age-ticks" id="age-ticks"></div>
+                                    <input type="range" id="age-slider"
+                                        min="13" max="70" step="1" value="25"
+                                        class="age-slider">
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <button id="submit-btn" type="submit" disabled
-                        class="w-full relative overflow-hidden bg-charcoal-700 text-grunge-gray border border-charcoal-700 px-6 py-5 font-bold tracking-widest uppercase text-sm cursor-not-allowed transition-all duration-300">
-                        <span id="btn-text">Підібрати образ</span>
-                        <div id="submit-progress"></div>
-                    </button>
-                    <p class="text-[9px] font-mono text-grunge-gray mt-2 text-center">Заповніть хоча б одне поле для активації</p>
+
+                    <!-- Кнопка -->
+                    <div>
+                        <div id="result-area" class="hidden mb-4 border border-accent-red bg-charcoal-800 px-4 py-3">
+                            <p id="result-text" class="text-accent-red text-xs font-mono"></p>
+                        </div>
+                        <button id="submit-btn" type="submit" disabled
+                            class="w-full relative overflow-hidden bg-charcoal-700 text-grunge-gray border border-charcoal-700 px-6 py-5 font-bold tracking-widest uppercase text-sm cursor-not-allowed transition-all duration-300">
+                            <span id="btn-text">Підібрати образ</span>
+                            <div id="submit-progress"></div>
+                        </button>
+                        <p class="text-[9px] font-mono text-grunge-gray mt-2 text-center">Обов'язкові поля: подія, стать, сезон</p>
+                    </div>
                 </div>
             </div>
 
