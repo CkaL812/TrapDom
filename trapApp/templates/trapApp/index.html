@@ -94,9 +94,15 @@
     <section id="catalog" class="py-24 border-b border-charcoal-700">
         <div class="max-w-[1440px] mx-auto px-6">
 
-            <div class="mb-12">
-                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Асортимент</p>
-                <h2 class="text-5xl md:text-6xl font-mono tracking-widest uppercase text-off-white">Каталог</h2>
+            <div class="flex items-end justify-between mb-12">
+                <div>
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Асортимент</p>
+                    <h2 class="text-5xl md:text-6xl font-mono tracking-widest uppercase text-off-white">Каталог</h2>
+                </div>
+                <a href="{% url 'brands_list' %}"
+                   class="hidden md:flex items-center gap-2 border border-charcoal-700 px-5 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                    Всі бренди <i class="fa-solid fa-arrow-right text-accent-red text-[10px]"></i>
+                </a>
             </div>
 
             {% if brands %}
@@ -143,9 +149,9 @@
                      id="panel-{{ brand.slug }}">
 
                     {% for item in brand.items.all|slice:":3" %}
-                    <div class="item-card group flex flex-col">
+                    <div class="item-card fade-up bg-charcoal-800 flex flex-col" style="animation-delay:{{ forloop.counter0 }}00ms">
 
-                        <a href="{% url 'product_detail' item.pk %}" class="relative aspect-[3/4] overflow-hidden bg-charcoal-800 mb-4 border border-charcoal-700 block">
+                        <a href="{% url 'product_detail' item.pk %}" class="relative aspect-[3/4] overflow-hidden block">
                             {% if item.image_local %}
                             <img class="item-img w-full h-full object-cover"
                                  src="{{ item.image_local.url }}"
@@ -163,30 +169,34 @@
                             {% endif %}
                         </a>
 
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h3 class="font-mono text-xs uppercase tracking-widest text-off-white mb-1">
+                        <div class="p-4 flex flex-col flex-1">
+                            <div class="mb-3">
+                                <h3 class="font-mono text-xs uppercase tracking-widest text-off-white mb-1 line-clamp-2">
                                     {{ item.name }}
                                 </h3>
                                 <p class="text-[10px] font-mono text-grunge-gray uppercase tracking-widest">
                                     {{ brand.name }}{% if item.color %} / {{ item.color }}{% endif %}
                                 </p>
                             </div>
-                            {% if item.price %}
-                            <span class="font-mono text-xs text-grunge-gray shrink-0 ml-2">{{ item.price }} {{ item.currency }}</span>
-                            {% endif %}
-                        </div>
 
-                        <div class="mt-auto flex items-center justify-between pt-4 border-t border-charcoal-700">
-                            <div>
-                                <!-- Можна залишити порожнім для вирівнювання -->
+                            <div class="mt-auto flex items-center justify-between pt-3 border-t border-charcoal-700">
+                                <div>
+                                    {% if item.sale_price %}
+                                    <span class="font-mono text-xs text-accent-red font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                    <span class="font-mono text-[10px] text-grunge-gray line-through ml-1">{{ item.price }}</span>
+                                    {% elif item.price %}
+                                    <span class="font-mono text-xs text-off-white">{{ item.price }} {{ item.currency }}</span>
+                                    {% else %}
+                                    <span class="font-mono text-[10px] text-grunge-gray">— ціна —</span>
+                                    {% endif %}
+                                </div>
+                                <button
+                                    onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                    class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                    aria-label="Додати в кошик">
+                                    <i class="fa-solid fa-bag-shopping text-base"></i>
+                                </button>
                             </div>
-                            <button
-                                onclick="trapAddToCart({{ item.id }}, '', 1, this)"
-                                class="text-grunge-gray hover:text-off-white transition-colors p-1"
-                                aria-label="Додати в кошик">
-                                <i class="fa-solid fa-bag-shopping text-base"></i>
-                            </button>
                         </div>
 
                     </div>

@@ -1,5 +1,15 @@
 /* ── Index page styles ── */
 
+/* Fade-up animation for catalog cards */
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+}
+
 /* Brand slider */
 #brands-track {
     display: flex;
@@ -28,7 +38,12 @@
     transform: scale(1.06);
 }
 
-/* Item card hover */
+/* Item card border + hover (matches brand_category style) */
+.item-card {
+    border: 1px solid #2A2A2A;
+    transition: border-color 0.2s ease;
+}
+.item-card:hover { border-color: #A0A0A0; }
 .item-img { transition: transform 0.4s ease; }
 .item-card:hover .item-img { transform: scale(1.04); }
 
