@@ -21,7 +21,7 @@
         <form id="outfit-form" class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
 
             <!-- Ліва колонка: Подія, Стиль, Бюджет -->
-            <div class="flex flex-col gap-8 lg:gap-10">
+            <div class="flex flex-col gap-4 lg:gap-6">
                 <!-- Подія + Стиль -->
                 <div class="flex flex-col">
                     <div>
@@ -103,11 +103,8 @@
                     <!-- БЮДЖЕТ — equalizer                              -->
                     <!-- ══════════════════════════════════════════════ -->
                     <div class="budget-module border border-charcoal-700 bg-charcoal-800 p-3">
-                        <div class="flex items-start justify-between mb-3">
-                            <div>
-                                <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray">Бюджет</p>
-                                <p class="text-[8px] font-mono uppercase tracking-[0.3em] text-charcoal-700 mt-0.5">budget / uah</p>
-                            </div>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray">Бюджет</p>
                             <button type="button" id="budget-reset" class="hidden text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors">
                                 × скинути
                             </button>
@@ -119,16 +116,9 @@
                         </div>
 
                         <!-- Значення -->
-                        <div class="flex items-center justify-between mt-3 pt-3 border-t border-charcoal-700">
-                            <div>
-                                <p class="text-[8px] font-mono uppercase tracking-widest text-charcoal-700">min</p>
-                                <p id="eq-min-label" class="text-sm font-mono text-grunge-gray tabular-nums mt-0.5">1 000 ₴</p>
-                            </div>
-                            <div class="eq-divider"></div>
-                            <div class="text-right">
-                                <p class="text-[8px] font-mono uppercase tracking-widest text-charcoal-700">max</p>
-                                <p id="eq-max-label" class="text-sm font-mono text-grunge-gray tabular-nums mt-0.5">10 000 ₴</p>
-                            </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <p id="eq-min-label" class="text-sm font-mono text-grunge-gray tabular-nums">1 000 ₴</p>
+                            <p id="eq-max-label" class="text-sm font-mono text-grunge-gray tabular-nums">10 000 ₴</p>
                         </div>
                     </div>
                 </div>
@@ -193,32 +183,27 @@
                     <!-- ВІК — великий display + scan track             -->
                     <!-- ══════════════════════════════════════════════ -->
                     <div class="age-module border border-charcoal-700 bg-charcoal-800 p-3">
-                        <div class="flex items-start justify-between mb-3">
-                            <div>
-                                <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray">Вік</p>
-                                <p class="text-[8px] font-mono uppercase tracking-[0.3em] text-charcoal-700 mt-0.5">age / yrs</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray">Вік</p>
+                            <div class="flex items-center gap-2">
+                                <button type="button" id="age-minus" class="age-btn" aria-label="Зменшити">−</button>
+                                <button type="button" id="age-plus-btn" class="age-btn" aria-label="Збільшити">+</button>
+                                <button type="button" id="age-reset" class="hidden text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors ml-2">
+                                    × скинути
+                                </button>
                             </div>
-                            <button type="button" id="age-reset" class="hidden text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors">
-                                × скинути
-                            </button>
                         </div>
 
-                        <div class="flex items-end gap-5">
+                        <div class="flex items-center gap-5 mt-2">
                             <!-- Великий цифровий дисплей -->
                             <div class="age-display-box">
                                 <div class="age-display">
                                     <span id="age-number">25</span><span id="age-plus" class="age-plus hidden">+</span>
                                 </div>
-                                <div class="age-display-label">yrs</div>
                             </div>
 
                             <!-- Контроли -->
-                            <div class="flex-1 pb-1">
-                                <div class="flex items-center gap-2 mb-3">
-                                    <button type="button" id="age-minus" class="age-btn" aria-label="Зменшити">−</button>
-                                    <button type="button" id="age-plus-btn" class="age-btn" aria-label="Збільшити">+</button>
-                                    <span class="text-[8px] font-mono text-charcoal-700 uppercase tracking-widest ml-auto">drag ↔</span>
-                                </div>
+                            <div class="flex-1">
                                 <div class="age-scan-wrap">
                                     <div class="age-ticks" id="age-ticks"></div>
                                     <input type="range" id="age-slider"
