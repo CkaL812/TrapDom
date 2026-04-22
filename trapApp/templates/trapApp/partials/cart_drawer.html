@@ -34,9 +34,9 @@
 
     {# EMPTY STATE (прихований якщо є товари) #}
     <div id="cart-drawer-empty" class="flex-1 flex-col items-center justify-center px-6 py-16 text-center hidden">
-        <i class="fa-solid fa-bag-shopping text-charcoal-700 text-5xl mb-5 block"></i>
+        <i class="fa-solid fa-bag-shopping text-grunge-gray text-5xl mb-5 block"></i>
         <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest mb-2">Кошик порожній</p>
-        <p class="text-charcoal-700 font-mono text-[10px] mb-8">Додайте речі зі сторінок брендів</p>
+        <p class="text-grunge-gray font-mono text-[10px] mb-8">Додайте речі зі сторінок брендів</p>
         <button id="cart-continue-shopping"
                 class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white
                        font-mono text-xs uppercase tracking-widest px-6 py-3 transition-all duration-200">
@@ -132,7 +132,7 @@
                         ? `<img src="${entry.image}" alt="${entry.name}"
                                class="w-full h-full object-cover">`
                         : `<div class="w-full h-full flex items-center justify-center">
-                               <i class="fa-solid fa-shirt text-charcoal-700 text-2xl"></i>
+                               <i class="fa-solid fa-shirt text-grunge-gray text-2xl"></i>
                            </div>`}
                 </div>
 
@@ -176,7 +176,7 @@
                             <span class="font-mono text-sm text-off-white">
                                 ${entry.subtotal} ${entry.currency}
                             </span>
-                            <button class="remove-btn text-charcoal-700 hover:text-accent-red transition-colors duration-150"
+                            <button class="remove-btn text-grunge-gray hover:text-accent-red transition-colors duration-150"
                                     data-key="${entry.key}" aria-label="Видалити">
                                 <i class="fa-solid fa-xmark text-xs"></i>
                             </button>

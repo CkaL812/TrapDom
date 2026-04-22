@@ -34,20 +34,28 @@ def outfit_results(request):
     ids        = [item['id'] for item in items_data]
     reason_map = {item['id']: item.get('reason', '') for item in items_data}
 
+    CATEGORY_ORDER = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory']
+
     items_qs = ClothingItem.objects.filter(id__in=ids).select_related('brand')
     for item in items_qs:
         item.reason = reason_map.get(item.id, '')
 
-    items_ordered = sorted(items_qs, key=lambda x: ids.index(x.id))
+    items_ordered = sorted(
+        items_qs,
+        key=lambda x: (CATEGORY_ORDER.index(x.category) if x.category in CATEGORY_ORDER else 99)
+    )
 
     category_labels = dict(ClothingItem.CATEGORY_CHOICES)
+    seen_cats = []
     cat_counts = {}
     for item in items_ordered:
+        if item.category not in seen_cats:
+            seen_cats.append(item.category)
         cat_counts[item.category] = cat_counts.get(item.category, 0) + 1
 
     categories = [
-        {'key': k, 'label': category_labels.get(k, k), 'count': v}
-        for k, v in cat_counts.items()
+        {'key': k, 'label': category_labels.get(k, k), 'count': cat_counts[k]}
+        for k in seen_cats
     ]
 
     context = {
@@ -81,26 +89,38 @@ SEASON_LABELS = {'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осі
 ITEMS_PER_CATEGORY = 8  # збільшено з 5
 
 MODELS_TO_TRY = [
-    
     "nvidia/nemotron-3-super-120b-a12b:free",
-    
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "mistralai/mistral-7b-instruct:free",
 ]
 
 
 def _build_catalog(gender: str, season: str, formality_levels: list) -> list:
     gender_db = GENDER_MAP.get(gender, 'U')
     result = []
-    all_categories = [c[0] for c in ClothingItem.CATEGORY_CHOICES]
+    # Пріоритетні категорії йдуть першими — AI бачить найважливіші речі на початку
+    priority_categories = ['tops', 'bottoms', 'onepiece', 'footwear', 'layering', 'outerwear', 'accessory']
 
-    for category in all_categories:
+    for category in priority_categories:
         qs = ClothingItem.objects.select_related('brand').filter(
             category=category,
             gender__in=[gender_db, 'U'],
-        ).order_by('?')  # рандомізація — кожен запит дає різні речі
+        )
         if season:
             qs = qs.filter(seasons__name=season)
         if formality_levels:
             qs = qs.filter(formality__in=formality_levels)
+        # Спочатку найточніша формальність (остання в списку = найвища пріоритетна)
+        if formality_levels:
+            from django.db.models import Case, When, IntegerField
+            ordering = Case(
+                *[When(formality=f, then=i) for i, f in enumerate(reversed(formality_levels))],
+                default=len(formality_levels),
+                output_field=IntegerField(),
+            )
+            qs = qs.annotate(form_priority=ordering).order_by('form_priority', '?')
+        else:
+            qs = qs.order_by('?')
         result.extend(list(qs[:ITEMS_PER_CATEGORY]))
 
     return result
@@ -194,34 +214,57 @@ def generate_outfit(request):
             status=404
         )
 
-    items = items[:50]  # збільшено з 30
+    items = items[:50]
     catalog_text   = _format_catalog(items)
     available_cats = list({item.category for item in items})
     season_ua      = SEASON_LABELS.get(season, season)
     gender_ua      = GENDER_LABELS.get(gender, gender)
+    event_formality = event_obj.formality if event_obj else ''
+    formality_ua = {
+        'casual': 'повсякденний (casual)',
+        'smart_casual': 'розумно-повсякденний (smart casual)',
+        'business': 'діловий (business)',
+        'cocktail': 'коктейльний (cocktail)',
+        'formal': 'офіційний (formal)',
+        'black_tie': 'чорна краватка (black tie)',
+        'white_tie': 'біла краватка (white tie)',
+    }.get(event_formality, event_formality)
+
+    season_materials = {
+        'spring': 'легкі тканини: бавовна, льон, трикотаж',
+        'summer': 'дуже легкі тканини: льон, віскоза, бавовна',
+        'autumn': 'середні тканини: вовна, твід, денім, шкіра',
+        'winter': 'теплі тканини: вовна, кашемір, хутро, плащівка',
+    }.get(season, '')
 
     system_prompt = (
-        "Ти — професійний стиліст. Підбери образ із каталогу одягу.\n"
+        "Ти — професійний стиліст. Підбери образ із каталогу одягу для конкретної події.\n"
         "Поверни ТІЛЬКИ валідний JSON. Без markdown, без коментарів, без зайвого тексту.\n"
         'Формат: {"outfit_name":"...","stylist_comment":"...","items":[{"id":1,"reason":"..."}]}\n\n'
-        "Правила:\n"
-        "1. Використовуй ТІЛЬКИ ID з каталогу.\n"
-        "2. Обери 3–5 речей з різних категорій.\n"
-        "3. Tops + bottoms обов'язково (або onepiece).\n"
-        "4. Footwear додай якщо є в каталозі.\n"
-        "5. Стеж за гармонією кольорів.\n"
-        "6. outfit_name — 3–5 слів українською.\n"
-        "7. stylist_comment — 2 речення українською.\n"
-        "8. reason — 1 речення українською для кожної речі.\n"
-        "ВАЖЛИВО: JSON має бути повністю завершеним і валідним."
+        "Правила підбору:\n"
+        "1. Використовуй ТІЛЬКИ ID з каталогу — не вигадуй нові.\n"
+        "2. Для кожної доступної категорії обери РІВНО 3 речі (3 tops, 3 bottoms, 3 footwear і т.д.).\n"
+        "3. Tops + bottoms ОБОВ'ЯЗКОВО (або onepiece замість обох) — по 3 варіанти кожного.\n"
+        "4. Footwear ОБОВ'ЯЗКОВО якщо є в каталозі — 3 варіанти.\n"
+        "5. Layering або outerwear — 3 варіанти якщо є в каталозі і підходить за сезоном.\n"
+        "6. Усі 3 варіанти в категорії мають гармоніювати з рештою образу, але відрізнятись між собою.\n"
+        "7. Формальність ВСІХ речей має відповідати рівню події — не змішуй casual і formal.\n"
+        "8. Матеріали мають відповідати сезону.\n"
+        "9. outfit_name — 3–5 слів українською, що відображає стиль образу.\n"
+        "10. stylist_comment — 2 речення українською: чому цей образ підходить для події.\n"
+        "11. reason — 1 речення українською для кожної речі.\n"
+        "КРИТИЧНО: JSON повинен бути повністю завершеним і валідним."
     )
 
     user_prompt = (
         f"Подія: {event}\n"
+        f"Рівень формальності події: {formality_ua}\n"
         f"Стать: {gender_ua}\n"
         f"Сезон: {season_ua}\n"
-        f"Доступні категорії: {', '.join(available_cats)}\n\n"
-        f"Каталог:\n{catalog_text}"
+        + (f"Рекомендовані матеріали для сезону: {season_materials}\n" if season_materials else "")
+        + f"Доступні категорії в каталозі: {', '.join(sorted(available_cats))}\n\n"
+        f"Каталог (кожна річ: ID|назва|категорія|формальність|колір|візерунок):\n{catalog_text}\n\n"
+        f"Підбери образ, що ТОЧНО відповідає рівню формальності '{formality_ua}' для події '{event}'."
     )
 
     last_error  = None
@@ -245,7 +288,7 @@ def generate_outfit(request):
                         {"role": "user",   "content": user_prompt},
                     ],
                     "temperature": 0.3,
-                    "max_tokens":  2048,
+                    "max_tokens":  4096,
                 },
                 timeout=30,
             )

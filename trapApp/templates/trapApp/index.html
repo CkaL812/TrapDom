@@ -35,7 +35,7 @@
             </div>
         </div>
         <div class="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:block rotate-180" style="writing-mode:vertical-rl;">
-            <span class="text-xs font-mono tracking-[0.3em] text-charcoal-700 uppercase">Scroll to explore the darkness</span>
+            <span class="text-xs font-mono tracking-[0.3em] text-grunge-gray uppercase">Scroll to explore the darkness</span>
         </div>
     </section>
 
@@ -86,7 +86,7 @@
             </div>
 
             <div class="mt-6 flex items-center justify-center">
-                <span id="brands-counter" class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest"></span>
+                <span id="brands-counter" class="text-[10px] font-mono text-grunge-gray uppercase tracking-widest"></span>
             </div>
         </div>
     </section>
@@ -168,7 +168,7 @@
                                 <h3 class="font-mono text-xs uppercase tracking-widest text-off-white mb-1">
                                     {{ item.name }}
                                 </h3>
-                                <p class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest">
+                                <p class="text-[10px] font-mono text-grunge-gray uppercase tracking-widest">
                                     {{ brand.name }}{% if item.color %} / {{ item.color }}{% endif %}
                                 </p>
                             </div>
@@ -196,7 +196,7 @@
                 {% endfor %}
 
                 <div class="mt-12 flex items-center justify-between border-t border-charcoal-700 pt-8">
-                    <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700" id="catalog-item-count"></p>
+                    <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray" id="catalog-item-count"></p>
                     <a id="catalog-view-all"
                        href="{% url 'brand_detail' brands.first.slug %}"
                        class="flex items-center gap-3 border border-charcoal-700 px-6 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">

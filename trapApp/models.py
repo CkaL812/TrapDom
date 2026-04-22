@@ -55,13 +55,13 @@ class Event(models.Model):
 
 class ClothingItem(models.Model):
     CATEGORY_CHOICES = [
-        ('tops',      'Верх (Tops/Shirts)'),
-        ('layering',  'Другий шар (Layering/Tailoring)'),
-        ('bottoms',   'Низ (Bottoms)'),
-        ('onepiece',  'Суцільний одяг (One-piece/Sets)'),
-        ('outerwear', 'Верхній одяг (Outerwear)'),
-        ('footwear',  'Взуття (Footwear)'),
-        ('accessory', 'Аксесуари (Accessories)'),
+        ('tops',      'Верх'),
+        ('layering',  'Другий шар'),
+        ('bottoms',   'Низ'),
+        ('onepiece',  'Суцільний одяг'),
+        ('outerwear', 'Верхній одяг'),
+        ('footwear',  'Взуття'),
+        ('accessory', 'Аксесуари'),
     ]
     PATTERN_CHOICES = [
         ('solid',    'Однотонний'),

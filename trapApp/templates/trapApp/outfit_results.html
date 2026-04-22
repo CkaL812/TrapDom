@@ -15,7 +15,7 @@
         <div class="flex items-start justify-between flex-wrap gap-4">
             <div>
                 <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white">
-                    {{ outfit_name|default:"Підібраний образ" }}
+                    Підібраний одяг
                 </h1>
                 <div class="flex flex-wrap gap-3 mt-3">
                     {% if event_name %}
@@ -41,12 +41,6 @@
             </a>
         </div>
 
-        {% if stylist_comment %}
-        <div class="mt-6 border-l-2 border-accent-red pl-4 max-w-2xl">
-            <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700 mb-1">Коментар стиліста</p>
-            <p class="text-grunge-gray font-mono text-xs leading-relaxed">{{ stylist_comment }}</p>
-        </div>
-        {% endif %}
     </div>
 
     <!-- Контент -->
@@ -54,20 +48,20 @@
 
         <!-- SIDEBAR -->
         <aside class="hidden lg:block w-48 flex-shrink-0">
-            <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3 px-4">Категорії</p>
+            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3 px-4">Категорії</p>
             <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
                 <button class="cat-btn active w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-off-white" data-cat="all">
                     Всі
-                    <span class="ml-1 text-charcoal-700">({{ items|length }})</span>
+                    <span class="ml-1 text-grunge-gray">({{ items|length }})</span>
                 </button>
                 {% for cat in categories %}
                 <button class="cat-btn w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-grunge-gray border-t border-charcoal-700" data-cat="{{ cat.key }}">
                     {{ cat.label }}
-                    <span class="ml-1 text-charcoal-700">({{ cat.count }})</span>
+                    <span class="ml-1 text-grunge-gray">({{ cat.count }})</span>
                 </button>
                 {% endfor %}
             </div>
-            <p class="text-[9px] font-mono text-charcoal-700 mt-3 px-1">
+            <p class="text-[9px] font-mono text-grunge-gray mt-3 px-1">
                 <span id="shown-count">{{ items|length }}</span> речей у образі
             </p>
         </aside>
@@ -101,7 +95,7 @@
                             <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
                         {% else %}
                             <div class="w-full h-full flex items-center justify-center">
-                                <i class="fa-solid fa-shirt text-charcoal-700 text-4xl"></i>
+                                <i class="fa-solid fa-shirt text-grunge-gray text-4xl"></i>
                             </div>
                         {% endif %}
                         <span class="absolute top-3 left-3 bg-charcoal-900/80 backdrop-blur-sm text-[9px] font-mono uppercase tracking-widest text-grunge-gray px-2 py-1">
@@ -142,11 +136,11 @@
                             <div>
                                 {% if item.sale_price %}
                                     <span class="text-accent-red font-mono text-sm font-bold">{{ item.sale_price }} {{ item.currency }}</span>
-                                    <span class="text-charcoal-700 font-mono text-xs line-through ml-1">{{ item.price }}</span>
+                                    <span class="text-grunge-gray font-mono text-xs line-through ml-1">{{ item.price }}</span>
                                 {% elif item.price %}
                                     <span class="text-off-white font-mono text-sm">{{ item.price }} {{ item.currency }}</span>
                                 {% else %}
-                                    <span class="text-charcoal-700 font-mono text-xs">— ціна —</span>
+                                    <span class="text-grunge-gray font-mono text-xs">— ціна —</span>
                                 {% endif %}
                             </div>
                             <button
@@ -160,9 +154,9 @@
                 </div>
                 {% empty %}
                 <div class="col-span-3 border border-charcoal-700 bg-charcoal-800 p-12 text-center">
-                    <i class="fa-solid fa-shirt text-charcoal-700 text-4xl mb-4 block"></i>
+                    <i class="fa-solid fa-shirt text-grunge-gray text-4xl mb-4 block"></i>
                     <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest mb-2">Нічого не знайдено</p>
-                    <p class="text-charcoal-700 font-mono text-xs mb-6">Спробуйте інший запит або перевірте базу даних</p>
+                    <p class="text-grunge-gray font-mono text-xs mb-6">Спробуйте інший запит або перевірте базу даних</p>
                     <a href="{% url 'outfit_picker' %}" class="inline-block border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-6 py-3 transition-all duration-200">
                         Спробувати знову
                     </a>

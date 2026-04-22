@@ -13,9 +13,9 @@
     <!-- Breadcrumb -->
     <div class="max-w-[1200px] mx-auto px-6 pt-6 flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-grunge-gray">
         <a href="{% url 'index' %}" class="hover:text-off-white transition-colors">Головна</a>
-        <span class="text-charcoal-700">/</span>
+        <span class="text-grunge-gray">/</span>
         <a href="{% url 'brand_detail' item.brand.slug %}" class="hover:text-off-white transition-colors">{{ item.brand.name }}</a>
-        <span class="text-charcoal-700">/</span>
+        <span class="text-grunge-gray">/</span>
         <span class="text-off-white">{{ item.name|truncatewords:4 }}</span>
     </div>
 
@@ -31,7 +31,7 @@
                     <img id="main-img" src="{{ item.image_url }}" alt="{{ item.name }}">
                 {% else %}
                     <div class="w-full h-full flex items-center justify-center">
-                        <i class="fa-solid fa-shirt text-charcoal-700 text-5xl"></i>
+                        <i class="fa-solid fa-shirt text-grunge-gray text-5xl"></i>
                     </div>
                 {% endif %}
             </div>
@@ -137,7 +137,7 @@
                         <img src="{{ r.image_url }}" alt="{{ r.name }}">
                     {% else %}
                         <div class="w-full h-full flex items-center justify-center">
-                            <i class="fa-solid fa-shirt text-charcoal-700 text-2xl"></i>
+                            <i class="fa-solid fa-shirt text-grunge-gray text-2xl"></i>
                         </div>
                     {% endif %}
                 </div>

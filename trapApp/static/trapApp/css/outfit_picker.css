@@ -10,7 +10,7 @@
 }
 .event-wheel-item.active {
     color: #F5F5F0;
-    border-left: 2px solid #8B0000;
+    border-left: 2px solid #A0A0A0;
     background: #2A2A2A;
 }
 
@@ -23,7 +23,7 @@
     border-color: #A0A0A0;
 }
 .option-card.selected {
-    border-color: #8B0000;
+    border-color: #A0A0A0;
     background: #1E1E1E;
 }
 
@@ -40,7 +40,7 @@ select {
     bottom: 0;
     left: 0;
     height: 2px;
-    background: #8B0000;
+    background: #A0A0A0;
     width: 0%;
     transition: width 0.2s ease;
 }

@@ -5,7 +5,7 @@
     border-left: 2px solid transparent;
 }
 .cat-btn:hover { color: #F5F5F0; background: #2A2A2A; }
-.cat-btn.active { color: #F5F5F0; border-left-color: #8B0000; background: #2A2A2A; }
+.cat-btn.active { color: #121212; border-left-color: #A0A0A0; background: #A0A0A0; }
 
 .item-card {
     transition: all 0.2s ease;

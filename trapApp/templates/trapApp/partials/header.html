@@ -32,7 +32,7 @@
                 </a>
                 <div class="absolute right-0 top-full mt-0 w-48 bg-charcoal-900 border border-charcoal-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                     <div class="px-4 py-3 border-b border-charcoal-700">
-                        <p class="text-[10px] font-mono uppercase tracking-widest text-charcoal-700">Акаунт</p>
+                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Акаунт</p>
                         <p class="text-xs font-mono text-grunge-gray truncate mt-0.5">{{ user.first_name }} {{ user.last_name }}</p>
                     </div>
                     <a href="{% url 'profile' %}"
@@ -78,7 +78,7 @@
     <nav class="flex flex-col flex-1">
 
         <div class="flex flex-col space-y-1 mb-8">
-            <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Навігація</p>
+            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Навігація</p>
             <a href="{% url 'index' %}"
                 class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
                 Головна
@@ -93,58 +93,8 @@
             </a>
         </div>
 
-        <div class="mb-8">
-            <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Бренди</p>
-            <div class="flex flex-col space-y-1">
-                {% for brand in nav_brands %}
-                <a href="{% url 'brand_detail' brand.slug %}"
-                    class="flex items-center justify-between py-2 border-b border-charcoal-700 group">
-                    <span class="text-xs font-mono uppercase tracking-widest text-grunge-gray group-hover:text-off-white transition-colors">
-                        {{ brand.name }}
-                    </span>
-                    <span class="text-[9px] font-mono text-charcoal-700 group-hover:text-grunge-gray transition-colors">
-                        {{ brand.items.count }}
-                    </span>
-                </a>
-                {% empty %}
-                <p class="text-[10px] font-mono text-charcoal-700 uppercase tracking-widest">Бренди не додано</p>
-                {% endfor %}
-                <a href="{% url 'brands_list' %}"
-                    class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors pt-3 flex items-center gap-2">
-                    Всі бренди <i class="fa-solid fa-arrow-right text-[9px]"></i>
-                </a>
-            </div>
-        </div>
-
-        <div class="mt-auto">
-            <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3">Акаунт</p>
-            {% if user.is_authenticated %}
-            <a href="{% url 'profile' %}"
-                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700 block">
-                Профіль
-            </a>
-            <a href="{% url 'logout' %}"
-                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 block">
-                Вийти
-            </a>
-            {% else %}
-            <a href="{% url 'login' %}"
-                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700 block">
-                Увійти
-            </a>
-            <a href="{% url 'register' %}"
-                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 block">
-                Реєстрація
-            </a>
-            {% endif %}
-        </div>
-
     </nav>
 
-    <div class="pt-8 flex space-x-6 justify-center border-t border-charcoal-700">
-        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
-        <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-tiktok"></i></a>
-    </div>
 </div>
 
 {# ── Cart Drawer ── #}

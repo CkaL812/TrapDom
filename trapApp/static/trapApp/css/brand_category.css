@@ -10,7 +10,7 @@
     border-left: 2px solid transparent;
 }
 .cat-btn:hover { color: #F5F5F0 !important; background: #2A2A2A; }
-.cat-btn.active { color: #F5F5F0 !important; border-left-color: #8B0000; background: #1E1E1E; }
+.cat-btn.active { color: #F5F5F0 !important; border-left-color: #A0A0A0; background: #1E1E1E; }
 
 .sidebar-sticky {
     position: sticky; top: 88px;

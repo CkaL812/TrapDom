@@ -146,15 +146,6 @@ class OutfitAdmin(admin.ModelAdmin):
         return obj.items.count()
 
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser, Admin
+from .models import CustomUser
 
-admin.site.register(CustomUser, UserAdmin)
-
-
-@admin.register(Admin)
-class AdminAdmin(admin.ModelAdmin):
-    list_display  = ('email', 'created_at')
-    search_fields = ('email',)
-    ordering      = ('-created_at',)
-    readonly_fields = ('created_at', 'password')
-    fields = ('email', 'password', 'created_at')
+admin.site.register(CustomUser, UserAdmin)

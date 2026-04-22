@@ -14,9 +14,9 @@
     <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
         <div class="flex items-center gap-3 mb-4 text-[10px] font-mono uppercase tracking-widest text-grunge-gray">
             <a href="{% url 'brands_list' %}" class="hover:text-off-white transition-colors">Бренди</a>
-            <span class="text-charcoal-700">/</span>
+            <span class="text-grunge-gray">/</span>
             <a href="{% url 'brand_detail' brand.slug %}" class="hover:text-off-white transition-colors">{{ brand.name }}</a>
-            <span class="text-charcoal-700">/</span>
+            <span class="text-grunge-gray">/</span>
             <span class="text-accent-red">{{ category_label }}</span>
         </div>
         <div class="flex items-end justify-between flex-wrap gap-4">
@@ -49,7 +49,7 @@
                             <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover">
                         {% else %}
                             <div class="w-full h-full flex items-center justify-center">
-                                <i class="fa-solid fa-shirt text-charcoal-700 text-3xl"></i>
+                                <i class="fa-solid fa-shirt text-grunge-gray text-3xl"></i>
                             </div>
                         {% endif %}
                         {% if item.sale_price %}
@@ -76,11 +76,11 @@
                             <div>
                                 {% if item.sale_price %}
                                     <span class="text-accent-red font-mono text-xs font-bold">{{ item.sale_price }} {{ item.currency }}</span>
-                                    <span class="text-charcoal-700 font-mono text-[10px] line-through ml-1">{{ item.price }}</span>
+                                    <span class="text-grunge-gray font-mono text-[10px] line-through ml-1">{{ item.price }}</span>
                                 {% elif item.price %}
                                     <span class="text-off-white font-mono text-xs">{{ item.price }} {{ item.currency }}</span>
                                 {% else %}
-                                    <span class="text-charcoal-700 font-mono text-[10px]">— ціна —</span>
+                                    <span class="text-grunge-gray font-mono text-[10px]">— ціна —</span>
                                 {% endif %}
                             </div>
                             <a href="{{ item.source_url }}" target="_blank" rel="noopener"
@@ -94,7 +94,7 @@
             </div>
             {% else %}
             <div class="border border-charcoal-700 bg-charcoal-800 p-16 text-center">
-                <i class="fa-solid fa-shirt text-charcoal-700 text-4xl mb-4 block"></i>
+                <i class="fa-solid fa-shirt text-grunge-gray text-4xl mb-4 block"></i>
                 <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest">Одяг у цій категорії ще не додано</p>
             </div>
             {% endif %}
@@ -103,7 +103,7 @@
         <!-- Sidebar: інші категорії бренду -->
         <aside class="hidden lg:block w-52 flex-shrink-0">
             <div class="sidebar-sticky">
-                <p class="text-[9px] font-mono uppercase tracking-widest text-charcoal-700 mb-3 px-1">Категорії {{ brand.name }}</p>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3 px-1">Категорії {{ brand.name }}</p>
                 <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
                     {% for cat_key, cat_label, cat_count in all_categories %}
                     {% if cat_count %}
@@ -113,7 +113,7 @@
                             <span class="text-accent-red mr-2 text-[9px]">{{ forloop.counter|stringformat:"02d" }}</span>
                             {{ cat_label|truncatechars:16 }}
                         </span>
-                        <span class="text-charcoal-700 text-[9px]">{{ cat_count }}</span>
+                        <span class="text-grunge-gray text-[9px]">{{ cat_count }}</span>
                     </a>
                     {% endif %}
                     {% endfor %}
