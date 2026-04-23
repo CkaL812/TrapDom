@@ -1,33 +1,50 @@
-# wardrobe/management/commands/seed_events.py
 from django.core.management.base import BaseCommand
 from trapApp.models import Event
+
+# Назви подій збігаються з JS-списком у outfit_picker.js
+# Значення formality — лише з FORMALITY_CHOICES моделі
 EVENTS = [
-    ('День народження (неформальний)', 'casual'),
-    ('День народження (вечірка)',      'cocktail'),
-    ('Зустріч з друзями',              'casual'),
-    ('Бранч',                          'smart_casual'),
-    ('Побачення',                      'smart_casual'),
-    ('Корпоратив',                     'smart_casual'),
-    ('Нетворкінг / Конференція',       'business'),
-    ('Презентація',                    'business'),
-    ('Публічний виступ',               'business'),
-    ('Зустріч з родиною',              'smart_casual'),
-    ('Випускний',                      'formal'),
-    ('Заручини',                       'cocktail'),
-    ('Весільний банкет (гість)',        'formal'),
-    ('Розпис',                         'formal'),
-    ('Коктейльна вечірка',             'cocktail'),
-    ('Похід у театр / Оперу',          'formal'),
-    ('Виставка / Галерея',             'smart_casual'),
-    ('Гала-вечір',                     'black_tie'),
-    ('Благодійний бал',                'black_tie'),
-    ('Фотосесія (творча)',             'casual'),
+    ('День народження',           'smart_casual'),
+    ('Ювілей',                    'cocktail'),
+    ('Заручини',                  'cocktail'),
+    ('Розпис',                    'semi_formal'),
+    ('Весільний банкет (гість)',   'cocktail'),
+    ('Коктейльна вечірка',        'cocktail'),
+    ('Формальний вечір',          'after_five'),
+    ('Корпоратив',                'business_casual'),
+    ('Конференція',               'business_casual'),
+    ('Нетворкінг',                'business_casual'),
+    ('Презентація',               'business_casual'),
+    ('Публічний виступ',          'business_formal'),
+    ('Фотосесія',                 'smart_casual'),
+    ('Випуск з університету',     'semi_formal'),
+    ('Театр',                     'smart_casual'),
+    ('Опера / філармонія',        'black_tie_creative'),
+    ('Гала-вечір',                'black_tie'),
+    ('Благодійний бал',           'black_tie'),
+    ('Свято в родині',            'smart_casual'),
+    ('Бранч / зустріч з друзями', 'smart_casual'),
 ]
 
+
 class Command(BaseCommand):
-    help = 'Seed events into DB'
+    help = 'Seed events into DB (names match outfit_picker.js)'
 
     def handle(self, *args, **options):
+        created = updated = 0
         for name, formality in EVENTS:
-            Event.objects.get_or_create(name=name, defaults={'formality': formality})
-        self.stdout.write(self.style.SUCCESS(f'Seeded {len(EVENTS)} events.'))
+            obj, is_new = Event.objects.get_or_create(
+                name=name,
+                defaults={'formality': formality},
+            )
+            if is_new:
+                created += 1
+            elif obj.formality != formality:
+                obj.formality = formality
+                obj.save(update_fields=['formality'])
+                updated += 1
+        self.stdout.write(
+            self.style.SUCCESS(
+                f'Done: {created} created, {updated} updated ({len(EVENTS)} total events).'
+            )
+        )

@@ -77,11 +77,34 @@ def outfit_results(request):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#   ЛОГІКА ПІДБОРУ ОБРАЗУ (ОНОВЛЕНА)
+#   ЛОГІКА ПІДБОРУ ОБРАЗУ
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# Мапа: обраний дрес-код → список близьких рівнів формальності для пошуку.
-# Беремо обраний рівень + 1-2 сусідніх, щоб було більше варіантів.
+# Пряме відображення JS-подій → рівень формальності (без урахування регістру)
+EVENT_FORMALITY_MAP = {
+    'день народження':             'smart_casual',
+    'ювілей':                      'cocktail',
+    'заручини':                    'cocktail',
+    'розпис':                      'semi_formal',
+    'весільний банкет (гість)':    'cocktail',
+    'коктейльна вечірка':          'cocktail',
+    'формальний вечір':            'after_five',
+    'корпоратив':                  'business_casual',
+    'конференція':                 'business_casual',
+    'нетворкінг':                  'business_casual',
+    'презентація':                 'business_casual',
+    'публічний виступ':            'business_formal',
+    'фотосесія':                   'smart_casual',
+    'випуск з університету':       'semi_formal',
+    'театр':                       'smart_casual',
+    'опера / філармонія':          'black_tie_creative',
+    'гала-вечір':                  'black_tie',
+    'благодійний бал':             'black_tie',
+    'свято в родині':              'smart_casual',
+    'бранч / зустріч з друзями':   'smart_casual',
+}
+
+# Розширення formality → суміжні рівні для збільшення вибірки
 FORMALITY_MAP = {
     'smart_casual':       ['smart_casual', 'business_casual'],
     'business_casual':    ['smart_casual', 'business_casual', 'semi_formal'],
@@ -100,14 +123,23 @@ GENDER_LABELS = {'male': 'Чоловіча', 'female': 'Жіноча', 'unisex':
 SEASON_LABELS = {'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осінь', 'winter': 'Зима'}
 
 ITEMS_PER_CATEGORY = 3
-CATEGORY_ORDER = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory']
+CATEGORY_ORDER     = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory']
+
+# Шаблони образу: роздільний (верх + низ) та суцільний (плаття/комбінезон)
+SEPARATED_TEMPLATE = ['tops', 'layering', 'bottoms', 'outerwear', 'footwear', 'accessory']
+ONEPIECE_TEMPLATE  = ['onepiece', 'layering', 'outerwear', 'footwear', 'accessory']
+
+# Прогресивне послаблення фільтрів: від найжорсткіших до мінімальних
+FILTER_PASSES = [
+    {'formality': True,  'budget': True,  'styles': True,  'time': True,  'age': True},
+    {'formality': True,  'budget': True,  'styles': True,  'time': False, 'age': False},
+    {'formality': True,  'budget': True,  'styles': False, 'time': False, 'age': False},
+    {'formality': True,  'budget': False, 'styles': False, 'time': False, 'age': False},
+    {'formality': False, 'budget': False, 'styles': False, 'time': False, 'age': False},
+]
 
 MODELS_TO_TRY = [
-    # Автоматичний роутер — сам обирає доступну безкоштовну модель.
-    # Надійніше, бо не залежить від статусу конкретної моделі.
     "openrouter/free",
-
-    # Конкретні моделі як запасний варіант (якщо роутер не спрацює)
     "meta-llama/llama-3.3-70b-instruct:free",
     "google/gemma-3-27b-it:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
@@ -116,7 +148,6 @@ MODELS_TO_TRY = [
 
 
 def _age_to_range(age):
-    """Число віку → код діапазону."""
     if age is None:
         return None
     age = int(age)
@@ -128,79 +159,126 @@ def _age_to_range(age):
     return '55+'
 
 
-def _apply_filters(qs, payload, formality_levels):
+def _resolve_formality(event_str, dresscode):
     """
-    Накладає ЖОРСТКІ фільтри на queryset.
-    Товар не підходить хоча б за одним критерієм — відсівається.
+    Повертає formality_levels з пріоритетом:
+    1. явно обраний dresscode
+    2. JS-подія через EVENT_FORMALITY_MAP
+    3. подія з БД
     """
+    if dresscode and dresscode in FORMALITY_MAP:
+        return FORMALITY_MAP[dresscode]
+    formality = EVENT_FORMALITY_MAP.get(event_str.lower().strip())
+    if formality:
+        return FORMALITY_MAP.get(formality, [formality])
+    event_obj = Event.objects.filter(name__iexact=event_str).first()
+    if event_obj and event_obj.formality in FORMALITY_MAP:
+        return FORMALITY_MAP[event_obj.formality]
+    return []
+
+
+def _filter_qs(qs, payload, formality_levels, opts):
+    """Застосовує фільтри до queryset згідно з opts."""
     gender_db = GENDER_MAP.get(payload.get('gender'), 'U')
     season    = payload.get('season')
 
-    # Обов'язкові
     qs = qs.filter(gender__in=[gender_db, 'U'])
     if season:
         qs = qs.filter(seasons__name=season)
 
-    # Опційні
-    if formality_levels:
+    if opts['formality'] and formality_levels:
         qs = qs.filter(formality__in=formality_levels)
 
-    budget_min = payload.get('budget_min')
-    budget_max = payload.get('budget_max')
-    if budget_min is not None:
-        qs = qs.filter(price__gte=budget_min)
-    if budget_max is not None:
-        qs = qs.filter(price__lte=budget_max)
+    if opts['budget']:
+        bmin = payload.get('budget_min')
+        bmax = payload.get('budget_max')
+        if bmin is not None:
+            qs = qs.filter(price__gte=bmin)
+        if bmax is not None:
+            qs = qs.filter(price__lte=bmax)
 
-    styles = payload.get('styles', [])
-    if styles:
-        qs = qs.filter(styles__name__in=styles)
+    if opts['styles']:
+        styles = payload.get('styles', [])
+        if styles:
+            qs = qs.filter(styles__name__in=styles)
 
-    # JSON-фільтри (MySQL JSON_CONTAINS)
-    time = payload.get('time')
-    if time:
-        qs = qs.filter(tags__time_of_day__contains=[time])
+    if opts['time']:
+        time_val = payload.get('time')
+        if time_val:
+            qs = qs.filter(tags__time_of_day__contains=[time_val])
 
-    age = payload.get('age')
-    if age is not None:
-        age_range = _age_to_range(age)
-        if age_range:
-            qs = qs.filter(tags__age_ranges__contains=[age_range])
+    if opts['age']:
+        age = payload.get('age')
+        if age is not None:
+            age_range = _age_to_range(age)
+            if age_range:
+                qs = qs.filter(tags__age_ranges__contains=[age_range])
 
     return qs.distinct()
 
 
-def _pick_items_per_category(payload, formality_levels, per_category=ITEMS_PER_CATEGORY):
-    """
-    Повертає dict {category: [ClothingItem x per_category]}.
-    Якщо в категорії менше N — повертаємо скільки є (навіть 0).
-    """
-    base_qs = ClothingItem.objects.select_related('brand').prefetch_related('seasons', 'styles')
-    base_qs = _apply_filters(base_qs, payload, formality_levels)
+def _has_complete_outfit(selections, template):
+    """Перевіряє наявність мінімально повного образу (верх+низ+взуття або суцільний+взуття)."""
+    if 'onepiece' in template:
+        return bool(selections.get('onepiece')) and bool(selections.get('footwear'))
+    return (bool(selections.get('tops')) and
+            bool(selections.get('bottoms')) and
+            bool(selections.get('footwear')))
 
-    # Якщо обрано стилі — сортуємо за кількістю збігів стилів
+
+def _pick_for_template(base_qs, payload, formality_levels, template, opts, per_cat):
+    """Підбирає товари по категоріях для одного шаблону і набору фільтрів."""
     styles = payload.get('styles', [])
-    if styles:
-        base_qs = base_qs.annotate(
+    qs = _filter_qs(base_qs, payload, formality_levels, opts)
+    if styles and opts.get('styles'):
+        qs = qs.annotate(
             style_match=Count('styles', filter=Q(styles__name__in=styles))
         ).order_by('-style_match', '?')
     else:
-        base_qs = base_qs.order_by('?')  # рандомно для різноманіття
-
-    result = {}
-    for category in CATEGORY_ORDER:
-        cat_items = list(base_qs.filter(category=category)[:per_category])
-        result[category] = cat_items
-
-    return result
+        qs = qs.order_by('?')
+    return {cat: list(qs.filter(category=cat)[:per_cat]) for cat in template}
 
 
-def _build_catalog_for_ai(selections_by_cat):
-    """Текстовий каталог для AI (для коментарів)."""
+def _pick_items_with_fallback(payload, formality_levels, per_category=ITEMS_PER_CATEGORY):
+    """
+    Підбирає образ з прогресивним послабленням фільтрів.
+    Спочатку пробує роздільний шаблон (tops+bottoms), потім суцільний (onepiece).
+    Повертає (selections_dict, pass_num, template_name).
+    """
+    base_qs = (ClothingItem.objects
+               .select_related('brand')
+               .prefetch_related('seasons', 'styles'))
+    gender_db = GENDER_MAP.get(payload.get('gender'), 'U')
+
+    for pass_num, opts in enumerate(FILTER_PASSES):
+        # Роздільний шаблон (tops + bottoms) — для всіх статей
+        sep = _pick_for_template(base_qs, payload, formality_levels, SEPARATED_TEMPLATE, opts, per_category)
+        if _has_complete_outfit(sep, SEPARATED_TEMPLATE):
+            logger.info(f"[OUTFIT] separated, pass={pass_num}")
+            sep['onepiece'] = []
+            return sep, pass_num, 'separated'
+
+        # Суцільний шаблон (onepiece) — для жінок і унісекс
+        if gender_db in ('F', 'U'):
+            one = _pick_for_template(base_qs, payload, formality_levels, ONEPIECE_TEMPLATE, opts, per_category)
+            if _has_complete_outfit(one, ONEPIECE_TEMPLATE):
+                logger.info(f"[OUTFIT] onepiece, pass={pass_num}")
+                one['tops'] = []
+                one['bottoms'] = []
+                return one, pass_num, 'onepiece'
+
+    # Останній шанс — без фільтрів, повертаємо все що є
+    logger.warning("[OUTFIT] fallback: не знайдено повного образу після всіх pass-ів")
+    last = _pick_for_template(base_qs, payload, formality_levels, SEPARATED_TEMPLATE, FILTER_PASSES[-1], per_category)
+    last['onepiece'] = []
+    return last, len(FILTER_PASSES), 'separated'
+
+
+def _build_catalog_for_ai(selections):
+    """Текстовий каталог для AI (тільки непусті категорії)."""
     lines = []
     for category in CATEGORY_ORDER:
-        items = selections_by_cat.get(category, [])
-        for item in items:
+        for item in selections.get(category, []):
             lines.append(
                 f"ID:{item.id}|cat:{item.category}|{item.brand.name} {item.name}|"
                 f"form:{item.formality}|color:{item.color or 'n/a'}|"
@@ -220,11 +298,10 @@ def _parse_llm_json(raw: str) -> dict:
             if part.startswith("{"):
                 raw = part
                 break
-
     start = raw.find('{')
     end   = raw.rfind('}')
     if start == -1 or end == -1:
-        raise ValueError("JSON об'єкт не знайдено у відповіді")
+        raise ValueError("JSON не знайдено у відповіді")
     raw = raw[start:end+1]
     raw = re.sub(r'//[^\n]*', '', raw)
     raw = re.sub(r',\s*}', '}', raw)
@@ -233,17 +310,13 @@ def _parse_llm_json(raw: str) -> dict:
 
 
 def _ask_ai_for_commentary(payload, selections, api_key):
-    """
-    AI пише outfit_name + stylist_comment + reasons для вже підібраних товарів.
-    Повертає None якщо AI не спрацював.
-    """
+    """AI пише outfit_name + stylist_comment + reasons. Повертає None якщо не спрацював."""
     event     = payload.get('event', '')
     gender    = GENDER_LABELS.get(payload.get('gender'), '')
     season    = SEASON_LABELS.get(payload.get('season'), '')
     dresscode = payload.get('dresscode', '')
     styles    = payload.get('styles', [])
-
-    catalog_text = _build_catalog_for_ai(selections)
+    catalog   = _build_catalog_for_ai(selections)
 
     system_prompt = (
         "Ти — професійний стиліст. Для вже підібраного образу напиши коментарі.\n"
@@ -263,7 +336,7 @@ def _ask_ai_for_commentary(payload, selections, api_key):
         f"Сезон: {season}\n"
         + (f"Дрес-код: {dresscode}\n" if dresscode else "")
         + (f"Обрані стилі: {', '.join(styles)}\n" if styles else "")
-        + f"\nПідібрані речі:\n{catalog_text}"
+        + f"\nПідібрані речі:\n{catalog}"
     )
 
     for model_id in MODELS_TO_TRY:
@@ -278,7 +351,7 @@ def _ask_ai_for_commentary(payload, selections, api_key):
                     "X-Title":       "TrapDom Outfit Picker",
                 },
                 json={
-                    "model": model_id,
+                    "model":    model_id,
                     "messages": [
                         {"role": "system", "content": system_prompt},
                         {"role": "user",   "content": user_prompt},
@@ -289,10 +362,9 @@ def _ask_ai_for_commentary(payload, selections, api_key):
                 timeout=20,
             )
             resp.raise_for_status()
-            raw = resp.json()["choices"][0]["message"]["content"].strip()
+            raw    = resp.json()["choices"][0]["message"]["content"].strip()
             parsed = _parse_llm_json(raw)
 
-            # Ключі reasons приводимо до int
             raw_reasons = parsed.get('reasons', {})
             reasons = {}
             for k, v in raw_reasons.items():
@@ -301,17 +373,16 @@ def _ask_ai_for_commentary(payload, selections, api_key):
                 except (ValueError, TypeError):
                     continue
 
-            logger.info(f"[AI] Отримано outfit_name, {len(reasons)} reasons")
+            logger.info(f"[AI] outfit_name отримано, {len(reasons)} reasons")
             return {
                 'outfit_name':     parsed.get('outfit_name', 'Підібраний образ'),
                 'stylist_comment': parsed.get('stylist_comment', ''),
                 'reasons':         reasons,
             }
         except Exception as e:
-            logger.warning(f"[AI] Модель {model_id} не спрацювала: {e}")
-            continue
+            logger.warning(f"[AI] {model_id} не спрацював: {e}")
 
-    logger.warning("[AI] Всі моделі провалились — повертаємо без коментарів")
+    logger.warning("[AI] Всі моделі провалились")
     return None
 
 
@@ -326,7 +397,6 @@ def generate_outfit(request):
     except json.JSONDecodeError:
         return JsonResponse({'status': 'error', 'message': 'Невалідний запит'}, status=400)
 
-    # ── Валідація ──
     event  = data.get('event', '').strip()
     gender = data.get('gender', '')
     season = data.get('season', '')
@@ -338,36 +408,22 @@ def generate_outfit(request):
     if not season:
         return JsonResponse({'status': 'error', 'message': 'Вкажіть сезон'}, status=400)
 
-    # ── Визначаємо formality_levels ──
-    # Пріоритет: (1) явно обраний dresscode, (2) подія з БД
-    dresscode = data.get('dresscode')
-    formality_levels = []
+    formality_levels = _resolve_formality(event, data.get('dresscode'))
+    logger.info(f"[OUTFIT] event={event!r} → formality_levels={formality_levels}")
 
-    if dresscode and dresscode in FORMALITY_MAP:
-        formality_levels = FORMALITY_MAP[dresscode]
-    else:
-        event_obj = Event.objects.filter(name__iexact=event).first()
-        if event_obj and event_obj.formality in FORMALITY_MAP:
-            formality_levels = FORMALITY_MAP[event_obj.formality]
-
-    logger.info(f"[OUTFIT] formality_levels: {formality_levels}")
-
-    # ── Підбираємо по 3 товари з кожної категорії ──
-    selections = _pick_items_per_category(data, formality_levels)
-
-    total = sum(len(items) for items in selections.values())
+    selections, pass_used, template = _pick_items_with_fallback(data, formality_levels)
+    total = sum(len(v) for v in selections.values())
     logger.info(
-        f"[OUTFIT] Відібрано {total} товарів: " +
+        f"[OUTFIT] template={template} pass={pass_used} total={total}: " +
         ", ".join(f"{k}={len(v)}" for k, v in selections.items() if v)
     )
 
     if total == 0:
         return JsonResponse({
-            'status': 'error',
-            'message': 'Нічого не знайдено за вашими критеріями. Спробуйте послабити фільтри.'
+            'status':  'error',
+            'message': 'Нічого не знайдено за вашими критеріями. Спробуйте послабити фільтри.',
         }, status=404)
 
-    # ── AI коментарі (опціонально) ──
     outfit_name     = 'Підібраний образ'
     stylist_comment = ''
     reasons         = {}
@@ -376,20 +432,16 @@ def generate_outfit(request):
     if api_key:
         ai_result = _ask_ai_for_commentary(data, selections, api_key)
         if ai_result:
-            outfit_name     = ai_result.get('outfit_name', outfit_name)
-            stylist_comment = ai_result.get('stylist_comment', '')
-            reasons         = ai_result.get('reasons', {})
+            outfit_name     = ai_result['outfit_name']
+            stylist_comment = ai_result['stylist_comment']
+            reasons         = ai_result['reasons']
     else:
         logger.info("[OUTFIT] OPENROUTER_API_KEY відсутній — пропускаємо AI коментарі")
 
-    # ── Зберігаємо в сесію ──
     all_items = []
     for category in CATEGORY_ORDER:
         for item in selections.get(category, []):
-            all_items.append({
-                'id':     item.id,
-                'reason': reasons.get(item.id, ''),
-            })
+            all_items.append({'id': item.id, 'reason': reasons.get(item.id, '')})
 
     request.session['outfit_result'] = {
         'outfit_name':     outfit_name,
