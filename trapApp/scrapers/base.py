@@ -14,6 +14,10 @@ class BaseScraper:
         'Accept-Language': 'uk-UA,uk;q=0.9,en-US;q=0.8',
     }
     delay: float = 1.5  # секунди між запитами
+    AUTO_TAG = True  # ← НОВЕ
+
+    def __init__(self):  # ← НОВЕ
+        self._scraped_item_ids = []
 
     def get_brand(self) -> Brand:
         brand, _ = Brand.objects.get_or_create(
@@ -36,7 +40,6 @@ class BaseScraper:
         """data — словник полів ClothingItem (без id/brand). sizes — список рядків."""
         brand = self.get_brand()
 
-        # ManyToMany поля не можна передавати в update_or_create — витягуємо окремо
         season_names = data.pop('seasons', [])
 
         item, created = ClothingItem.objects.update_or_create(
@@ -44,20 +47,34 @@ class BaseScraper:
             defaults={**data, 'brand': brand}
         )
 
-        # Встановлюємо сезони через .set() після збереження об'єкта
         if season_names:
             season_objs = []
             for name in season_names:
                 season, _ = Season.objects.get_or_create(name=name)
                 season_objs.append(season)
-            item.seasons.set(season_objs)
+            if created:
+                item.seasons.set(season_objs)
+            else:
+                item.seasons.add(*season_objs)
 
         for size_label in sizes:
             ClothingSize.objects.get_or_create(item=item, size_label=size_label)
 
         action = 'Додано' if created else 'Оновлено'
         print(f'[{self.brand_name}] {action}: {item.name}')
+
+        self._scraped_item_ids.append(item.pk)  # ← НОВЕ
         return item
 
     def run(self):
         raise NotImplementedError('Реалізуй метод run() у підкласі')
+
+    def run_with_tagging(self):  # ← НОВЕ
+        self.run()
+        if self.AUTO_TAG and self._scraped_item_ids:
+            self._run_tagger()
+
+    def _run_tagger(self):  # ← НОВЕ
+        from trapApp.tagger import get_tagger
+        qs = ClothingItem.objects.filter(pk__in=self._scraped_item_ids)
+        get_tagger().tag_items(qs)

@@ -9,11 +9,17 @@ from django.conf import settings
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Q, Count
 from .models import ClothingItem, Event, CustomUser, Brand
 from .forms import RegisterForm, LoginForm, ProfileForm
 from .cart import Cart
+
 logger = logging.getLogger(__name__)
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ГОЛОВНІ СТОРІНКИ
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def index(request):
     brands = Brand.objects.all().order_by('name')
@@ -70,74 +76,141 @@ def outfit_results(request):
     return render(request, 'trapApp/outfit_results.html', context)
 
 
-# ─── Мапи ─────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ЛОГІКА ПІДБОРУ ОБРАЗУ (ОНОВЛЕНА)
+# ═══════════════════════════════════════════════════════════════════════════════
 
+# Мапа: обраний дрес-код → список близьких рівнів формальності для пошуку.
+# Беремо обраний рівень + 1-2 сусідніх, щоб було більше варіантів.
 FORMALITY_MAP = {
-    'casual':       ['casual'],
-    'smart_casual': ['casual', 'smart_casual'],
-    'business':     ['smart_casual', 'business'],
-    'cocktail':     ['smart_casual', 'business', 'cocktail'],
-    'formal':       ['business', 'cocktail', 'formal'],
-    'black_tie':    ['cocktail', 'formal', 'black_tie'],
-    'white_tie':    ['formal', 'black_tie'],
+    'smart_casual':       ['smart_casual', 'business_casual'],
+    'business_casual':    ['smart_casual', 'business_casual', 'semi_formal'],
+    'festival_chic':      ['festival_chic', 'smart_casual'],
+    'semi_formal':        ['business_casual', 'semi_formal', 'cocktail'],
+    'after_five':         ['cocktail', 'after_five', 'semi_formal'],
+    'cocktail':           ['semi_formal', 'cocktail', 'after_five'],
+    'business_formal':    ['business_casual', 'business_formal', 'semi_formal'],
+    'black_tie_creative': ['black_tie_creative', 'cocktail', 'black_tie'],
+    'black_tie':          ['black_tie_creative', 'black_tie', 'white_tie'],
+    'white_tie':          ['black_tie', 'white_tie'],
 }
 
 GENDER_MAP    = {'male': 'M', 'female': 'F', 'unisex': 'U'}
 GENDER_LABELS = {'male': 'Чоловіча', 'female': 'Жіноча', 'unisex': 'Унісекс'}
 SEASON_LABELS = {'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осінь', 'winter': 'Зима'}
 
-ITEMS_PER_CATEGORY = 8  # збільшено з 5
+ITEMS_PER_CATEGORY = 3
+CATEGORY_ORDER = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory']
 
 MODELS_TO_TRY = [
-    "nvidia/nemotron-3-super-120b-a12b:free",
+    # Автоматичний роутер — сам обирає доступну безкоштовну модель.
+    # Надійніше, бо не залежить від статусу конкретної моделі.
+    "openrouter/free",
+
+    # Конкретні моделі як запасний варіант (якщо роутер не спрацює)
     "meta-llama/llama-3.3-70b-instruct:free",
-    "mistralai/mistral-7b-instruct:free",
+    "google/gemma-3-27b-it:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "deepseek/deepseek-chat:free",
 ]
 
 
-def _build_catalog(gender: str, season: str, formality_levels: list) -> list:
-    gender_db = GENDER_MAP.get(gender, 'U')
-    result = []
-    # Пріоритетні категорії йдуть першими — AI бачить найважливіші речі на початку
-    priority_categories = ['tops', 'bottoms', 'onepiece', 'footwear', 'layering', 'outerwear', 'accessory']
+def _age_to_range(age):
+    """Число віку → код діапазону."""
+    if age is None:
+        return None
+    age = int(age)
+    if age <= 17: return '13-17'
+    if age <= 24: return '18-24'
+    if age <= 34: return '25-34'
+    if age <= 44: return '35-44'
+    if age <= 54: return '45-54'
+    return '55+'
 
-    for category in priority_categories:
-        qs = ClothingItem.objects.select_related('brand').filter(
-            category=category,
-            gender__in=[gender_db, 'U'],
-        )
-        if season:
-            qs = qs.filter(seasons__name=season)
-        if formality_levels:
-            qs = qs.filter(formality__in=formality_levels)
-        # Спочатку найточніша формальність (остання в списку = найвища пріоритетна)
-        if formality_levels:
-            from django.db.models import Case, When, IntegerField
-            ordering = Case(
-                *[When(formality=f, then=i) for i, f in enumerate(reversed(formality_levels))],
-                default=len(formality_levels),
-                output_field=IntegerField(),
-            )
-            qs = qs.annotate(form_priority=ordering).order_by('form_priority', '?')
-        else:
-            qs = qs.order_by('?')
-        result.extend(list(qs[:ITEMS_PER_CATEGORY]))
+
+def _apply_filters(qs, payload, formality_levels):
+    """
+    Накладає ЖОРСТКІ фільтри на queryset.
+    Товар не підходить хоча б за одним критерієм — відсівається.
+    """
+    gender_db = GENDER_MAP.get(payload.get('gender'), 'U')
+    season    = payload.get('season')
+
+    # Обов'язкові
+    qs = qs.filter(gender__in=[gender_db, 'U'])
+    if season:
+        qs = qs.filter(seasons__name=season)
+
+    # Опційні
+    if formality_levels:
+        qs = qs.filter(formality__in=formality_levels)
+
+    budget_min = payload.get('budget_min')
+    budget_max = payload.get('budget_max')
+    if budget_min is not None:
+        qs = qs.filter(price__gte=budget_min)
+    if budget_max is not None:
+        qs = qs.filter(price__lte=budget_max)
+
+    styles = payload.get('styles', [])
+    if styles:
+        qs = qs.filter(styles__name__in=styles)
+
+    # JSON-фільтри (MySQL JSON_CONTAINS)
+    time = payload.get('time')
+    if time:
+        qs = qs.filter(tags__time_of_day__contains=[time])
+
+    age = payload.get('age')
+    if age is not None:
+        age_range = _age_to_range(age)
+        if age_range:
+            qs = qs.filter(tags__age_ranges__contains=[age_range])
+
+    return qs.distinct()
+
+
+def _pick_items_per_category(payload, formality_levels, per_category=ITEMS_PER_CATEGORY):
+    """
+    Повертає dict {category: [ClothingItem x per_category]}.
+    Якщо в категорії менше N — повертаємо скільки є (навіть 0).
+    """
+    base_qs = ClothingItem.objects.select_related('brand').prefetch_related('seasons', 'styles')
+    base_qs = _apply_filters(base_qs, payload, formality_levels)
+
+    # Якщо обрано стилі — сортуємо за кількістю збігів стилів
+    styles = payload.get('styles', [])
+    if styles:
+        base_qs = base_qs.annotate(
+            style_match=Count('styles', filter=Q(styles__name__in=styles))
+        ).order_by('-style_match', '?')
+    else:
+        base_qs = base_qs.order_by('?')  # рандомно для різноманіття
+
+    result = {}
+    for category in CATEGORY_ORDER:
+        cat_items = list(base_qs.filter(category=category)[:per_category])
+        result[category] = cat_items
 
     return result
 
 
-def _format_catalog(items: list) -> str:
+def _build_catalog_for_ai(selections_by_cat):
+    """Текстовий каталог для AI (для коментарів)."""
     lines = []
-    for item in items:
-        lines.append(
-            f"ID:{item.id}|{item.brand.name} {item.name}|"
-            f"cat:{item.category}|form:{item.formality}|"
-            f"color:{item.color or 'n/a'}|pat:{item.pattern}"
-        )
+    for category in CATEGORY_ORDER:
+        items = selections_by_cat.get(category, [])
+        for item in items:
+            lines.append(
+                f"ID:{item.id}|cat:{item.category}|{item.brand.name} {item.name}|"
+                f"form:{item.formality}|color:{item.color or 'n/a'}|"
+                f"price:{item.price or '?'}"
+            )
     return "\n".join(lines)
 
 
 def _parse_llm_json(raw: str) -> dict:
+    """Витягає JSON з AI-відповіді, прибирає markdown/коментарі."""
     if "```" in raw:
         parts = raw.split("```")
         for part in parts:
@@ -153,127 +226,50 @@ def _parse_llm_json(raw: str) -> dict:
     if start == -1 or end == -1:
         raise ValueError("JSON об'єкт не знайдено у відповіді")
     raw = raw[start:end+1]
-
     raw = re.sub(r'//[^\n]*', '', raw)
     raw = re.sub(r',\s*}', '}', raw)
     raw = re.sub(r',\s*]', ']', raw)
-
     return json.loads(raw)
 
 
-@csrf_exempt
-@login_required(login_url='/login/')
-def generate_outfit(request):
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Метод не підтримується'}, status=405)
+def _ask_ai_for_commentary(payload, selections, api_key):
+    """
+    AI пише outfit_name + stylist_comment + reasons для вже підібраних товарів.
+    Повертає None якщо AI не спрацював.
+    """
+    event     = payload.get('event', '')
+    gender    = GENDER_LABELS.get(payload.get('gender'), '')
+    season    = SEASON_LABELS.get(payload.get('season'), '')
+    dresscode = payload.get('dresscode', '')
+    styles    = payload.get('styles', [])
 
-    if not request.user.is_authenticated:
-        return JsonResponse({'status': 'error', 'message': 'Необхідна авторизація'}, status=401)
-
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'status': 'error', 'message': 'Невалідний запит'}, status=400)
-
-    event  = data.get('event', '').strip()
-    gender = data.get('gender', 'unisex')
-    season = data.get('season', '')
-
-    if not event:
-        return JsonResponse({'status': 'error', 'message': 'Вкажіть подію'}, status=400)
-    if not gender:
-        return JsonResponse({'status': 'error', 'message': 'Вкажіть стать'}, status=400)
-    if not season:
-        return JsonResponse({'status': 'error', 'message': 'Вкажіть сезон'}, status=400)
-
-    # ── DEBUG: перевірка ключа ────────────────────────────────
-    api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
-    if not api_key:
-        logger.error("[OUTFIT] OPENROUTER_API_KEY відсутній у settings!")
-        return JsonResponse(
-            {'status': 'error', 'message': 'API ключ не налаштований. Зверніться до адміністратора.'},
-            status=500
-        )
-    logger.error(f"[OUTFIT] API KEY знайдено: {api_key[:10]}...")
-    # ─────────────────────────────────────────────────────────
-
-    event_obj = Event.objects.filter(name__iexact=event).first()
-    formality_levels = []
-    if event_obj and event_obj.formality in FORMALITY_MAP:
-        formality_levels = FORMALITY_MAP[event_obj.formality]
-
-    items = _build_catalog(gender, season, formality_levels)
-    if len(items) < 3:
-        items = _build_catalog(gender, '', formality_levels)
-    if len(items) < 3:
-        items = _build_catalog(gender, '', [])
-
-    if not items:
-        return JsonResponse(
-            {'status': 'error', 'message': 'У базі даних немає речей для підбору.'},
-            status=404
-        )
-
-    items = items[:50]
-    catalog_text   = _format_catalog(items)
-    available_cats = list({item.category for item in items})
-    season_ua      = SEASON_LABELS.get(season, season)
-    gender_ua      = GENDER_LABELS.get(gender, gender)
-    event_formality = event_obj.formality if event_obj else ''
-    formality_ua = {
-        'casual': 'повсякденний (casual)',
-        'smart_casual': 'розумно-повсякденний (smart casual)',
-        'business': 'діловий (business)',
-        'cocktail': 'коктейльний (cocktail)',
-        'formal': 'офіційний (formal)',
-        'black_tie': 'чорна краватка (black tie)',
-        'white_tie': 'біла краватка (white tie)',
-    }.get(event_formality, event_formality)
-
-    season_materials = {
-        'spring': 'легкі тканини: бавовна, льон, трикотаж',
-        'summer': 'дуже легкі тканини: льон, віскоза, бавовна',
-        'autumn': 'середні тканини: вовна, твід, денім, шкіра',
-        'winter': 'теплі тканини: вовна, кашемір, хутро, плащівка',
-    }.get(season, '')
+    catalog_text = _build_catalog_for_ai(selections)
 
     system_prompt = (
-        "Ти — професійний стиліст. Підбери образ із каталогу одягу для конкретної події.\n"
-        "Поверни ТІЛЬКИ валідний JSON. Без markdown, без коментарів, без зайвого тексту.\n"
-        'Формат: {"outfit_name":"...","stylist_comment":"...","items":[{"id":1,"reason":"..."}]}\n\n'
-        "Правила підбору:\n"
-        "1. Використовуй ТІЛЬКИ ID з каталогу — не вигадуй нові.\n"
-        "2. Для кожної доступної категорії обери РІВНО 3 речі (3 tops, 3 bottoms, 3 footwear і т.д.).\n"
-        "3. Tops + bottoms ОБОВ'ЯЗКОВО (або onepiece замість обох) — по 3 варіанти кожного.\n"
-        "4. Footwear ОБОВ'ЯЗКОВО якщо є в каталозі — 3 варіанти.\n"
-        "5. Layering або outerwear — 3 варіанти якщо є в каталозі і підходить за сезоном.\n"
-        "6. Усі 3 варіанти в категорії мають гармоніювати з рештою образу, але відрізнятись між собою.\n"
-        "7. Формальність ВСІХ речей має відповідати рівню події — не змішуй casual і formal.\n"
-        "8. Матеріали мають відповідати сезону.\n"
-        "9. outfit_name — 3–5 слів українською, що відображає стиль образу.\n"
-        "10. stylist_comment — 2 речення українською: чому цей образ підходить для події.\n"
-        "11. reason — 1 речення українською для кожної речі.\n"
-        "КРИТИЧНО: JSON повинен бути повністю завершеним і валідним."
+        "Ти — професійний стиліст. Для вже підібраного образу напиши коментарі.\n"
+        "Поверни ТІЛЬКИ валідний JSON без markdown.\n"
+        'Формат: {"outfit_name":"...","stylist_comment":"...","reasons":{"123":"...","456":"..."}}\n\n'
+        "Правила:\n"
+        "1. outfit_name — 3-5 слів українською, що описує стиль образу\n"
+        "2. stylist_comment — 2 речення українською: чому цей образ підходить\n"
+        "3. reasons — для КОЖНОГО ID з каталогу 1 речення українською чому ця річ у образі\n"
+        "4. НЕ змінюй ID, НЕ додавай нові\n"
+        "КРИТИЧНО: JSON валідний, ключі reasons — рядки (наприклад \"123\")."
     )
 
     user_prompt = (
         f"Подія: {event}\n"
-        f"Рівень формальності події: {formality_ua}\n"
-        f"Стать: {gender_ua}\n"
-        f"Сезон: {season_ua}\n"
-        + (f"Рекомендовані матеріали для сезону: {season_materials}\n" if season_materials else "")
-        + f"Доступні категорії в каталозі: {', '.join(sorted(available_cats))}\n\n"
-        f"Каталог (кожна річ: ID|назва|категорія|формальність|колір|візерунок):\n{catalog_text}\n\n"
-        f"Підбери образ, що ТОЧНО відповідає рівню формальності '{formality_ua}' для події '{event}'."
+        f"Стать: {gender}\n"
+        f"Сезон: {season}\n"
+        + (f"Дрес-код: {dresscode}\n" if dresscode else "")
+        + (f"Обрані стилі: {', '.join(styles)}\n" if styles else "")
+        + f"\nПідібрані речі:\n{catalog_text}"
     )
 
-    last_error  = None
-    ai_response = None
-
     for model_id in MODELS_TO_TRY:
-        logger.error(f"[OUTFIT] Спроба моделі: {model_id}")
         try:
-            ai_response = requests.post(
+            logger.info(f"[AI] Спроба моделі {model_id}")
+            resp = requests.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers={
                     "Authorization": f"Bearer {api_key}",
@@ -287,74 +283,130 @@ def generate_outfit(request):
                         {"role": "system", "content": system_prompt},
                         {"role": "user",   "content": user_prompt},
                     ],
-                    "temperature": 0.3,
-                    "max_tokens":  4096,
+                    "temperature": 0.5,
+                    "max_tokens":  2048,
                 },
-                timeout=30,
+                timeout=20,
             )
-            logger.error(f"[OUTFIT] Відповідь від {model_id}: status={ai_response.status_code}")
-            logger.error(f"[OUTFIT] Тіло відповіді (перші 500 символів): {ai_response.text[:500]}")
-            ai_response.raise_for_status()
-            logger.error(f"[OUTFIT] Модель {model_id} — успішно!")
-            break
-        except requests.RequestException as e:
-            last_error  = str(e)
-            logger.error(f"[OUTFIT] Помилка моделі {model_id}: {last_error}")
-            ai_response = None
+            resp.raise_for_status()
+            raw = resp.json()["choices"][0]["message"]["content"].strip()
+            parsed = _parse_llm_json(raw)
+
+            # Ключі reasons приводимо до int
+            raw_reasons = parsed.get('reasons', {})
+            reasons = {}
+            for k, v in raw_reasons.items():
+                try:
+                    reasons[int(k)] = str(v)
+                except (ValueError, TypeError):
+                    continue
+
+            logger.info(f"[AI] Отримано outfit_name, {len(reasons)} reasons")
+            return {
+                'outfit_name':     parsed.get('outfit_name', 'Підібраний образ'),
+                'stylist_comment': parsed.get('stylist_comment', ''),
+                'reasons':         reasons,
+            }
+        except Exception as e:
+            logger.warning(f"[AI] Модель {model_id} не спрацювала: {e}")
             continue
 
-    if ai_response is None or not ai_response.ok:
-        logger.error(f"[OUTFIT] Всі моделі провалились. Остання помилка: {last_error}")
-        return JsonResponse(
-            {'status': 'error', 'message': 'AI сервіс недоступний. Спробуйте пізніше.'},
-            status=502
-        )
+    logger.warning("[AI] Всі моделі провалились — повертаємо без коментарів")
+    return None
+
+
+@csrf_exempt
+@login_required(login_url='/login/')
+def generate_outfit(request):
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Метод не підтримується'}, status=405)
 
     try:
-        raw = ai_response.json()["choices"][0]["message"]["content"].strip()
-        logger.error(f"\n=== RAW LLM ===\n{raw}\n===============\n")
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Невалідний запит'}, status=400)
 
-        llm_data       = _parse_llm_json(raw)
-        selected_items = llm_data.get("items", [])
+    # ── Валідація ──
+    event  = data.get('event', '').strip()
+    gender = data.get('gender', '')
+    season = data.get('season', '')
 
-        if not selected_items:
-            return JsonResponse(
-                {'status': 'error', 'message': 'AI не повернув жодного елементу. Спробуйте ще раз.'},
-                status=500
-            )
+    if not event:
+        return JsonResponse({'status': 'error', 'message': 'Вкажіть подію'}, status=400)
+    if not gender or gender not in GENDER_MAP:
+        return JsonResponse({'status': 'error', 'message': 'Вкажіть стать'}, status=400)
+    if not season:
+        return JsonResponse({'status': 'error', 'message': 'Вкажіть сезон'}, status=400)
 
-    except (KeyError, IndexError) as e:
-        logger.error(f"[OUTFIT] KeyError/IndexError при парсингу: {e}")
-        return JsonResponse(
-            {'status': 'error', 'message': 'Неочікувана відповідь від AI. Спробуйте ще раз.'},
-            status=500
-        )
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.error(f"[OUTFIT] JSON parse error: {e}")
-        return JsonResponse(
-            {'status': 'error', 'message': 'AI повернув некоректну відповідь. Спробуйте ще раз.'},
-            status=500
-        )
+    # ── Визначаємо formality_levels ──
+    # Пріоритет: (1) явно обраний dresscode, (2) подія з БД
+    dresscode = data.get('dresscode')
+    formality_levels = []
 
-    selected_ids = [item['id'] for item in selected_items]
-    reason_map   = {item['id']: item.get('reason', '') for item in selected_items}
-    valid_items  = ClothingItem.objects.filter(id__in=selected_ids).select_related('brand')
+    if dresscode and dresscode in FORMALITY_MAP:
+        formality_levels = FORMALITY_MAP[dresscode]
+    else:
+        event_obj = Event.objects.filter(name__iexact=event).first()
+        if event_obj and event_obj.formality in FORMALITY_MAP:
+            formality_levels = FORMALITY_MAP[event_obj.formality]
+
+    logger.info(f"[OUTFIT] formality_levels: {formality_levels}")
+
+    # ── Підбираємо по 3 товари з кожної категорії ──
+    selections = _pick_items_per_category(data, formality_levels)
+
+    total = sum(len(items) for items in selections.values())
+    logger.info(
+        f"[OUTFIT] Відібрано {total} товарів: " +
+        ", ".join(f"{k}={len(v)}" for k, v in selections.items() if v)
+    )
+
+    if total == 0:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Нічого не знайдено за вашими критеріями. Спробуйте послабити фільтри.'
+        }, status=404)
+
+    # ── AI коментарі (опціонально) ──
+    outfit_name     = 'Підібраний образ'
+    stylist_comment = ''
+    reasons         = {}
+
+    api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
+    if api_key:
+        ai_result = _ask_ai_for_commentary(data, selections, api_key)
+        if ai_result:
+            outfit_name     = ai_result.get('outfit_name', outfit_name)
+            stylist_comment = ai_result.get('stylist_comment', '')
+            reasons         = ai_result.get('reasons', {})
+    else:
+        logger.info("[OUTFIT] OPENROUTER_API_KEY відсутній — пропускаємо AI коментарі")
+
+    # ── Зберігаємо в сесію ──
+    all_items = []
+    for category in CATEGORY_ORDER:
+        for item in selections.get(category, []):
+            all_items.append({
+                'id':     item.id,
+                'reason': reasons.get(item.id, ''),
+            })
 
     request.session['outfit_result'] = {
-        'outfit_name':     llm_data.get('outfit_name', 'Підібраний образ'),
-        'stylist_comment': llm_data.get('stylist_comment', ''),
+        'outfit_name':     outfit_name,
+        'stylist_comment': stylist_comment,
         'event_name':      event,
-        'gender':          gender_ua,
-        'season':          season_ua,
-        'items': [
-            {'id': item.id, 'reason': reason_map.get(item.id, '')}
-            for item in valid_items
-        ],
+        'gender':          GENDER_LABELS.get(gender, gender),
+        'season':          SEASON_LABELS.get(season, season),
+        'items':           all_items,
     }
     request.session.modified = True
 
     return JsonResponse({'status': 'ok', 'redirect': '/outfit-results/'})
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   PRODUCT DETAIL
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def product_detail(request, pk):
     item = get_object_or_404(ClothingItem.objects.select_related('brand').prefetch_related('sizes'), pk=pk)
@@ -363,7 +415,9 @@ def product_detail(request, pk):
     return render(request, 'trapApp/product_detail.html', {'item': item, 'sizes': sizes, 'related': related})
 
 
-# ─── Auth ─────────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+#   AUTH
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def register_view(request):
     if request.user.is_authenticated:
@@ -416,7 +470,9 @@ def profile_view(request):
     return render(request, 'trapApp/profile.html', {'form': form})
 
 
-# ─── Бренди ───────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+#   БРЕНДИ
+# ═══════════════════════════════════════════════════════════════════════════════
 
 def brands_list(request):
     brands = Brand.objects.all().order_by('name')
@@ -473,32 +529,21 @@ def nav_brands(request):
     return {'nav_brands': brands}
 
 
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
-# КРОК 1: Додай імпорт на початок views.py (після наявних імпортів):
-# from .cart import Cart
+#   КОШИК
 # ═══════════════════════════════════════════════════════════════════════════════
-#
-# КРОК 2: Додай ці функції в КІНЕЦЬ views.py
-# ═══════════════════════════════════════════════════════════════════════════════
-
-
-# ── Кошик ─────────────────────────────────────────────────────────────────────
 
 def cart_view(request):
-    """Повна сторінка кошика."""
     cart = Cart(request)
     return render(request, 'trapApp/cart.html', {
-        'cart_items': cart.to_list(),
-        'cart_total': cart.total,
+        'cart_items':    cart.to_list(),
+        'cart_total':    cart.total,
         'cart_currency': cart.currency,
     })
 
 
 @csrf_exempt
 def cart_add(request, item_id):
-    """POST /cart/add/<id>/ — додати товар у кошик, повернути JSON."""
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
 
@@ -514,19 +559,17 @@ def cart_add(request, item_id):
     quantity = max(1, int(body.get('quantity', 1)))
     cart.add(item, size=size, quantity=quantity)
 
-    # Повертаємо оновлений список для drawer
     return JsonResponse({
-        'status':      'ok',
-        'cart_count':  len(cart),
-        'cart_total':  cart.total,
+        'status':        'ok',
+        'cart_count':    len(cart),
+        'cart_total':    cart.total,
         'cart_currency': cart.currency,
-        'cart_items':  cart.to_list(),
+        'cart_items':    cart.to_list(),
     })
 
 
 @csrf_exempt
 def cart_update(request):
-    """POST /cart/update/ — змінити кількість."""
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
 
@@ -547,19 +590,18 @@ def cart_update(request):
             break
 
     return JsonResponse({
-        'status':      'ok',
-        'cart_count':  len(cart),
-        'cart_total':  cart.total,
+        'status':        'ok',
+        'cart_count':    len(cart),
+        'cart_total':    cart.total,
         'cart_currency': cart.currency,
-        'subtotal':    subtotal,
-        'removed':     quantity <= 0,
-        'cart_items':  cart.to_list(),
+        'subtotal':      subtotal,
+        'removed':       quantity <= 0,
+        'cart_items':    cart.to_list(),
     })
 
 
 @csrf_exempt
 def cart_remove(request):
-    """POST /cart/remove/ — видалити рядок."""
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
 
@@ -573,9 +615,9 @@ def cart_remove(request):
     cart.remove(key)
 
     return JsonResponse({
-        'status':      'ok',
-        'cart_count':  len(cart),
-        'cart_total':  cart.total,
+        'status':        'ok',
+        'cart_count':    len(cart),
+        'cart_total':    cart.total,
         'cart_currency': cart.currency,
-        'cart_items':  cart.to_list(),
+        'cart_items':    cart.to_list(),
     })
