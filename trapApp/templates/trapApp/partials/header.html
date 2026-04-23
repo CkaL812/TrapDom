@@ -27,21 +27,58 @@
 
             {% if user.is_authenticated %}
             <div class="relative group">
-                <a href="{% url 'profile' %}" class="text-off-white hover:text-grunge-gray transition-colors">
+                <button class="text-off-white hover:text-grunge-gray transition-colors focus:outline-none" aria-label="Акаунт">
                     <i class="fa-regular fa-user"></i>
-                </a>
-                <div class="absolute right-0 top-full mt-0 w-48 bg-charcoal-900 border border-charcoal-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                    <div class="px-4 py-3 border-b border-charcoal-700">
-                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Акаунт</p>
-                        <p class="text-xs font-mono text-grunge-gray truncate mt-0.5">{{ user.first_name }} {{ user.last_name }}</p>
+                </button>
+
+                <!-- Dropdown -->
+                <div class="absolute right-0 top-full mt-3 w-60
+                            bg-charcoal-900 border border-charcoal-700
+                            shadow-[0_8px_32px_rgba(0,0,0,0.6)]
+                            opacity-0 invisible -translate-y-2
+                            group-hover:opacity-100 group-hover:visible group-hover:translate-y-0
+                            transition-all duration-200 ease-out z-50">
+
+                    <!-- Верхня акцентна лінія -->
+                    <div class="h-[2px] bg-off-white"></div>
+
+                    <!-- Блок акаунту -->
+                    <div class="px-4 py-4 border-b border-charcoal-700">
+                        <div class="flex items-center gap-3">
+                            <!-- Аватар з ініціалами -->
+                            <div class="w-9 h-9 bg-charcoal-800 border border-charcoal-600 flex items-center justify-center flex-shrink-0">
+                                <span class="text-[11px] font-mono font-bold text-off-white uppercase leading-none">
+                                    {{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}
+                                </span>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-mono font-semibold text-off-white uppercase tracking-wider truncate leading-tight">
+                                    {{ user.first_name }} {{ user.last_name }}
+                                </p>
+                                <p class="text-[9px] font-mono text-grunge-gray truncate mt-0.5 leading-tight">
+                                    {{ user.email }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- Пункти меню -->
                     <a href="{% url 'profile' %}"
-                        class="flex items-center gap-3 px-4 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white hover:bg-charcoal-800 transition-colors border-b border-charcoal-700">
-                        <i class="fa-regular fa-user text-[10px]"></i> Профіль
+                       class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
+                              text-grunge-gray hover:text-off-white hover:bg-charcoal-800
+                              border-b border-charcoal-700 border-l-2 border-l-transparent
+                              hover:border-l-off-white transition-colors duration-150">
+                        <i class="fa-regular fa-user w-3 text-center"></i>
+                        <span>Профіль</span>
                     </a>
+
                     <a href="{% url 'logout' %}"
-                        class="flex items-center gap-3 px-4 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white hover:bg-charcoal-800 transition-colors">
-                        <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Вийти
+                       class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
+                              text-grunge-gray hover:text-red-400 hover:bg-charcoal-800
+                              border-l-2 border-l-transparent hover:border-l-red-400
+                              transition-colors duration-150">
+                        <i class="fa-solid fa-right-from-bracket w-3 text-center"></i>
+                        <span>Вийти</span>
                     </a>
                 </div>
             </div>

@@ -5,59 +5,85 @@
 
 {% block content %}
 <main class="relative z-10 pt-20 min-h-screen flex items-center justify-center px-6">
-    <div class="w-full max-w-md">
+    <div class="w-full max-w-md py-16">
 
         <!-- Заголовок -->
         <div class="mb-10">
             <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Акаунт</p>
-            <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white">Увійти</h1>
-            <p class="text-grunge-gray font-mono text-xs mt-2">Немає акаунту?
-                <a href="{% url 'register' %}" class="text-off-white border-b border-charcoal-700 hover:border-off-white transition-colors">Зареєструватись</a>
+            <h1 class="font-mono text-5xl md:text-6xl uppercase tracking-widest text-off-white leading-none">Увійти</h1>
+            <p class="text-grunge-gray font-mono text-xs mt-3">
+                Немає акаунту?
+                <a href="{% url 'register' %}{% if next %}?next={{ next }}{% endif %}"
+                   class="text-off-white border-b border-charcoal-700 hover:border-off-white transition-colors">
+                    Зареєструватись
+                </a>
             </p>
+        </div>
+
+        <!-- Google OAuth -->
+        <a href="{% url 'social:begin' 'google-oauth2' %}{% if next %}?next={{ next }}{% endif %}"
+           class="flex items-center justify-center gap-3 w-full bg-white text-[#1f1f1f]
+                  font-mono text-sm font-semibold tracking-wider uppercase
+                  px-6 py-4 hover:bg-gray-100 transition-colors mb-6">
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908C16.658 14.01 17.64 11.773 17.64 9.2z" fill="#4285F4"/>
+                <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
+                <path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+            </svg>
+            Увійти через Google
+        </a>
+
+        <!-- Розділювач -->
+        <div class="flex items-center gap-4 mb-6">
+            <div class="flex-1 h-px bg-charcoal-700"></div>
+            <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">або</span>
+            <div class="flex-1 h-px bg-charcoal-700"></div>
         </div>
 
         <!-- Помилки -->
         {% if form.non_field_errors %}
-        <div class="border border-accent-red bg-charcoal-800 px-4 py-3 mb-6">
-            {% for error in form.non_field_errors %}
-            <p class="text-accent-red text-xs font-mono">{{ error }}</p>
-            {% endfor %}
+        <div class="border border-accent-red bg-charcoal-800 px-4 py-3 mb-5 flex items-start gap-3">
+            <i class="fa-solid fa-triangle-exclamation text-accent-red text-[10px] mt-0.5 flex-shrink-0"></i>
+            <div>{% for e in form.non_field_errors %}<p class="text-accent-red text-xs font-mono">{{ e }}</p>{% endfor %}</div>
         </div>
         {% endif %}
 
         <!-- Форма -->
-        <form method="POST" class="flex flex-col gap-4">
+        <form method="POST" class="flex flex-col gap-4" novalidate>
             {% csrf_token %}
+            {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
             <div>
                 <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">
                     <span class="text-accent-red mr-1">01</span> Email
                 </label>
                 <input type="email" name="email" value="{{ form.email.value|default:'' }}"
-                    placeholder="your@email.com"
-                    class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
-                {% if form.email.errors %}
-                <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.email.errors.0 }}</p>
-                {% endif %}
+                       placeholder="your@email.com" autocomplete="email"
+                       class="w-full bg-charcoal-800 border {% if form.email.errors %}border-accent-red{% else %}border-charcoal-700{% endif %}
+                              text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-600
+                              focus:outline-none focus:border-grunge-gray transition-colors">
+                {% if form.email.errors %}<p class="text-accent-red text-[10px] font-mono mt-1">{{ form.email.errors.0 }}</p>{% endif %}
             </div>
 
             <div>
                 <label class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray block mb-2">
                     <span class="text-accent-red mr-1">02</span> Пароль
                 </label>
-                <input type="password" name="password"
-                    placeholder="••••••••"
-                    class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-700 focus:outline-none focus:border-grunge-gray transition-colors">
-                {% if form.password.errors %}
-                <p class="text-accent-red text-[10px] font-mono mt-1">{{ form.password.errors.0 }}</p>
-                {% endif %}
+                <input type="password" name="password" placeholder="••••••••" autocomplete="current-password"
+                       class="w-full bg-charcoal-800 border {% if form.password.errors %}border-accent-red{% else %}border-charcoal-700{% endif %}
+                              text-off-white font-mono text-sm px-4 py-3 placeholder-charcoal-600
+                              focus:outline-none focus:border-grunge-gray transition-colors">
+                {% if form.password.errors %}<p class="text-accent-red text-[10px] font-mono mt-1">{{ form.password.errors.0 }}</p>{% endif %}
             </div>
 
             <button type="submit"
-                class="w-full bg-off-white text-charcoal-900 px-6 py-4 font-bold tracking-widest hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm mt-2">
+                class="w-full bg-off-white text-charcoal-900 px-6 py-4 font-bold tracking-widest
+                       hover:bg-grunge-gray hover:text-white transition-all uppercase text-sm mt-2">
                 Увійти
             </button>
         </form>
+
     </div>
 </main>
 {% endblock %}

@@ -5,18 +5,14 @@ from decouple import config
 
 load_dotenv()
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-3c131gb4+f&2n%w%&0*mwgr7ibso2646$!_)dgsu)h*1xfbwbq')
 
-# SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-# Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -24,8 +20,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'social_django',
     'trapApp',
 ]
+
 AUTH_USER_MODEL = 'trapApp.CustomUser'
 
 MIDDLEWARE = [
@@ -36,6 +34,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
 ]
 
 ROOT_URLCONF = 'trapdom.urls'
@@ -51,8 +50,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                # 'trapApp.context_processors.nav_brands',   # вже є у тебе
-                'trapApp.context_processors.cart_context', # ← ДОДАЙ ЦЕ
+                'trapApp.context_processors.cart_context',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -60,7 +60,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'trapdom.wsgi.application'
 
-# Database
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
@@ -75,7 +74,13 @@ DATABASES = {
     }
 }
 
-# Password validation
+# ── Аутентифікація ──────────────────────────────────────────────────────────
+
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.google.GoogleOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -83,25 +88,52 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
-LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
+# ── Google OAuth2 ────────────────────────────────────────────────────────────
 
-# Static files
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY    = config('GOOGLE_CLIENT_ID', default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('GOOGLE_CLIENT_SECRET', default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE  = ['openid', 'email', 'profile']
+
+SOCIAL_AUTH_URL_NAMESPACE = 'social'
+
+# Порядок кроків pipeline для Google OAuth
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
+    'trapApp.pipeline.get_username',
+    'social_core.pipeline.social_auth.associate_by_email',  # якщо email вже є — прив'язує
+    'trapApp.pipeline.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+)
+
+SOCIAL_AUTH_LOGIN_REDIRECT_URL  = '/'
+SOCIAL_AUTH_NEW_USER_REDIRECT_URL = '/'
+SOCIAL_AUTH_LOGIN_ERROR_URL     = '/login/'
+
+# ── Сесії ───────────────────────────────────────────────────────────────────
+
+SESSION_ENGINE              = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_AGE          = 86400
+SESSION_SAVE_EVERY_REQUEST  = True
+SESSION_COOKIE_SECURE       = False
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+# ── Локалізація ─────────────────────────────────────────────────────────────
+
+LANGUAGE_CODE = 'uk'
+TIME_ZONE     = 'Europe/Kyiv'
+USE_I18N      = True
+USE_TZ        = True
+
+# ── Статика / медіа ─────────────────────────────────────────────────────────
+
 STATIC_URL = 'static/'
-
-# Media files
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-OPENROUTER_API_KEY = config('OPENROUTER_API_KEY')
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_COOKIE_AGE = 86400        # 24 години
-SESSION_SAVE_EVERY_REQUEST = True
-SESSION_COOKIE_SECURE = False     # False бо DEBUG=True
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')

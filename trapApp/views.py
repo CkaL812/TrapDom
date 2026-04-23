@@ -11,7 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
 from .models import ClothingItem, Event, CustomUser, Brand
-from .forms import RegisterForm, LoginForm, ProfileForm
+from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm
 from .cart import Cart
 
 logger = logging.getLogger(__name__)
@@ -471,23 +471,32 @@ def product_detail(request, pk):
 #   AUTH
 # ═══════════════════════════════════════════════════════════════════════════════
 
+def _safe_next(next_url):
+    """Повертає next_url тільки якщо він відносний (захист від open redirect)."""
+    if next_url and next_url.startswith('/') and not next_url.startswith('//'):
+        return next_url
+    return '/'
+
+
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('index')
+    next_url = _safe_next(request.GET.get('next') or request.POST.get('next'))
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
             user = form.save()
-            login(request, user)
-            return redirect('index')
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            return redirect(next_url)
     else:
         form = RegisterForm()
-    return render(request, 'trapApp/register.html', {'form': form})
+    return render(request, 'trapApp/register.html', {'form': form, 'next': next_url})
 
 
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('index')
+    next_url = _safe_next(request.GET.get('next') or request.POST.get('next'))
     if request.method == 'POST':
         form = LoginForm(request.POST)
         if form.is_valid():
@@ -496,12 +505,12 @@ def login_view(request):
             user     = authenticate(request, username=email, password=password)
             if user:
                 login(request, user)
-                return redirect('index')
+                return redirect(next_url)
             else:
                 form.add_error(None, 'Невірний email або пароль')
     else:
         form = LoginForm()
-    return render(request, 'trapApp/login.html', {'form': form})
+    return render(request, 'trapApp/login.html', {'form': form, 'next': next_url})
 
 
 def logout_view(request):
@@ -511,15 +520,47 @@ def logout_view(request):
 
 @login_required(login_url='/login/')
 def profile_view(request):
+    user         = request.user
+    has_password = user.has_usable_password()
+    has_google   = user.social_auth.filter(provider='google-oauth2').exists()
+
+    profile_form  = ProfileForm(instance=user)
+    password_form = PasswordChangeForm(user) if has_password else SetPasswordForm()
+
     if request.method == 'POST':
-        form = ProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Дані оновлено')
-            return redirect('profile')
-    else:
-        form = ProfileForm(instance=request.user)
-    return render(request, 'trapApp/profile.html', {'form': form})
+        action = request.POST.get('action', 'profile')
+
+        if action == 'profile':
+            profile_form = ProfileForm(request.POST, instance=user)
+            if profile_form.is_valid():
+                profile_form.save()
+                messages.success(request, 'Дані профілю оновлено')
+                return redirect('profile')
+
+        elif action == 'password':
+            if has_password:
+                password_form = PasswordChangeForm(user, request.POST)
+                if password_form.is_valid():
+                    user.set_password(password_form.cleaned_data['new_password1'])
+                    user.save()
+                    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                    messages.success(request, 'Пароль успішно змінено')
+                    return redirect('profile')
+            else:
+                password_form = SetPasswordForm(request.POST)
+                if password_form.is_valid():
+                    user.set_password(password_form.cleaned_data['new_password1'])
+                    user.save()
+                    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+                    messages.success(request, 'Пароль встановлено')
+                    return redirect('profile')
+
+    return render(request, 'trapApp/profile.html', {
+        'profile_form':  profile_form,
+        'password_form': password_form,
+        'has_password':  has_password,
+        'has_google':    has_google,
+    })
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
