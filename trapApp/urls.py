@@ -22,4 +22,13 @@ urlpatterns = [
     path('cart/add/<int:item_id>/',   views.cart_add,    name='cart_add'),
     path('cart/update/',              views.cart_update, name='cart_update'),
     path('cart/remove/',              views.cart_remove, name='cart_remove'),
+
+    # ── Нотатки / заходи ───────────────────────────────────────────────────
+    path('notes/',                        views.note_list,       name='note_list'),
+    path('notes/new/',                    views.note_create,     name='note_create'),
+    path('notes/<int:pk>/',               views.note_detail,     name='note_detail'),
+    path('notes/<int:pk>/delete/',        views.note_delete,         name='note_delete'),
+    path('notes/<int:pk>/regenerate/',    views.note_regenerate,     name='note_regenerate'),
+    path('notes/<int:pk>/builder/',       views.note_outfit_builder, name='note_outfit_builder'),
+    path('notes/<int:pk>/reset/',         views.note_reset_outfit,   name='note_reset_outfit'),
 ]

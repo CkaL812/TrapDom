@@ -2,6 +2,7 @@ import re
 import json
 import logging
 import requests
+from datetime import date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
@@ -10,8 +11,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import ClothingItem, Event, CustomUser, Brand
-from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm
+from .models import ClothingItem, Event, CustomUser, Brand, Note
+from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm, NoteForm
 from .cart import Cart
 
 logger = logging.getLogger(__name__)
@@ -122,6 +123,21 @@ GENDER_MAP    = {'male': 'M', 'female': 'F', 'unisex': 'U'}
 GENDER_LABELS = {'male': 'Чоловіча', 'female': 'Жіноча', 'unisex': 'Унісекс'}
 SEASON_LABELS = {'spring': 'Весна', 'summer': 'Літо', 'autumn': 'Осінь', 'winter': 'Зима'}
 
+# Підкатегорії що мають анатомічний / гендерний характер.
+# Навіть якщо виріб позначений 'U' (унісекс) — не показувати чоловікам.
+_FEMALE_ONLY_SUBCATS = frozenset({
+    'skirt', 'dress', 'sundress', 'bikini', 'swimsuit',
+    'heels', 'flats', 'crop_top', 'blouse', 'clutch', 'earrings',
+})
+
+# Явно чоловічі підкатегорії — не показувати жінкам.
+_MALE_ONLY_SUBCATS = frozenset({
+    'tie',
+})
+
+# Яким гендер-кодам дозволено бачити onepiece (сукні, сарафани, комбінезони)
+_ONEPIECE_GENDERS = frozenset({'F'})
+
 ITEMS_PER_CATEGORY = 3
 CATEGORY_ORDER     = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory']
 
@@ -131,11 +147,12 @@ ONEPIECE_TEMPLATE  = ['onepiece', 'layering', 'outerwear', 'footwear', 'accessor
 
 # Прогресивне послаблення фільтрів: від найжорсткіших до мінімальних
 FILTER_PASSES = [
-    {'formality': True,  'budget': True,  'styles': True,  'time': True,  'age': True},
-    {'formality': True,  'budget': True,  'styles': True,  'time': False, 'age': False},
-    {'formality': True,  'budget': True,  'styles': False, 'time': False, 'age': False},
-    {'formality': True,  'budget': False, 'styles': False, 'time': False, 'age': False},
-    {'formality': False, 'budget': False, 'styles': False, 'time': False, 'age': False},
+    {'formality': True,  'budget': True,  'styles': True,  'time': True,  'age': True,  'season': True},
+    {'formality': True,  'budget': True,  'styles': True,  'time': False, 'age': False, 'season': True},
+    {'formality': True,  'budget': True,  'styles': False, 'time': False, 'age': False, 'season': True},
+    {'formality': True,  'budget': False, 'styles': False, 'time': False, 'age': False, 'season': True},
+    {'formality': False, 'budget': False, 'styles': False, 'time': False, 'age': False, 'season': True},
+    {'formality': False, 'budget': False, 'styles': False, 'time': False, 'age': False, 'season': False},
 ]
 
 MODELS_TO_TRY = [
@@ -182,8 +199,26 @@ def _filter_qs(qs, payload, formality_levels, opts):
     gender_db = GENDER_MAP.get(payload.get('gender'), 'U')
     season    = payload.get('season')
 
-    qs = qs.filter(gender__in=[gender_db, 'U'])
-    if season:
+    # Базова фільтрація по гендеру.
+    # Правило: M-теговані та F-теговані речі ніколи не перетинаються.
+    # U-тегованих речей зараз 0, але якщо з'являться — фільтруємо їх
+    # за чорними списками підкатегорій щоб уникнути гендерного переносу.
+    if gender_db == 'M':
+        # Суворо чоловічі + гендерно-нейтральні без жіночих підкатегорій
+        qs = qs.filter(
+            Q(gender='M') |
+            (Q(gender='U') & ~Q(subcategory__in=_FEMALE_ONLY_SUBCATS))
+        )
+    elif gender_db == 'F':
+        # Суворо жіночі + гендерно-нейтральні без чоловічих підкатегорій
+        qs = qs.filter(
+            Q(gender='F') |
+            (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
+        )
+    else:  # 'U' — лише речі, явно позначені як унісекс
+        qs = qs.filter(gender='U')
+
+    if season and opts.get('season', True):
         qs = qs.filter(seasons__name=season)
 
     if opts['formality'] and formality_levels:
@@ -258,8 +293,8 @@ def _pick_items_with_fallback(payload, formality_levels, per_category=ITEMS_PER_
             sep['onepiece'] = []
             return sep, pass_num, 'separated'
 
-        # Суцільний шаблон (onepiece) — для жінок і унісекс
-        if gender_db in ('F', 'U'):
+        # Суцільний шаблон (onepiece) — виключно для жінок
+        if gender_db in _ONEPIECE_GENDERS:
             one = _pick_for_template(base_qs, payload, formality_levels, ONEPIECE_TEMPLATE, opts, per_category)
             if _has_complete_outfit(one, ONEPIECE_TEMPLATE):
                 logger.info(f"[OUTFIT] onepiece, pass={pass_num}")
@@ -714,3 +749,166 @@ def cart_remove(request):
         'cart_currency': cart.currency,
         'cart_items':    cart.to_list(),
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   НОТАТКИ / ЗАХОДИ
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _date_to_season(d):
+    m = d.month
+    if m in (3, 4, 5):  return 'spring'
+    if m in (6, 7, 8):  return 'summer'
+    if m in (9, 10, 11): return 'autumn'
+    return 'winter'
+
+
+def _generate_note_outfit(note):
+    """Підбирає образ для нотатки та зберігає його (по 1 речі на категорію)."""
+    payload = {
+        'event':  note.event_name,
+        'gender': note.gender,
+        'season': _date_to_season(note.event_date),
+    }
+    formality_levels = _resolve_formality(note.event_name, None)
+    selections, _, _ = _pick_items_with_fallback(payload, formality_levels, per_category=1)
+    items = [item for cat_items in selections.values() for item in cat_items]
+    note.outfit_items.set(items)
+
+
+@login_required(login_url='/login/')
+def note_list(request):
+    today = date.today()
+    notes = (
+        request.user.notes
+        .prefetch_related('outfit_items')
+        .order_by('event_date', 'event_time')
+    )
+    return render(request, 'trapApp/note_list.html', {'notes': notes, 'today': today})
+
+
+@login_required(login_url='/login/')
+def note_create(request):
+    if request.method == 'POST':
+        form = NoteForm(request.POST)
+        if form.is_valid():
+            note = form.save(commit=False)
+            note.user = request.user
+            note.save()
+            if note.mode == 'manual':
+                return redirect('note_outfit_builder', pk=note.pk)
+            messages.success(request, 'Захід створено! Образ буде підібрано вчасно.')
+            return redirect('note_detail', pk=note.pk)
+    else:
+        form = NoteForm()
+    return render(request, 'trapApp/note_create.html', {'form': form})
+
+
+@login_required(login_url='/login/')
+def note_detail(request, pk):
+    from .tasks import _compute_notify_at
+    note = get_object_or_404(Note, pk=pk, user=request.user)
+    items = sorted(
+        note.outfit_items.select_related('brand').all(),
+        key=lambda x: (CATEGORY_ORDER.index(x.category) if x.category in CATEGORY_ORDER else 99),
+    )
+    notify_at = _compute_notify_at(note) if note.mode == 'auto' and not note.notification_sent else None
+    return render(request, 'trapApp/note_detail.html', {
+        'note':      note,
+        'items':     items,
+        'notify_at': notify_at,
+    })
+
+
+@login_required(login_url='/login/')
+def note_delete(request, pk):
+    note = get_object_or_404(Note, pk=pk, user=request.user)
+    if request.method == 'POST':
+        note.delete()
+        messages.success(request, 'Нотатку видалено')
+        return redirect('note_list')
+    return redirect('note_detail', pk=pk)
+
+
+@login_required(login_url='/login/')
+def note_regenerate(request, pk):
+    note = get_object_or_404(Note, pk=pk, user=request.user)
+    if request.method == 'POST' and note.mode == 'auto':
+        note.notification_sent = False
+        note.save(update_fields=['notification_sent'])
+        _generate_note_outfit(note)
+        messages.success(request, 'Образ оновлено!')
+    return redirect('note_detail', pk=pk)
+
+
+@login_required(login_url='/login/')
+def note_outfit_builder(request, pk):
+    note = get_object_or_404(Note, pk=pk, user=request.user)
+
+    valid_cats   = [c for c, _ in ClothingItem.CATEGORY_CHOICES]
+    selected_cat = request.GET.get('cat', 'tops')
+    if selected_cat not in valid_cats:
+        selected_cat = 'tops'
+
+    if request.method == 'POST':
+        raw_ids  = request.POST.getlist('item_ids')
+        item_ids = [int(i) for i in raw_ids if i.isdigit()]
+
+        keep   = list(note.outfit_items.exclude(category=selected_cat))
+        chosen = list(ClothingItem.objects.filter(id__in=item_ids, category=selected_cat))
+        note.outfit_items.set(keep + chosen)
+
+        next_cat = request.POST.get('next_cat', '')
+        if next_cat and next_cat in valid_cats:
+            return redirect(f"{request.path}?cat={next_cat}")
+
+        # Фінальне збереження — позначаємо як вручну зібраний, скасовуємо авто-нотифікацію
+        note.outfit_locked = True
+        note.notification_sent = False
+        note.save(update_fields=['outfit_locked', 'notification_sent'])
+        messages.success(request, 'Образ збережено!')
+        return redirect('note_detail', pk=note.pk)
+
+    selected_ids = set(note.outfit_items.values_list('id', flat=True))
+
+    # Фільтруємо речі по гендеру нотатки (той самий принцип що й у _filter_qs)
+    gender_db = GENDER_MAP.get(note.gender, 'U')
+    base_items = ClothingItem.objects.filter(category=selected_cat).select_related('brand')
+    if gender_db == 'M':
+        base_items = base_items.filter(
+            Q(gender='M') | (Q(gender='U') & ~Q(subcategory__in=_FEMALE_ONLY_SUBCATS))
+        )
+    elif gender_db == 'F':
+        base_items = base_items.filter(
+            Q(gender='F') | (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
+        )
+    else:
+        base_items = base_items.filter(gender='U')
+    items = base_items.order_by('brand__name', 'name')[:80]
+    # Передаємо категорії разом з кількістю вибраних речей у кожній
+    categories_with_counts = [
+        (c, label, note.outfit_items.filter(category=c).count())
+        for c, label in ClothingItem.CATEGORY_CHOICES
+    ]
+
+    return render(request, 'trapApp/note_outfit_builder.html', {
+        'note':                   note,
+        'items':                  items,
+        'selected_cat':           selected_cat,
+        'selected_ids':           selected_ids,
+        'categories_with_counts': categories_with_counts,
+        'valid_cats':             valid_cats,
+    })
+
+
+@login_required(login_url='/login/')
+def note_reset_outfit(request, pk):
+    """Скидає ручний образ — нотатка повертається в авто-режим."""
+    note = get_object_or_404(Note, pk=pk, user=request.user)
+    if request.method == 'POST':
+        note.outfit_items.clear()
+        note.outfit_locked     = False
+        note.notification_sent = False
+        note.save(update_fields=['outfit_locked', 'notification_sent'])
+        messages.success(request, 'Образ скинуто — буде підібрано автоматично вчасно.')
+    return redirect('note_detail', pk=pk)

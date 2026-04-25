@@ -1,0 +1,234 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}{{ note.get_event_name_display }} — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen px-6">
+    <div class="max-w-4xl mx-auto py-14">
+
+        <!-- Назад -->
+        <a href="{% url 'note_list' %}"
+           class="inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest
+                  text-grunge-gray hover:text-off-white transition-colors mb-10">
+            <i class="fa-solid fa-arrow-left text-[8px]"></i> Заходи
+        </a>
+
+        <!-- Заголовок -->
+        <div class="mb-10">
+            <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray mb-2">
+                {{ note.event_date|date:"l, d F Y" }}
+            </p>
+            <h1 class="font-mono text-4xl md:text-5xl uppercase tracking-widest text-off-white leading-tight mb-4">
+                {{ note.get_event_name_display }}
+            </h1>
+
+            <!-- Теги -->
+            <div class="flex items-center gap-2 flex-wrap">
+                {% if note.event_time %}
+                <span class="flex items-center gap-1.5 border border-charcoal-700 px-3 py-1.5
+                             font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                    <i class="fa-regular fa-clock text-[8px]"></i> {{ note.event_time|time:"H:i" }}
+                </span>
+                {% endif %}
+                <span class="flex items-center gap-1.5 border border-charcoal-700 px-3 py-1.5
+                             font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                    <i class="fa-solid fa-person text-[8px]"></i> {{ note.get_gender_display }}
+                </span>
+                {% if note.mode == 'auto' and not note.outfit_locked %}
+                <span class="flex items-center gap-1.5 border border-charcoal-700 px-3 py-1.5
+                             font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                    <i class="fa-regular fa-clock text-[8px]"></i> Авто-підбір
+                </span>
+                {% elif note.outfit_locked %}
+                <span class="flex items-center gap-1.5 border border-charcoal-700 px-3 py-1.5
+                             font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                    <i class="fa-regular fa-hand text-[8px]"></i> Зібрано вручну
+                </span>
+                {% endif %}
+                {% if note.notification_sent %}
+                <span class="flex items-center gap-1.5 border border-charcoal-700 px-3 py-1.5
+                             font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                    <i class="fa-regular fa-envelope-open text-[8px]"></i> Лист надіслано
+                </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Флеш-повідомлення -->
+        {% if messages %}
+        {% for msg in messages %}
+        <div class="border-l-2 border-off-white bg-charcoal-800 px-4 py-3 mb-6 font-mono text-xs text-off-white">
+            {{ msg }}
+        </div>
+        {% endfor %}
+        {% endif %}
+
+        <!-- ══════════════════════════════════════════════════
+             СТАН 1: АВТО, образ ще не зібрано, не надіслано
+             ══════════════════════════════════════════════════ -->
+        {% if note.mode == 'auto' and not note.outfit_locked and not items %}
+
+        <div class="border border-charcoal-700 bg-charcoal-800 p-8 mb-6">
+            <div class="flex items-start gap-5">
+                <div class="w-12 h-12 border border-charcoal-700 flex items-center justify-center shrink-0">
+                    <i class="fa-regular fa-hourglass text-grunge-gray text-lg"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="font-mono text-sm uppercase tracking-widest text-off-white mb-1">
+                        Очікує підбору
+                    </p>
+                    <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">
+                        Ми автоматично підберемо образ і надішлемо вам листа на
+                        <span class="text-off-white">{{ note.user.email }}</span>
+                    </p>
+                    {% if notify_at %}
+                    <p class="font-mono text-[10px] text-grunge-gray mt-1">
+                        Орієнтовно:
+                        <span class="text-off-white">{{ notify_at|date:"d.m" }} о {{ notify_at|time:"H:i" }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="border-t border-charcoal-700 mt-6 pt-6 flex items-center gap-3 flex-wrap">
+                <form method="POST" action="{% url 'note_regenerate' note.pk %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                                   px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                                   hover:border-grunge-gray hover:text-off-white transition-colors">
+                        <i class="fa-solid fa-bolt text-[8px]"></i> Підібрати зараз
+                    </button>
+                </form>
+                <a href="{% url 'note_outfit_builder' note.pk %}"
+                   class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                          px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                          hover:border-grunge-gray hover:text-off-white transition-colors">
+                    <i class="fa-regular fa-hand text-[8px]"></i> Скласти самостійно
+                </a>
+            </div>
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             СТАН 2: Є образ (ручний або авто-згенерований)
+             ══════════════════════════════════════════════════ -->
+        {% elif items %}
+
+        <!-- Дії над образом -->
+        <div class="flex items-center gap-2 flex-wrap mb-6">
+            {% if note.outfit_locked %}
+                <a href="{% url 'note_outfit_builder' note.pk %}"
+                   class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                          px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                          hover:border-grunge-gray hover:text-off-white transition-colors">
+                    <i class="fa-solid fa-sliders text-[8px]"></i> Редагувати
+                </a>
+                {% if note.mode == 'auto' %}
+                <form method="POST" action="{% url 'note_reset_outfit' note.pk %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                                   px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                                   hover:border-grunge-gray hover:text-off-white transition-colors">
+                        <i class="fa-solid fa-rotate text-[8px]"></i> Повернути авто-підбір
+                    </button>
+                </form>
+                {% endif %}
+            {% elif note.mode == 'auto' %}
+                <form method="POST" action="{% url 'note_regenerate' note.pk %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                                   px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                                   hover:border-grunge-gray hover:text-off-white transition-colors">
+                        <i class="fa-solid fa-rotate text-[8px]"></i> Оновити образ
+                    </button>
+                </form>
+                <a href="{% url 'note_outfit_builder' note.pk %}"
+                   class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                          px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                          hover:border-grunge-gray hover:text-off-white transition-colors">
+                    <i class="fa-regular fa-hand text-[8px]"></i> Скласти самостійно
+                </a>
+            {% else %}
+                <a href="{% url 'note_outfit_builder' note.pk %}"
+                   class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
+                          px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
+                          hover:border-grunge-gray hover:text-off-white transition-colors">
+                    <i class="fa-solid fa-sliders text-[8px]"></i> Редагувати образ
+                </a>
+            {% endif %}
+        </div>
+
+        <!-- Сітка речей -->
+        <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-4">Образ</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+            {% for item in items %}
+            <a href="{% url 'product_detail' item.pk %}"
+               class="group bg-charcoal-800 border border-charcoal-700
+                      hover:border-grunge-gray transition-colors duration-150 overflow-hidden">
+                <div class="aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                    {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                    {% else %}
+                    <div class="w-full h-full flex items-center justify-center">
+                        <i class="fa-regular fa-image text-charcoal-700 text-2xl"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="p-3">
+                    <p class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray truncate">
+                        {{ item.brand.name }}
+                    </p>
+                    <p class="font-mono text-[11px] text-off-white truncate leading-snug mt-0.5">
+                        {{ item.name }}
+                    </p>
+                    {% if item.price %}
+                    <p class="font-mono text-[9px] text-grunge-gray mt-1.5">
+                        {{ item.price }} {{ item.currency }}
+                    </p>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- ══════════════════════════════════════════════════
+             СТАН 3: Вручну, але ще нічого не вибрано
+             ══════════════════════════════════════════════════ -->
+        {% else %}
+        <div class="border border-charcoal-700 bg-charcoal-800 py-20 flex flex-col items-center gap-5">
+            <div class="w-14 h-14 border border-charcoal-700 flex items-center justify-center">
+                <i class="fa-regular fa-shirt text-grunge-gray text-xl"></i>
+            </div>
+            <div class="text-center">
+                <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray">Образ ще не зібрано</p>
+                <p class="font-mono text-[9px] text-grunge-gray/60 mt-1">Оберіть речі з каталогу по категоріях</p>
+            </div>
+            <a href="{% url 'note_outfit_builder' note.pk %}"
+               class="font-mono text-[11px] uppercase tracking-widest font-bold
+                      bg-off-white text-charcoal-900 px-6 py-3
+                      hover:bg-grunge-gray hover:text-off-white transition-colors">
+                Скласти образ
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Кнопка видалення — завжди внизу -->
+        <div class="mt-10 pt-6 border-t border-charcoal-700 flex justify-end">
+            <form method="POST" action="{% url 'note_delete' note.pk %}"
+                  onsubmit="return confirm('Видалити цей захід?')">
+                {% csrf_token %}
+                <button type="submit"
+                        class="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest
+                               text-grunge-gray hover:text-red-400 transition-colors">
+                    <i class="fa-regular fa-trash-can text-[8px]"></i> Видалити захід
+                </button>
+            </form>
+        </div>
+
+    </div>
+</main>
+{% endblock %}

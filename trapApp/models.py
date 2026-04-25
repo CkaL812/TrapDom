@@ -421,3 +421,62 @@ class Admin(models.Model):
 
     def __str__(self):
         return self.email
+
+
+# ══════════════════════════════════════════════════════════════════
+#                        NOTE (НОТАТКИ / ЗАХОДИ)
+# ══════════════════════════════════════════════════════════════════
+
+class Note(models.Model):
+    EVENT_CHOICES = [
+        ('день народження',           'День народження'),
+        ('ювілей',                    'Ювілей'),
+        ('заручини',                  'Заручини'),
+        ('розпис',                    'Розпис'),
+        ('весільний банкет (гість)',   'Весільний банкет (гість)'),
+        ('коктейльна вечірка',         'Коктейльна вечірка'),
+        ('формальний вечір',          'Формальний вечір'),
+        ('корпоратив',                'Корпоратив'),
+        ('конференція',               'Конференція'),
+        ('нетворкінг',                'Нетворкінг'),
+        ('презентація',               'Презентація'),
+        ('публічний виступ',          'Публічний виступ'),
+        ('фотосесія',                 'Фотосесія'),
+        ('випуск з університету',     'Випуск з університету'),
+        ('театр',                     'Театр'),
+        ('опера / філармонія',        'Опера / філармонія'),
+        ('гала-вечір',                'Гала-вечір'),
+        ('благодійний бал',           'Благодійний бал'),
+        ('свято в родині',            'Свято в родині'),
+        ('бранч / зустріч з друзями', 'Бранч / зустріч з друзями'),
+    ]
+
+    GENDER_CHOICES = [
+        ('male',   'Чоловічий'),
+        ('female', 'Жіночий'),
+        ('unisex', 'Унісекс'),
+    ]
+
+    MODE_CHOICES = [
+        ('auto',   'Автоматично'),
+        ('manual', 'Вручну'),
+    ]
+
+    user              = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notes')
+    event_name        = models.CharField(max_length=100, choices=EVENT_CHOICES)
+    event_date        = models.DateField()
+    event_time        = models.TimeField(null=True, blank=True)
+    gender            = models.CharField(max_length=10, choices=GENDER_CHOICES, default='unisex')
+    mode              = models.CharField(max_length=10, choices=MODE_CHOICES, default='auto')
+    outfit_items      = models.ManyToManyField(ClothingItem, blank=True, related_name='notes')
+    outfit_locked     = models.BooleanField(default=False)  # True = user built manually, skip auto-gen
+    notification_sent = models.BooleanField(default=False)
+    created_at        = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['event_date', 'event_time']
+        verbose_name        = 'Нотатка'
+        verbose_name_plural = 'Нотатки'
+
+    def __str__(self):
+        return f"{self.get_event_name_display()} — {self.event_date}"

@@ -1,0 +1,206 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Скласти образ — TrapDom{% endblock %}
+
+{% block content %}
+
+<!-- Sticky header -->
+<div class="fixed top-20 inset-x-0 z-40 bg-charcoal-900/95 backdrop-blur border-b border-charcoal-700">
+    <div class="max-w-5xl mx-auto px-6 h-12 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3 min-w-0">
+            <a href="{% url 'note_detail' note.pk %}"
+               class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray
+                      hover:text-off-white transition-colors shrink-0">
+                <i class="fa-solid fa-arrow-left text-[8px] mr-1"></i> Назад
+            </a>
+            <span class="text-charcoal-700">|</span>
+            <span class="font-mono text-[10px] uppercase tracking-wider text-grunge-gray truncate">
+                {{ note.get_event_name_display }}
+            </span>
+        </div>
+        <span id="sel-counter" class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray shrink-0">
+            0 обрано
+        </span>
+    </div>
+</div>
+
+<main class="relative z-10 pt-32 min-h-screen px-6 pb-24">
+    <div class="max-w-5xl mx-auto">
+
+        <form method="POST" id="builder-form">
+            {% csrf_token %}
+
+            <div class="flex gap-6">
+
+                <!-- ═══════════════════════════════
+                     Sidebar: категорії (desktop)
+                     ═══════════════════════════════ -->
+                <aside class="hidden md:flex flex-col gap-1 w-44 shrink-0 sticky top-36 self-start">
+                    <p class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray mb-2 px-1">Категорії</p>
+                    {% for cat_key, cat_label, cat_cnt in categories_with_counts %}
+                    <button type="submit" name="next_cat" value="{{ cat_key }}"
+                            class="flex items-center justify-between px-3 py-2.5 font-mono text-[10px] uppercase
+                                   tracking-widest border transition-colors duration-150 text-left
+                                   {% if selected_cat == cat_key %}
+                                       border-off-white text-off-white bg-charcoal-800
+                                   {% else %}
+                                       border-transparent text-grunge-gray hover:border-charcoal-700 hover:text-off-white
+                                   {% endif %}">
+                        <span>{{ cat_label }}</span>
+                        {% if cat_cnt %}
+                        <span class="font-mono text-[8px] font-bold
+                                     {% if selected_cat == cat_key %}text-off-white{% else %}text-grunge-gray{% endif %}">
+                            {{ cat_cnt }}
+                        </span>
+                        {% endif %}
+                    </button>
+                    {% endfor %}
+                </aside>
+
+                <!-- Основний контент -->
+                <div class="flex-1 min-w-0">
+
+                    <!-- Категорії-таби (mobile) -->
+                    <div class="md:hidden flex gap-1.5 overflow-x-auto pb-2 mb-5 -mx-1 px-1">
+                        {% for cat_key, cat_label, cat_cnt in categories_with_counts %}
+                        <button type="submit" name="next_cat" value="{{ cat_key }}"
+                                class="shrink-0 flex items-center gap-1.5 px-3 py-2 font-mono text-[8px]
+                                       uppercase tracking-widest border transition-colors
+                                       {% if selected_cat == cat_key %}
+                                           border-off-white text-off-white
+                                       {% else %}
+                                           border-charcoal-700 text-grunge-gray
+                                       {% endif %}">
+                            {{ cat_label }}
+                            {% if cat_cnt %}<span class="font-bold">{{ cat_cnt }}</span>{% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Поточна категорія -->
+                    <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-4">
+                        {{ selected_cat|capfirst }} — обирайте речі
+                    </p>
+
+                    {% if items %}
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                        {% for item in items %}
+                        <label class="cursor-pointer group" data-item>
+                            <input type="checkbox" name="item_ids" value="{{ item.pk }}"
+                                   {% if item.pk in selected_ids %}checked{% endif %}
+                                   class="sr-only">
+                            <div class="item-card border border-charcoal-700 bg-charcoal-800 overflow-hidden
+                                        transition-colors duration-150
+                                        {% if item.pk in selected_ids %}!border-off-white{% endif %}">
+
+                                <!-- Зображення -->
+                                <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                                    {% if item.image_url %}
+                                    <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                                         class="w-full h-full object-cover group-hover:scale-105
+                                                transition-transform duration-300">
+                                    {% else %}
+                                    <div class="w-full h-full flex items-center justify-center">
+                                        <i class="fa-regular fa-image text-charcoal-700 text-2xl"></i>
+                                    </div>
+                                    {% endif %}
+
+                                    <!-- Чекбокс-оверлей -->
+                                    <div class="check-indicator absolute top-2 right-2 w-5 h-5
+                                                border border-charcoal-700 bg-charcoal-900/80
+                                                flex items-center justify-center transition-all duration-150
+                                                {% if item.pk in selected_ids %}
+                                                    !bg-off-white !border-off-white
+                                                {% endif %}">
+                                        <i class="fa-solid fa-check text-[8px] text-charcoal-900
+                                                  {% if item.pk not in selected_ids %}opacity-0{% endif %}
+                                                  transition-opacity duration-150 check-icon"></i>
+                                    </div>
+                                </div>
+
+                                <!-- Інфо -->
+                                <div class="p-2.5">
+                                    <p class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray truncate">
+                                        {{ item.brand.name }}
+                                    </p>
+                                    <p class="font-mono text-[10px] text-off-white truncate leading-snug mt-0.5">
+                                        {{ item.name }}
+                                    </p>
+                                    {% if item.price %}
+                                    <p class="font-mono text-[9px] text-grunge-gray mt-1">
+                                        {{ item.price }} {{ item.currency }}
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    {% else %}
+                    <div class="border border-charcoal-700 bg-charcoal-800 py-16 text-center">
+                        <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray">
+                            Речей у цій категорії немає
+                        </p>
+                    </div>
+                    {% endif %}
+
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+
+<!-- Sticky bottom bar -->
+<div class="fixed bottom-0 inset-x-0 z-40 bg-charcoal-900/95 backdrop-blur border-t border-charcoal-700">
+    <div class="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+        <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+            Натисніть категорію — збережеться поточний вибір
+        </p>
+        <button type="submit" form="builder-form"
+                class="flex items-center gap-2 bg-off-white text-charcoal-900
+                       px-6 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest
+                       hover:bg-grunge-gray hover:text-off-white transition-colors duration-150 shrink-0">
+            <i class="fa-solid fa-check text-[9px]"></i> Зберегти образ
+        </button>
+    </div>
+</div>
+
+<script>
+(function () {
+    const checkboxes = document.querySelectorAll('input[type=checkbox][name=item_ids]');
+    const counter    = document.getElementById('sel-counter');
+
+    function updateCard(cb) {
+        const label     = cb.closest('label');
+        const card      = label.querySelector('.item-card');
+        const indicator = label.querySelector('.check-indicator');
+        const icon      = label.querySelector('.check-icon');
+
+        if (cb.checked) {
+            card.classList.add('!border-off-white');
+            indicator.classList.add('!bg-off-white', '!border-off-white');
+            icon.classList.remove('opacity-0');
+        } else {
+            card.classList.remove('!border-off-white');
+            indicator.classList.remove('!bg-off-white', '!border-off-white');
+            icon.classList.add('opacity-0');
+        }
+    }
+
+    function updateCounter() {
+        const n = document.querySelectorAll('input[name=item_ids]:checked').length;
+        counter.textContent = n + ' обрано';
+    }
+
+    checkboxes.forEach(cb => {
+        updateCard(cb);
+        cb.addEventListener('change', () => { updateCard(cb); updateCounter(); });
+    });
+
+    updateCounter();
+})();
+</script>
+
+{% endblock %}

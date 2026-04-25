@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.password_validation import validate_password
-from .models import CustomUser
+from .models import CustomUser, Note
 
 
 class RegisterForm(forms.ModelForm):
@@ -71,6 +71,23 @@ class SetPasswordForm(forms.Form):
         if p1:
             validate_password(p1)
         return cleaned
+
+
+class NoteForm(forms.ModelForm):
+    class Meta:
+        model  = Note
+        fields = ['event_name', 'event_date', 'event_time', 'gender', 'mode']
+        widgets = {
+            'event_date': forms.DateInput(attrs={'type': 'date'}),
+            'event_time': forms.TimeInput(attrs={'type': 'time'}),
+        }
+
+    def clean_event_date(self):
+        from datetime import date
+        d = self.cleaned_data.get('event_date')
+        if d and d < date.today():
+            raise forms.ValidationError('Дата не може бути в минулому')
+        return d
 
 
 class PasswordChangeForm(forms.Form):

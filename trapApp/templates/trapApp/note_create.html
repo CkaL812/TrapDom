@@ -1,0 +1,172 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Новий захід — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen flex items-center justify-center px-6">
+    <div class="w-full max-w-lg py-16">
+
+        <!-- Назад + заголовок -->
+        <div class="mb-10">
+            <a href="{% url 'note_list' %}"
+               class="inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest
+                      text-grunge-gray hover:text-off-white transition-colors mb-6">
+                <i class="fa-solid fa-arrow-left text-[8px]"></i> Заходи
+            </a>
+            <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray mb-2">Планування</p>
+            <h1 class="font-mono text-5xl uppercase tracking-widest text-off-white leading-none">Новий захід</h1>
+        </div>
+
+        <!-- Помилки -->
+        {% if form.non_field_errors %}
+        <div class="border-l-2 border-grunge-gray bg-charcoal-800 px-4 py-3 mb-6 flex items-start gap-3">
+            <i class="fa-solid fa-triangle-exclamation text-grunge-gray text-[10px] mt-0.5 shrink-0"></i>
+            <div>{% for e in form.non_field_errors %}
+                <p class="text-grunge-gray text-xs font-mono">{{ e }}</p>
+            {% endfor %}</div>
+        </div>
+        {% endif %}
+
+        <form method="POST" class="flex flex-col gap-6" novalidate>
+            {% csrf_token %}
+
+            <!-- Тип заходу -->
+            <div>
+                <label class="block font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
+                    Тип заходу
+                </label>
+                <div class="relative">
+                    <select name="event_name"
+                            class="w-full bg-charcoal-800 border
+                                   {% if form.event_name.errors %}border-grunge-gray{% else %}border-charcoal-700{% endif %}
+                                   text-off-white font-mono text-sm px-4 py-3 appearance-none cursor-pointer
+                                   focus:outline-none focus:border-grunge-gray transition-colors">
+                        <option value="" disabled {% if not form.event_name.value %}selected{% endif %}>
+                            Оберіть захід...
+                        </option>
+                        {% for val, label in form.fields.event_name.choices %}{% if val %}
+                        <option value="{{ val }}" {% if form.event_name.value == val %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endif %}{% endfor %}
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-4 top-1/2 -translate-y-1/2
+                               text-grunge-gray text-[9px] pointer-events-none"></i>
+                </div>
+                {% if form.event_name.errors %}
+                <p class="text-grunge-gray text-[9px] font-mono mt-1">{{ form.event_name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Дата + Час -->
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
+                        Дата
+                    </label>
+                    <input type="date" name="event_date" value="{{ form.event_date.value|default:'' }}"
+                           class="w-full bg-charcoal-800 border
+                                  {% if form.event_date.errors %}border-grunge-gray{% else %}border-charcoal-700{% endif %}
+                                  text-off-white font-mono text-sm px-4 py-3
+                                  focus:outline-none focus:border-grunge-gray transition-colors">
+                    {% if form.event_date.errors %}
+                    <p class="text-grunge-gray text-[9px] font-mono mt-1">{{ form.event_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
+                        Час <span class="text-grunge-gray/50 normal-case tracking-normal">— необов'язково</span>
+                    </label>
+                    <input type="time" name="event_time" value="{{ form.event_time.value|default:'' }}"
+                           class="w-full bg-charcoal-800 border border-charcoal-700
+                                  text-off-white font-mono text-sm px-4 py-3
+                                  focus:outline-none focus:border-grunge-gray transition-colors">
+                </div>
+            </div>
+
+            <!-- Стать -->
+            <div>
+                <label class="block font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
+                    Для кого
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                    {% for val, label in form.fields.gender.choices %}
+                    <label class="cursor-pointer">
+                        <input type="radio" name="gender" value="{{ val }}"
+                               {% if form.gender.value == val or not form.gender.value and val == 'unisex' %}checked{% endif %}
+                               class="sr-only peer">
+                        <div class="text-center border border-charcoal-700 py-3 font-mono text-[9px]
+                                    uppercase tracking-widest text-grunge-gray
+                                    peer-checked:border-off-white peer-checked:text-off-white
+                                    hover:border-grunge-gray transition-colors duration-150 cursor-pointer">
+                            {{ label }}
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Режим підбору -->
+            <div>
+                <label class="block font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
+                    Підбір образу
+                </label>
+                <div class="grid grid-cols-2 gap-3">
+
+                    <label class="cursor-pointer">
+                        <input type="radio" name="mode" value="auto"
+                               {% if not form.mode.value or form.mode.value == 'auto' %}checked{% endif %}
+                               class="sr-only peer">
+                        <div class="relative border border-charcoal-700 px-4 py-5
+                                    peer-checked:border-off-white transition-colors duration-150">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-regular fa-clock text-off-white text-sm"></i>
+                                <span class="font-mono text-[11px] uppercase tracking-widest text-off-white">
+                                    Авто
+                                </span>
+                            </div>
+                            <p class="font-mono text-[9px] text-grunge-gray leading-relaxed">
+                                Образ підберемо і надішлемо листа за 5 годин до події
+                            </p>
+                            <!-- Опціонально зберіть самі -->
+                            <p class="font-mono text-[8px] text-grunge-gray/50 mt-2 leading-relaxed">
+                                Також можна скласти вручну у будь-який момент
+                            </p>
+                        </div>
+                    </label>
+
+                    <label class="cursor-pointer">
+                        <input type="radio" name="mode" value="manual"
+                               {% if form.mode.value == 'manual' %}checked{% endif %}
+                               class="sr-only peer">
+                        <div class="relative border border-charcoal-700 px-4 py-5
+                                    peer-checked:border-off-white transition-colors duration-150">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fa-regular fa-hand text-off-white text-sm"></i>
+                                <span class="font-mono text-[11px] uppercase tracking-widest text-off-white">
+                                    Вручну
+                                </span>
+                            </div>
+                            <p class="font-mono text-[9px] text-grunge-gray leading-relaxed">
+                                Ви самі оберете речі з каталогу по категоріях
+                            </p>
+                            <p class="font-mono text-[8px] text-grunge-gray/50 mt-2 leading-relaxed">
+                                Без автоматичного листа
+                            </p>
+                        </div>
+                    </label>
+
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-off-white text-charcoal-900 py-4 font-mono text-sm font-bold
+                           uppercase tracking-widest hover:bg-grunge-gray hover:text-off-white
+                           transition-colors duration-150 mt-2">
+                Створити захід
+            </button>
+        </form>
+    </div>
+</main>
+{% endblock %}

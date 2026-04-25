@@ -1,0 +1,131 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Мої заходи — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen px-6">
+    <div class="max-w-2xl mx-auto py-14">
+
+        <!-- Шапка -->
+        <div class="flex items-end justify-between gap-4 mb-10">
+            <div>
+                <p class="text-[9px] font-mono uppercase tracking-[0.2em] text-grunge-gray mb-2">Планування</p>
+                <h1 class="font-mono text-5xl uppercase tracking-widest text-off-white leading-none">Заходи</h1>
+            </div>
+            <a href="{% url 'note_create' %}"
+               class="shrink-0 flex items-center gap-2 bg-off-white text-charcoal-900
+                      px-5 py-3 font-mono text-[11px] font-bold uppercase tracking-widest
+                      hover:bg-grunge-gray hover:text-off-white transition-colors duration-150">
+                <i class="fa-solid fa-plus text-[9px]"></i> Новий захід
+            </a>
+        </div>
+
+        {% if messages %}
+            {% for msg in messages %}
+            <div class="border-l-2 border-off-white bg-charcoal-800 px-4 py-3 mb-5 font-mono text-xs text-off-white">
+                {{ msg }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if notes %}
+        <div class="flex flex-col gap-2">
+            {% for note in notes %}
+            <a href="{% url 'note_detail' note.pk %}"
+               class="group flex items-stretch gap-0 bg-charcoal-800
+                      border {% if note.event_date == today %}border-off-white{% else %}border-charcoal-700{% endif %}
+                      {% if note.event_date < today %}opacity-50{% endif %}
+                      hover:border-grunge-gray transition-all duration-150">
+
+                <!-- Дата-блок -->
+                <div class="flex flex-col items-center justify-center w-16 shrink-0 border-r
+                            {% if note.event_date == today %}border-off-white bg-off-white/5{% else %}border-charcoal-700{% endif %}
+                            px-2 py-4">
+                    <span class="font-mono text-2xl font-bold leading-none
+                                 {% if note.event_date == today %}text-off-white{% else %}text-grunge-gray{% endif %}">
+                        {{ note.event_date|date:"d" }}
+                    </span>
+                    <span class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray mt-0.5">
+                        {{ note.event_date|date:"M" }}
+                    </span>
+                    <span class="font-mono text-[7px] text-grunge-gray/60 mt-0.5 uppercase">
+                        {{ note.event_date|date:"Y" }}
+                    </span>
+                </div>
+
+                <!-- Основний блок -->
+                <div class="flex-1 flex items-center gap-4 px-5 py-4 min-w-0">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-mono text-[13px] uppercase tracking-wider text-off-white truncate leading-tight">
+                            {{ note.get_event_name_display }}
+                        </p>
+                        <div class="flex items-center gap-3 mt-1.5 flex-wrap">
+                            {% if note.event_time %}
+                            <span class="font-mono text-[9px] text-grunge-gray">
+                                <i class="fa-regular fa-clock mr-1 opacity-60"></i>{{ note.event_time|time:"H:i" }}
+                            </span>
+                            {% endif %}
+                            <span class="font-mono text-[9px] text-grunge-gray">
+                                {% if note.mode == 'auto' %}
+                                    {% if note.outfit_locked %}<i class="fa-solid fa-hand mr-1 opacity-60"></i>вручну
+                                    {% elif note.notification_sent %}<i class="fa-solid fa-bolt mr-1 opacity-60"></i>авто
+                                    {% else %}<i class="fa-regular fa-hourglass mr-1 opacity-60"></i>очікує
+                                    {% endif %}
+                                {% else %}
+                                    <i class="fa-solid fa-hand mr-1 opacity-60"></i>вручну
+                                {% endif %}
+                            </span>
+                            {% with cnt=note.outfit_items.count %}
+                            {% if cnt %}
+                            <span class="font-mono text-[9px] text-grunge-gray">
+                                <i class="fa-regular fa-shirt mr-1 opacity-60"></i>{{ cnt }} реч.
+                            </span>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+
+                    <!-- Статус -->
+                    <div class="shrink-0 text-right">
+                        {% if note.event_date == today %}
+                        <span class="inline-block font-mono text-[8px] uppercase tracking-widest
+                                     text-off-white border border-off-white px-2 py-1">
+                            Сьогодні
+                        </span>
+                        {% elif note.event_date > today %}
+                        <i class="fa-solid fa-chevron-right text-[9px] text-charcoal-700
+                                   group-hover:text-grunge-gray transition-colors"></i>
+                        {% else %}
+                        <span class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray/50">
+                            Минуло
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        {% else %}
+        <!-- Порожній стан -->
+        <div class="border border-charcoal-700 bg-charcoal-800 py-20 flex flex-col items-center gap-5">
+            <div class="w-14 h-14 border border-charcoal-700 flex items-center justify-center">
+                <i class="fa-regular fa-calendar text-grunge-gray text-xl"></i>
+            </div>
+            <div class="text-center">
+                <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray">Заходів немає</p>
+                <p class="font-mono text-[9px] text-grunge-gray/60 mt-1">Додайте захід — ми підберемо образ вчасно</p>
+            </div>
+            <a href="{% url 'note_create' %}"
+               class="font-mono text-[11px] uppercase tracking-widest font-bold
+                      bg-off-white text-charcoal-900 px-6 py-3
+                      hover:bg-grunge-gray hover:text-off-white transition-colors">
+                Створити перший захід
+            </a>
+        </div>
+        {% endif %}
+
+    </div>
+</main>
+{% endblock %}
