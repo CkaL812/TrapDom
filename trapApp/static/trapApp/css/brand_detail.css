@@ -30,6 +30,61 @@
 .sidebar-sticky::-webkit-scrollbar { width: 2px; }
 .sidebar-sticky::-webkit-scrollbar-thumb { background: #2A2A2A; }
 
+/* Gender filter bar */
+.gender-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0;
+}
+.gender-filter-label {
+    font-family: 'Courier New', monospace;
+    font-size: 9px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: #A0A0A0;
+    flex-shrink: 0;
+}
+.gender-selector {
+    display: flex;
+}
+.gender-card {
+    display: inline-block;
+    padding: 13px 22px;
+    border-right: 1px solid #2A2A2A;
+    font-family: 'Courier New', monospace;
+    font-size: 10px; letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: #A0A0A0;
+    text-decoration: none;
+    position: relative;
+    transition: color 0.2s ease, background 0.2s ease;
+    white-space: nowrap;
+}
+.gender-card::after {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: #F5F5F0;
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.3s ease;
+}
+.gender-card:hover { color: #F5F5F0; background: #1a1a1a; }
+.gender-card:hover::after,
+.gender-card.active::after { transform: scaleX(1); }
+.gender-card.active { color: #F5F5F0; background: #1a1a1a; }
+
+/* Pagination */
+.pagination-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 36px; height: 36px; padding: 0 6px;
+    font-family: 'Courier New', monospace; font-size: 10px;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: #A0A0A0; background: #1E1E1E;
+    border: 1px solid #2A2A2A;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+.pagination-btn:hover { color: #F5F5F0; border-color: #A0A0A0; background: #2A2A2A; }
+.pagination-btn.active { color: #F5F5F0; border-color: #F5F5F0; background: #2A2A2A; cursor: default; }
+
 /* Add-to-cart button on hover */
 .cart-btn-wrap {
     position: absolute;

@@ -1,5 +1,44 @@
 /* ── Index page: Brand slider + Brand drawer + Add to cart ── */
 
+/* ── Marquee infinite scroll ── */
+(function () {
+    const wrapper = document.getElementById('marquee-wrapper');
+    const group   = document.getElementById('marquee-group');
+    if (!wrapper || !group) return;
+
+    function startMarquee() {
+        const groupW = group.offsetWidth;
+        if (!groupW) return;
+
+        // Fill wrapper with enough copies to cover viewport × 3
+        const copies = Math.ceil((window.innerWidth * 3) / groupW) + 1;
+        for (let i = 0; i < copies; i++) {
+            const clone = group.cloneNode(true);
+            clone.removeAttribute('id');
+            clone.setAttribute('aria-hidden', 'true');
+            wrapper.appendChild(clone);
+        }
+
+        // Animate by exactly one group width so loop is seamless
+        wrapper.style.setProperty('--marquee-dist', `-${groupW}px`);
+        wrapper.style.animation = 'marquee-scroll 18s linear infinite';
+    }
+
+    // Wait for images before measuring width
+    const imgs = Array.from(group.querySelectorAll('img'));
+    if (imgs.length === 0) {
+        startMarquee();
+        return;
+    }
+    let pending = imgs.length;
+    function onLoad() { if (--pending === 0) startMarquee(); }
+    imgs.forEach(img => {
+        if (img.complete) onLoad();
+        else { img.addEventListener('load', onLoad); img.addEventListener('error', onLoad); }
+    });
+    setTimeout(startMarquee, 800); // fallback
+})();
+
 /* ── Brand Slider ── */
 (function () {
     const track   = document.getElementById('brands-track');

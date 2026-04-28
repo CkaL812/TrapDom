@@ -35,6 +35,13 @@
         </div>
     </section>
 
+    <section class="marquee-section">
+        <div class="marquee-wrapper" id="marquee-wrapper">
+            <div class="marquee-group" id="marquee-group">{% for brand in brands %}<a href="{% url 'brand_detail' brand.slug %}" class="marquee-item">{% if brand.logo %}<img src="{{ brand.logo.url }}" alt="{{ brand.name }}" class="marquee-logo">{% else %}<span class="marquee-name">{{ brand.name }}</span>{% endif %}</a>{% endfor %}
+            </div>
+        </div>
+    </section>
+
     <section id="brands" class="w-full border-b border-charcoal-700 py-16">
         <div class="max-w-[1440px] mx-auto px-6">
             <div class="flex items-end justify-between mb-12">
@@ -107,7 +114,7 @@
                 <button id="drawer-trigger" aria-label="Вибрати бренд">
                     <div>
                         <p class="trigger-label">Бренд</p>
-                        <p class="trigger-brand" id="trigger-brand-name">{{ brands.first.name }}</p>
+                        <p class="trigger-brand" id="trigger-brand-name">{{ brands.0.name }}</p>
                     </div>
                     <i class="fa-solid fa-chevron-down trigger-arrow"></i>
                 </button>
@@ -141,56 +148,44 @@
 
             <div class="flex-1 min-w-0">
                 {% for brand in brands %}
-                <div class="brand-panel {% if forloop.first %}active{% endif %} grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                <div class="brand-panel {% if forloop.first %}active{% endif %} grid grid-cols-3 gap-3"
                      id="panel-{{ brand.slug }}">
 
-                    {% for item in brand.items.all|slice:":3" %}
-                    <div class="item-card fade-up bg-charcoal-800 flex flex-col" style="animation-delay:{{ forloop.counter0 }}00ms">
+                    {% for item in brand.random_items %}
+                    <div class="item-card fade-up bg-charcoal-800 flex flex-col" style="animation-delay:{{ forloop.counter0 }}0ms">
 
                         <a href="{% url 'product_detail' item.pk %}" class="relative aspect-[3/4] overflow-hidden block">
                             {% if item.image_local %}
-                            <img class="item-img w-full h-full object-cover"
+                            <img class="item-img w-full h-full object-cover" loading="lazy"
                                  src="{{ item.image_local.url }}"
                                  alt="{{ item.name }}">
                             {% elif item.image_url %}
-                            <img class="item-img w-full h-full object-cover"
+                            <img class="item-img w-full h-full object-cover" loading="lazy"
                                  src="{{ item.image_url }}"
                                  alt="{{ item.name }}">
                             {% else %}
                             <div class="w-full h-full flex items-center justify-center">
-                                <span style="font-family:'UnifrakturMaguntia',cursive; font-size:6rem; color:#2A2A2A; line-height:1;">
+                                <span style="font-family:'UnifrakturMaguntia',cursive; font-size:3rem; color:#2A2A2A; line-height:1;">
                                     {{ item.name|slice:":1" }}
                                 </span>
                             </div>
                             {% endif %}
                         </a>
 
-                        <div class="p-4 flex flex-col flex-1">
-                            <div class="mb-3">
-                                <h3 class="font-mono text-xs uppercase tracking-widest text-off-white mb-1 line-clamp-2">
-                                    {{ item.name }}
-                                </h3>
-                                <p class="text-[10px] font-mono text-grunge-gray uppercase tracking-widest">
-                                    {{ brand.name }}{% if item.color %} / {{ item.color }}{% endif %}
-                                </p>
-                            </div>
-
-                            <div class="mt-auto flex items-center justify-between pt-3 border-t border-charcoal-700">
-                                <div>
-                                    {% if item.sale_price %}
-                                    <span class="font-mono text-xs text-accent-red font-bold">{{ item.sale_price }} {{ item.currency }}</span>
-                                    <span class="font-mono text-[10px] text-grunge-gray line-through ml-1">{{ item.price }}</span>
-                                    {% elif item.price %}
-                                    <span class="font-mono text-xs text-off-white">{{ item.price }} {{ item.currency }}</span>
-                                    {% else %}
-                                    <span class="font-mono text-[10px] text-grunge-gray">— ціна —</span>
-                                    {% endif %}
-                                </div>
-                                <button
-                                    onclick="trapAddToCart({{ item.id }}, '', 1, this)"
-                                    class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                        <div class="p-2 flex flex-col flex-1">
+                            <h3 class="font-mono text-[9px] uppercase tracking-wider text-off-white mb-1 line-clamp-1">{{ item.name }}</h3>
+                            <div class="mt-auto flex items-center justify-between pt-1.5 border-t border-charcoal-700">
+                                {% if item.sale_price %}
+                                <span class="font-mono text-[9px] text-accent-red font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                {% elif item.price %}
+                                <span class="font-mono text-[9px] text-off-white">{{ item.price }} {{ item.currency }}</span>
+                                {% else %}
+                                <span class="font-mono text-[9px] text-grunge-gray">—</span>
+                                {% endif %}
+                                <button onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                    class="text-grunge-gray hover:text-off-white transition-colors"
                                     aria-label="Додати в кошик">
-                                    <i class="fa-solid fa-bag-shopping text-base"></i>
+                                    <i class="fa-solid fa-bag-shopping text-[10px]"></i>
                                 </button>
                             </div>
                         </div>
@@ -204,7 +199,7 @@
                 <div class="mt-12 flex items-center justify-between border-t border-charcoal-700 pt-8">
                     <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray" id="catalog-item-count"></p>
                     <a id="catalog-view-all"
-                       href="{% url 'brand_detail' brands.first.slug %}"
+                       href="{% url 'brand_detail' brands.0.slug %}"
                        class="flex items-center gap-3 border border-charcoal-700 px-6 py-3 text-xs font-mono uppercase tracking-widest text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
                         Переглянути повний асортимент
                         <i class="fa-solid fa-arrow-right text-accent-red text-[10px]"></i>

@@ -1,10 +1,12 @@
 import re
 import json
+import random
 import logging
 import requests
 from datetime import date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404
+from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth import login, logout, authenticate
@@ -23,7 +25,10 @@ logger = logging.getLogger(__name__)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def index(request):
-    brands = Brand.objects.all().order_by('name')
+    brands = list(Brand.objects.all().order_by('name').prefetch_related('items'))
+    for brand in brands:
+        items = list(brand.items.all())
+        brand.random_items = random.sample(items, min(3, len(items)))
     return render(request, 'trapApp/index.html', {'brands': brands})
 
 
@@ -607,39 +612,58 @@ def brands_list(request):
     return render(request, 'trapApp/brands_list.html', {'brands': brands})
 
 
-def _brand_context(brand, category_key=None):
+def _brand_context(brand, category_key=None, gender=None, page=1):
+    base_q = Q(brand=brand)
+    if gender:
+        base_q &= Q(gender=gender)
+
+    cat_q = Q(brand=brand)
+    if category_key:
+        cat_q &= Q(category=category_key)
+
+    gender_counts = {
+        'all': ClothingItem.objects.filter(cat_q).count(),
+        'M':   ClothingItem.objects.filter(cat_q, gender='M').count(),
+        'F':   ClothingItem.objects.filter(cat_q, gender='F').count(),
+        'U':   ClothingItem.objects.filter(cat_q, gender='U').count(),
+    }
+
     all_categories = []
     for cat_key, cat_label in ClothingItem.CATEGORY_CHOICES:
-        count = ClothingItem.objects.filter(brand=brand, category=cat_key).count()
+        count = ClothingItem.objects.filter(base_q, category=cat_key).count()
         all_categories.append((cat_key, cat_label, count))
 
-    total_items = brand.items.count()
+    total_items = ClothingItem.objects.filter(base_q).count()
 
     if category_key:
-        items = ClothingItem.objects.filter(
-            brand=brand, category=category_key
-        ).select_related('brand').order_by('name')
+        qs = ClothingItem.objects.filter(base_q, category=category_key).select_related('brand').order_by('id')
         category_labels = dict(ClothingItem.CATEGORY_CHOICES)
         category_label = category_labels.get(category_key, '')
     else:
-        items = ClothingItem.objects.filter(
-            brand=brand
-        ).select_related('brand').order_by('category', 'name')
+        qs = ClothingItem.objects.filter(base_q).select_related('brand').order_by('category', 'id')
         category_label = None
+
+    paginator = Paginator(qs, 10)
+    page_obj = paginator.get_page(page)
 
     return {
         'brand':          brand,
-        'items':          items,
+        'items':          page_obj,
+        'page_obj':       page_obj,
         'all_categories': all_categories,
         'total_items':    total_items,
         'category_key':   category_key,
         'category_label': category_label,
+        'gender':         gender or '',
+        'gender_counts':  gender_counts,
     }
 
 
 def brand_detail(request, slug):
     brand = get_object_or_404(Brand, slug=slug)
-    context = _brand_context(brand, category_key=None)
+    gender = request.GET.get('gender', '')
+    page   = request.GET.get('page', 1)
+    context = _brand_context(brand, category_key=None, gender=gender, page=page)
     return render(request, 'trapApp/brand_detail.html', context)
 
 
@@ -648,7 +672,9 @@ def brand_category(request, slug, category):
     category_labels = dict(ClothingItem.CATEGORY_CHOICES)
     if category not in category_labels:
         raise Http404("Категорія не знайдена")
-    context = _brand_context(brand, category_key=category)
+    gender = request.GET.get('gender', '')
+    page   = request.GET.get('page', 1)
+    context = _brand_context(brand, category_key=category, gender=gender, page=page)
     return render(request, 'trapApp/brand_detail.html', context)
 
 
