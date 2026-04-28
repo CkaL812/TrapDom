@@ -8,6 +8,7 @@ import asyncio
 import re
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
 
 try:
@@ -15,21 +16,28 @@ try:
     HAS_STEALTH = True
 except ImportError:
     HAS_STEALTH = False
-    print('[Ralph Lauren] ⚠️  playwright-stealth не встановлений (pip install playwright-stealth)')
+    print('[Ralph Lauren] playwright-stealth не встановлений (pip install playwright-stealth)')
 
 
 class RalphLaurenScraper(BaseScraper):
-    brand_name = 'Ralph Lauren'
-    base_url   = 'https://www.ralphlauren.com'
+    brand_name         = 'Ralph Lauren'
+    base_url           = 'https://www.ralphlauren.com'
+    LIMIT_PER_CATEGORY = 20
 
+    # (path, category, subcategory, formality, gender, seasons)
     CATEGORY_MAP = [
-        ('/men/clothing/polos',         'tops',      'smart_casual', 'M'),
-        ('/men/clothing/shirts',        'tops',      'formal',       'M'),
-        ('/men/clothing/pants',         'bottoms',   'smart_casual', 'M'),
-        ('/men/clothing/jackets-coats', 'outerwear', 'smart_casual', 'M'),
-        ('/women/clothing/tops',        'tops',      'smart_casual', 'F'),
-        ('/women/clothing/dresses',     'onepiece',  'cocktail',     'F'),
-        ('/women/clothing/pants-jeans', 'bottoms',   'casual',       'F'),
+        ('/men/clothing/polos',           'tops',      't_shirt',  'smart_casual',    'M', ['spring', 'summer']),
+        ('/men/clothing/shirts',          'tops',      'shirt',    'business_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('/men/clothing/pants',           'bottoms',   'trousers', 'smart_casual',    'M', ['spring', 'autumn', 'winter']),
+        ('/men/clothing/jackets-coats',   'outerwear', 'coat',     'smart_casual',    'M', ['autumn', 'winter']),
+        ('/men/clothing/sweaters',        'layering',  'sweater',  'smart_casual',    'M', ['autumn', 'winter']),
+        ('/men/clothing/suits-sport-coats','layering', 'blazer',   'business_formal', 'M', ['spring', 'autumn', 'winter']),
+        ('/women/clothing/tops',          'tops',      'blouse',   'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('/women/clothing/dresses',       'onepiece',  'dress',    'cocktail',        'F', ['spring', 'summer', 'autumn']),
+        ('/women/clothing/pants-jeans',   'bottoms',   'trousers', 'smart_casual',    'F', ['spring', 'autumn', 'winter']),
+        ('/women/clothing/skirts',        'bottoms',   'skirt',    'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('/women/clothing/sweaters',      'layering',  'sweater',  'smart_casual',    'F', ['autumn', 'winter']),
+        ('/women/clothing/jackets-coats', 'outerwear', 'coat',     'smart_casual',    'F', ['autumn', 'winter']),
     ]
 
     def run(self):
@@ -59,11 +67,11 @@ class RalphLaurenScraper(BaseScraper):
             except Exception:
                 pass
 
-            for path, category, formality, gender in self.CATEGORY_MAP:
-                await self._scrape_category(page, path, category, formality, gender)
+            for path, category, subcategory, formality, gender, seasons in self.CATEGORY_MAP:
+                await self._scrape_category(page, path, category, subcategory, formality, gender, seasons)
             await browser.close()
 
-    async def _scrape_category(self, page, path, category, formality, gender):
+    async def _scrape_category(self, page, path, category, subcategory, formality, gender, seasons):
         url = f'{self.base_url}{path}'
         print(f'[Ralph Lauren] → {url}')
         try:
@@ -82,13 +90,13 @@ class RalphLaurenScraper(BaseScraper):
 
         html = await page.content()
         if 'px-captcha' in html or 'Access to this page has been denied' in html:
-            print(f'[Ralph Lauren] ❌ Cloudflare заблокував: {url}')
+            print(f'[Ralph Lauren] Cloudflare заблокував: {url}')
             return
 
-        saved = self._parse_html(html, category, formality, gender)
+        saved = self._parse_html(html, category, subcategory, formality, gender, seasons)
         print(f'[Ralph Lauren] {path}: {saved} товарів збережено')
 
-    def _parse_html(self, html, category, formality, gender):
+    def _parse_html(self, html, category, subcategory, formality, gender, seasons):
         soup = BeautifulSoup(html, 'html.parser')
         saved = 0
         seen: set[str] = set()
@@ -102,6 +110,9 @@ class RalphLaurenScraper(BaseScraper):
         print(f'[Ralph Lauren] Знайдено карток: {len(cards)}')
 
         for card in cards:
+            if saved >= self.LIMIT_PER_CATEGORY:
+                break
+
             name_el = (
                 card.select_one('[class*="product-name"]')
                 or card.select_one('[class*="ProductName"]')
@@ -132,11 +143,21 @@ class RalphLaurenScraper(BaseScraper):
                     image_url = 'https:' + image_url
 
             self.save_item({
-                'name': name, 'source_url': source_url,
-                'category': category, 'formality': formality,
-                'price': price, 'currency': 'USD',
-                'image_url': image_url, 'color': '',
-                'material': '', 'pattern': 'solid', 'gender': gender,
+                'name':        name[:255],
+                'source_url':  source_url[:255],
+                'category':    category,
+                'subcategory': subcategory,
+                'formality':   formality,
+                'price':       price,
+                'currency':    'USD',
+                'image_url':   image_url[:500],
+                'color':       '',
+                'material':    '',
+                'pattern':     'solid',
+                'gender':      gender,
+                'seasons':     seasons,
+                'tag_source':  'scraper',
+                'tagged_at':   timezone.now(),
             }, [])
             saved += 1
         return saved

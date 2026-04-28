@@ -1,28 +1,29 @@
 """
 Suitsupply Scraper — Playwright.
-ФІКС: eu.suitsupply.com/en_UA/ → 404.
-Новий URL: www.suitsupply.com/en-UA/
 Вимога: python -m playwright install chromium
 """
 import asyncio
 import re
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
 
 
 class SuitsupplyScraper(BaseScraper):
-    brand_name = 'Suitsupply'
-    base_url   = 'https://www.suitsupply.com'
+    brand_name         = 'Suitsupply'
+    base_url           = 'https://www.suitsupply.com'
+    LIMIT_PER_CATEGORY = 20
 
+    # (path, category, subcategory, formality, gender, seasons)
     CATEGORY_MAP = [
-        ('/en-UA/clothing/suits/',    'outerwear',   'formal',       'M'),
-        ('/en-UA/clothing/trousers/', 'bottoms',     'formal',       'M'),
-        ('/en-UA/clothing/shirts/',   'tops',        'formal',       'M'),
-        ('/en-UA/clothing/jackets/',  'outerwear',   'smart_casual', 'M'),
-        ('/en-UA/shoes/',             'footwear',    'formal',       'M'),
-        ('/en-UA/clothing/coats/',    'outerwear',   'formal',       'M'),
-        ('/en-UA/ties/',              'accessories', 'formal',       'M'),
+        ('/en-UA/clothing/suits/',    'layering',  'suit_set', 'business_formal', 'M', ['spring', 'autumn', 'winter']),
+        ('/en-UA/clothing/trousers/', 'bottoms',   'trousers', 'business_formal', 'M', ['spring', 'autumn', 'winter']),
+        ('/en-UA/clothing/shirts/',   'tops',      'shirt',    'business_formal', 'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('/en-UA/clothing/jackets/',  'layering',  'blazer',   'business_casual', 'M', ['spring', 'autumn', 'winter']),
+        ('/en-UA/shoes/',             'footwear',  'loafers',  'business_formal', 'M', ['spring', 'autumn', 'winter']),
+        ('/en-UA/clothing/coats/',    'outerwear', 'coat',     'business_formal', 'M', ['autumn', 'winter']),
+        ('/en-UA/ties/',              'accessory', 'tie',      'business_formal', 'M', ['spring', 'summer', 'autumn', 'winter']),
     ]
 
     def run(self):
@@ -45,12 +46,12 @@ class SuitsupplyScraper(BaseScraper):
                 viewport={'width': 1280, 'height': 900},
             )
             page = await ctx.new_page()
-            for path, category, formality, gender in self.CATEGORY_MAP:
-                await self._scrape_category(page, path, category, formality, gender)
+            for path, category, subcategory, formality, gender, seasons in self.CATEGORY_MAP:
+                await self._scrape_category(page, path, category, subcategory, formality, gender, seasons)
             await browser.close()
             print('[Suitsupply] Готово')
 
-    async def _scrape_category(self, page, path, category, formality, gender):
+    async def _scrape_category(self, page, path, category, subcategory, formality, gender, seasons):
         url = self.base_url + path
         print(f'[Suitsupply] → {url}')
         try:
@@ -68,10 +69,10 @@ class SuitsupplyScraper(BaseScraper):
             await page.wait_for_timeout(600)
 
         html = await page.content()
-        saved = self._parse_html(html, category, formality, gender)
+        saved = self._parse_html(html, category, subcategory, formality, gender, seasons)
         print(f'[Suitsupply] {path}: {saved} товарів збережено')
 
-    def _parse_html(self, html, category, formality, gender):
+    def _parse_html(self, html, category, subcategory, formality, gender, seasons):
         soup = BeautifulSoup(html, 'html.parser')
         saved = 0
         seen: set[str] = set()
@@ -85,6 +86,9 @@ class SuitsupplyScraper(BaseScraper):
         print(f'[Suitsupply] Знайдено карток: {len(cards)}')
 
         for card in cards:
+            if saved >= self.LIMIT_PER_CATEGORY:
+                break
+
             name_el = card.select_one('[class*="name"], [class*="title"], h2, h3')
             name = name_el.get_text(strip=True) if name_el else ''
             if not name or len(name) < 3:
@@ -98,15 +102,7 @@ class SuitsupplyScraper(BaseScraper):
             seen.add(source_url)
 
             price_el = card.select_one('[class*="price"], [class*="Price"]')
-            price_text = price_el.get_text(strip=True) if price_el else ''
-            price = None
-            if price_text:
-                m = re.search(r'[\d]+\.?\d*', price_text.replace(',', '.'))
-                if m:
-                    try:
-                        price = float(m.group())
-                    except ValueError:
-                        pass
+            price = self._parse_price(price_el.get_text() if price_el else '')
 
             img_el = card.select_one('img')
             image_url = ''
@@ -116,17 +112,33 @@ class SuitsupplyScraper(BaseScraper):
                     image_url = 'https:' + image_url
 
             self.save_item({
-                'name':       name,
-                'source_url': source_url,
-                'category':   category,
-                'formality':  formality,
-                'price':      price,
-                'currency':   'EUR',
-                'image_url':  image_url,
-                'color':      '',
-                'material':   '',
-                'pattern':    'solid',
-                'gender':     gender,
+                'name':        name[:255],
+                'source_url':  source_url[:255],
+                'category':    category,
+                'subcategory': subcategory,
+                'formality':   formality,
+                'price':       price,
+                'currency':    'EUR',
+                'image_url':   image_url[:500],
+                'color':       '',
+                'material':    '',
+                'pattern':     'solid',
+                'gender':      gender,
+                'seasons':     seasons,
+                'tag_source':  'scraper',
+                'tagged_at':   timezone.now(),
             }, [])
             saved += 1
         return saved
+
+    @staticmethod
+    def _parse_price(text):
+        if not text:
+            return None
+        m = re.search(r'[\d]+\.?\d*', text.replace(',', '.'))
+        if m:
+            try:
+                return float(m.group())
+            except ValueError:
+                pass
+        return None

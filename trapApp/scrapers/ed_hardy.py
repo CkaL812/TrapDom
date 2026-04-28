@@ -1,143 +1,119 @@
 """
-Ed Hardy Scraper — Playwright.
-Сайт на Shopify: edhardyusa.com
-Вимога: python -m playwright install chromium
+Ed Hardy Scraper — Shopify JSON API.
 """
-import asyncio
-import re
-from playwright.async_api import async_playwright, TimeoutError as PWTimeout
-from bs4 import BeautifulSoup
+import requests
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
 
 
 class EdHardyScraper(BaseScraper):
-    brand_name = 'Ed Hardy'
-    base_url   = 'https://www.edhardyusa.com'
+    brand_name         = 'Ed Hardy'
+    base_url           = 'https://edhardyoriginals.com'
+    LIMIT_PER_CATEGORY = 20
 
+    # (collection_handle, category, subcategory, formality, gender, seasons)
     CATEGORY_MAP = [
-        ('/collections/mens-t-shirts',  'tops',      'casual', 'M'),
-        ('/collections/mens-hoodies',   'tops',      'casual', 'M'),
-        ('/collections/mens-jackets',   'outerwear', 'casual', 'M'),
-        ('/collections/womens-tops',    'tops',      'casual', 'F'),
-        ('/collections/womens-dresses', 'onepiece',  'casual', 'F'),
-        ('/collections/womens-jackets', 'outerwear', 'casual', 'F'),
+        ('new-tees',          'tops',      't_shirt', 'smart_casual', 'M', ['spring', 'summer']),
+        ('mens-tops',         'tops',      't_shirt', 'smart_casual', 'M', ['spring', 'summer']),
+        ('mens-camp-shirts',  'tops',      'shirt',   'smart_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('mens-hoodies',      'layering',  'hoodie',  'smart_casual', 'M', ['spring', 'autumn', 'winter']),
+        ('mens-jackets',      'outerwear', 'coat',    'smart_casual', 'M', ['autumn', 'winter']),
+        ('mens-denim-1',      'bottoms',   'jeans',   'smart_casual', 'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('mens-bottoms-1',    'bottoms',   'trousers','smart_casual', 'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('womens-all-tees',   'tops',      't_shirt', 'smart_casual', 'F', ['spring', 'summer']),
+        ('womens-tops-1',     'tops',      't_shirt', 'smart_casual', 'F', ['spring', 'summer']),
+        ('womens-camp-shirts','tops',      'blouse',  'smart_casual', 'F', ['spring', 'summer', 'autumn']),
+        ('womens-hoodies',    'layering',  'hoodie',  'smart_casual', 'F', ['spring', 'autumn', 'winter']),
+        ('womens-jackets',    'outerwear', 'coat',    'smart_casual', 'F', ['autumn', 'winter']),
+        ('dresses-rompers',   'onepiece',  'dress',   'smart_casual', 'F', ['spring', 'summer', 'autumn']),
+        ('womens-denim-1',    'bottoms',   'jeans',   'smart_casual', 'F', ['spring', 'summer', 'autumn', 'winter']),
+        ('skirts',            'bottoms',   'skirt',   'smart_casual', 'F', ['spring', 'summer', 'autumn']),
     ]
 
+    HEADERS = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Accept': 'application/json',
+    }
+
     def run(self):
-        print('[Ed Hardy] Запуск Playwright...')
-        try:
-            asyncio.run(self._run_async())
-        except Exception as e:
-            print(f'[Ed Hardy] КРИТИЧНА ПОМИЛКА: {e}')
+        for handle, category, subcategory, formality, gender, seasons in self.CATEGORY_MAP:
+            self._scrape_collection(handle, category, subcategory, formality, gender, seasons)
 
-    async def _run_async(self):
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            ctx = await browser.new_context(
-                user_agent=(
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/121.0.0.0 Safari/537.36'
-                ),
-                locale='en-US',
-                viewport={'width': 1280, 'height': 900},
-            )
-            page = await ctx.new_page()
-            for path, category, formality, gender in self.CATEGORY_MAP:
-                await self._scrape_category(page, path, category, formality, gender)
-            await browser.close()
-            print('[Ed Hardy] Готово')
-
-    async def _scrape_category(self, page, path, category, formality, gender):
-        url = self.base_url + path
-        print(f'[Ed Hardy] → {url}')
-        try:
-            await page.goto(url, wait_until='domcontentloaded', timeout=45_000)
-            await page.wait_for_timeout(6_000)
-        except PWTimeout:
-            print(f'[Ed Hardy] Timeout: {url}')
-            return
-        except Exception as e:
-            print(f'[Ed Hardy] Помилка: {e}')
-            return
-
-        for _ in range(6):
-            await page.keyboard.press('End')
-            await page.wait_for_timeout(500)
-
-        html = await page.content()
-        saved = self._parse_html(html, category, formality, gender)
-        print(f'[Ed Hardy] {path}: {saved} товарів збережено')
-
-    def _parse_html(self, html, category, formality, gender):
-        soup = BeautifulSoup(html, 'html.parser')
+    def _scrape_collection(self, handle, category, subcategory, formality, gender, seasons):
+        page  = 1
         saved = 0
         seen: set[str] = set()
 
-        # Shopify-структура
-        cards = (
-            soup.select('.product-card')
-            or soup.select('[class*="ProductCard"]')
-            or soup.select('.grid__item')
-            or soup.select('li[class*="product"]')
-        )
-        print(f'[Ed Hardy] Знайдено карток: {len(cards)}')
-
-        for card in cards:
-            name_el = (
-                card.select_one('[class*="product-card__title"]')
-                or card.select_one('[class*="product-title"]')
-                or card.select_one('h2') or card.select_one('h3')
-            )
-            name = name_el.get_text(strip=True) if name_el else ''
-            if not name or len(name) < 3:
-                continue
-
-            link_el = card.select_one('a[href]')
-            href = link_el['href'] if link_el else ''
-            source_url = href if href.startswith('http') else self.base_url + href
-            if not source_url or source_url in seen:
-                continue
-            seen.add(source_url)
-
-            price_el = card.select_one('[class*="price"]')
-            price = self._parse_price(price_el.get_text() if price_el else '')
-
-            img_el = card.select_one('img')
-            image_url = ''
-            if img_el:
-                image_url = (
-                    img_el.get('data-src') or
-                    img_el.get('src') or
-                    (img_el.get('srcset', '').split()[0] if img_el.get('srcset') else '')
-                )
-                if image_url.startswith('//'):
-                    image_url = 'https:' + image_url
-
-            self.save_item({
-                'name':       name,
-                'source_url': source_url,
-                'category':   category,
-                'formality':  formality,
-                'price':      price,
-                'currency':   'USD',
-                'image_url':  image_url,
-                'color':      '',
-                'material':   '',
-                'pattern':    'solid',
-                'gender':     gender,
-            }, [])
-            saved += 1
-        return saved
-
-    @staticmethod
-    def _parse_price(text):
-        if not text:
-            return None
-        m = re.search(r'[\d]+\.?\d*', text.replace('$', '').replace(',', ''))
-        if m:
+        while True:
+            url = f'{self.base_url}/collections/{handle}/products.json'
             try:
-                return float(m.group())
-            except ValueError:
-                pass
-        return None
+                resp = requests.get(
+                    url,
+                    params={'limit': 250, 'page': page},
+                    headers=self.HEADERS,
+                    timeout=20,
+                )
+                if resp.status_code == 404:
+                    print(f'[Ed Hardy] {handle} — колекція не знайдена, пропускаємо')
+                    break
+                if resp.status_code != 200:
+                    print(f'[Ed Hardy] Статус {resp.status_code} для {handle}')
+                    break
+                data = resp.json()
+            except Exception as e:
+                print(f'[Ed Hardy] Помилка {handle}: {e}')
+                break
+
+            products = data.get('products', [])
+            if not products:
+                break
+
+            for product in products:
+                if saved >= self.LIMIT_PER_CATEGORY:
+                    break
+
+                source_url = f'{self.base_url}/products/{product["handle"]}'
+                if source_url in seen:
+                    continue
+                seen.add(source_url)
+
+                name = product.get('title', '')
+                if not name or len(name) < 3:
+                    continue
+
+                price = None
+                variants = product.get('variants', [])
+                if variants:
+                    try:
+                        price = float(variants[0].get('price', 0)) or None
+                    except (ValueError, TypeError):
+                        pass
+
+                image_url = ''
+                images = product.get('images', [])
+                if images:
+                    image_url = images[0].get('src', '')[:500]
+
+                self.save_item({
+                    'name':        name[:255],
+                    'source_url':  source_url[:255],
+                    'category':    category,
+                    'subcategory': subcategory,
+                    'formality':   formality,
+                    'price':       price,
+                    'currency':    'USD',
+                    'image_url':   image_url,
+                    'color':       '',
+                    'material':    '',
+                    'pattern':     'solid',
+                    'gender':      gender,
+                    'seasons':     seasons,
+                    'tag_source':  'scraper',
+                    'tagged_at':   timezone.now(),
+                }, [])
+                saved += 1
+
+            print(f'[Ed Hardy] {handle} page={page}: {len(products)} знайдено, {saved} всього')
+            if len(products) < 250:
+                break
+            page += 1

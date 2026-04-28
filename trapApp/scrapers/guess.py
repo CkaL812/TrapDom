@@ -1,27 +1,32 @@
 """
 Guess Scraper — Playwright.
-ФІКС: guess.eu/en-ua/ таймаутить через Cloudflare + JS-рендеринг.
-Переписано на Playwright з locale en-GB.
 Вимога: python -m playwright install chromium
 """
 import asyncio
 import re
 from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
 
 
 class GuessScraper(BaseScraper):
-    brand_name = 'Guess'
-    base_url   = 'https://www.guess.eu'
+    brand_name         = 'Guess'
+    base_url           = 'https://www.guess.eu'
+    LIMIT_PER_CATEGORY = 20
 
+    # (path, category, subcategory, formality, gender, seasons)
     CATEGORY_MAP = [
-        ('/en-gb/c/men/tops/',      'tops',      'casual',       'M'),
-        ('/en-gb/c/men/jeans/',     'bottoms',   'casual',       'M'),
-        ('/en-gb/c/men/jackets/',   'outerwear', 'smart_casual', 'M'),
-        ('/en-gb/c/women/tops/',    'tops',      'casual',       'F'),
-        ('/en-gb/c/women/jeans/',   'bottoms',   'casual',       'F'),
-        ('/en-gb/c/women/dresses/', 'onepiece',  'cocktail',     'F'),
+        ('/en-gb/c/men/tops/',       'tops',      't_shirt',  'smart_casual', 'M', ['spring', 'summer']),
+        ('/en-gb/c/men/shirts/',     'tops',      'shirt',    'smart_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('/en-gb/c/men/jeans/',      'bottoms',   'jeans',    'smart_casual', 'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('/en-gb/c/men/trousers/',   'bottoms',   'trousers', 'smart_casual', 'M', ['spring', 'autumn', 'winter']),
+        ('/en-gb/c/men/jackets/',    'outerwear', 'coat',     'smart_casual', 'M', ['autumn', 'winter']),
+        ('/en-gb/c/women/tops/',     'tops',      't_shirt',  'smart_casual', 'F', ['spring', 'summer']),
+        ('/en-gb/c/women/jeans/',    'bottoms',   'jeans',    'smart_casual', 'F', ['spring', 'summer', 'autumn', 'winter']),
+        ('/en-gb/c/women/dresses/',  'onepiece',  'dress',    'cocktail',     'F', ['spring', 'summer', 'autumn']),
+        ('/en-gb/c/women/skirts/',   'bottoms',   'skirt',    'smart_casual', 'F', ['spring', 'summer', 'autumn']),
+        ('/en-gb/c/women/jackets/',  'outerwear', 'coat',     'smart_casual', 'F', ['autumn', 'winter']),
     ]
 
     def run(self):
@@ -44,12 +49,12 @@ class GuessScraper(BaseScraper):
                 viewport={'width': 1280, 'height': 900},
             )
             page = await ctx.new_page()
-            for path, category, formality, gender in self.CATEGORY_MAP:
-                await self._scrape_category(page, path, category, formality, gender)
+            for path, category, subcategory, formality, gender, seasons in self.CATEGORY_MAP:
+                await self._scrape_category(page, path, category, subcategory, formality, gender, seasons)
             await browser.close()
             print('[Guess] Готово')
 
-    async def _scrape_category(self, page, path, category, formality, gender):
+    async def _scrape_category(self, page, path, category, subcategory, formality, gender, seasons):
         url = self.base_url + path
         print(f'[Guess] → {url}')
         try:
@@ -67,10 +72,10 @@ class GuessScraper(BaseScraper):
             await page.wait_for_timeout(600)
 
         html = await page.content()
-        saved = self._parse_html(html, category, formality, gender)
+        saved = self._parse_html(html, category, subcategory, formality, gender, seasons)
         print(f'[Guess] {path}: {saved} товарів збережено')
 
-    def _parse_html(self, html, category, formality, gender):
+    def _parse_html(self, html, category, subcategory, formality, gender, seasons):
         soup = BeautifulSoup(html, 'html.parser')
         saved = 0
         seen: set[str] = set()
@@ -83,6 +88,9 @@ class GuessScraper(BaseScraper):
         print(f'[Guess] Знайдено карток: {len(cards)}')
 
         for card in cards:
+            if saved >= self.LIMIT_PER_CATEGORY:
+                break
+
             name_el = card.select_one('[class*="name"], [class*="title"], h2, h3')
             name = name_el.get_text(strip=True) if name_el else ''
             if not name or len(name) < 3:
@@ -96,15 +104,7 @@ class GuessScraper(BaseScraper):
             seen.add(source_url)
 
             price_el = card.select_one('[class*="price"], [class*="Price"]')
-            price_text = price_el.get_text(strip=True) if price_el else ''
-            price = None
-            if price_text:
-                m = re.search(r'[\d]+\.?\d*', price_text.replace(',', '.'))
-                if m:
-                    try:
-                        price = float(m.group())
-                    except ValueError:
-                        pass
+            price = self._parse_price(price_el.get_text() if price_el else '')
 
             img_el = card.select_one('img')
             image_url = ''
@@ -114,17 +114,33 @@ class GuessScraper(BaseScraper):
                     image_url = 'https:' + image_url
 
             self.save_item({
-                'name':       name,
-                'source_url': source_url,
-                'category':   category,
-                'formality':  formality,
-                'price':      price,
-                'currency':   'GBP',
-                'image_url':  image_url,
-                'color':      '',
-                'material':   '',
-                'pattern':    'solid',
-                'gender':     gender,
+                'name':        name[:255],
+                'source_url':  source_url[:255],
+                'category':    category,
+                'subcategory': subcategory,
+                'formality':   formality,
+                'price':       price,
+                'currency':    'GBP',
+                'image_url':   image_url[:500],
+                'color':       '',
+                'material':    '',
+                'pattern':     'solid',
+                'gender':      gender,
+                'seasons':     seasons,
+                'tag_source':  'scraper',
+                'tagged_at':   timezone.now(),
             }, [])
             saved += 1
         return saved
+
+    @staticmethod
+    def _parse_price(text):
+        if not text:
+            return None
+        m = re.search(r'[\d]+\.?\d*', text.replace(',', '.'))
+        if m:
+            try:
+                return float(m.group())
+            except ValueError:
+                pass
+        return None

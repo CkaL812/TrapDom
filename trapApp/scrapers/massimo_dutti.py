@@ -1,141 +1,92 @@
 """
-Massimo Dutti Scraper — Playwright.
-Фіксований wait 12с (сайт повільний).
-Вимога: python -m playwright install chromium
+Massimo Dutti Scraper — SerpAPI Google Shopping.
+Inditex API (/ua/uk/category/{id}/products?ajax=true) не працює для MD.
 """
-import asyncio
-import re
-from playwright.async_api import async_playwright, TimeoutError as PWTimeout
-from bs4 import BeautifulSoup
+import os
+import hashlib
+import requests
+from dotenv import load_dotenv
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
+
+load_dotenv()
 
 
 class MassimoDuttiScraper(BaseScraper):
-    brand_name = 'Massimo Dutti'
-    base_url   = 'https://www.massimodutti.com'
+    brand_name  = 'Massimo Dutti'
+    base_url    = 'https://www.massimodutti.com'
+    SERPAPI_KEY = os.environ.get('SERPAPI_KEY', '')
 
-    CATEGORY_MAP = [
-        ('/ua/uk/man-shirts-l737.html',           'tops',      'smart_casual', 'M'),
-        ('/ua/uk/man-trousers-l610.html',          'bottoms',   'smart_casual', 'M'),
-        ('/ua/uk/man-outerwear-l657.html',         'outerwear', 'smart_casual', 'M'),
-        ('/ua/uk/woman-shirts-blouses-l1217.html', 'tops',      'smart_casual', 'F'),
-        ('/ua/uk/woman-dresses-l1066.html',        'onepiece',  'cocktail',     'F'),
-        ('/ua/uk/woman-trousers-l1335.html',       'bottoms',   'smart_casual', 'F'),
-        ('/ua/uk/woman-outerwear-l1184.html',      'outerwear', 'smart_casual', 'F'),
+    # (query, category, subcategory, formality, gender, seasons)
+    CATEGORIES = [
+        ('Massimo Dutti men shirt',           'tops',      'shirt',    'business_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('Massimo Dutti men t-shirt',         'tops',      't_shirt',  'smart_casual',    'M', ['spring', 'summer']),
+        ('Massimo Dutti men trousers',        'bottoms',   'trousers', 'business_casual', 'M', ['spring', 'autumn', 'winter']),
+        ('Massimo Dutti men suit',            'layering',  'suit_set', 'business_formal', 'M', ['spring', 'autumn', 'winter']),
+        ('Massimo Dutti men coat jacket',     'outerwear', 'coat',     'smart_casual',    'M', ['autumn', 'winter']),
+        ('Massimo Dutti men knitwear sweater','layering',  'sweater',  'smart_casual',    'M', ['autumn', 'winter']),
+        ('Massimo Dutti women shirt blouse',  'tops',      'blouse',   'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('Massimo Dutti women t-shirt top',   'tops',      't_shirt',  'smart_casual',    'F', ['spring', 'summer']),
+        ('Massimo Dutti women dress',         'onepiece',  'dress',    'cocktail',        'F', ['spring', 'summer', 'autumn']),
+        ('Massimo Dutti women skirt',         'bottoms',   'skirt',    'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('Massimo Dutti women trousers',      'bottoms',   'trousers', 'smart_casual',    'F', ['spring', 'autumn', 'winter']),
+        ('Massimo Dutti women coat jacket',   'outerwear', 'coat',     'smart_casual',    'F', ['autumn', 'winter']),
+        ('Massimo Dutti women knitwear',      'layering',  'sweater',  'smart_casual',    'F', ['autumn', 'winter']),
     ]
 
-    def run(self):
-        asyncio.run(self._run_async())
-
-    async def _run_async(self):
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            ctx = await browser.new_context(
-                user_agent=(
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/121.0.0.0 Safari/537.36'
-                ),
-                locale='uk-UA',
-                viewport={'width': 1280, 'height': 900},
-            )
-            page = await ctx.new_page()
-            for path, category, formality, gender in self.CATEGORY_MAP:
-                await self._scrape_category(page, path, category, formality, gender)
-            await browser.close()
-
-    async def _scrape_category(self, page, path, category, formality, gender):
-        url = f'{self.base_url}{path}'
-        print(f'[Massimo Dutti] → {url}')
+    def search(self, query: str) -> list[dict]:
+        if not self.SERPAPI_KEY:
+            print('[Massimo Dutti] SERPAPI_KEY не заповнено — пропускаємо')
+            return []
+        params = {
+            'engine':  'google_shopping',
+            'q':       query,
+            'api_key': self.SERPAPI_KEY,
+            'num':     20,
+        }
         try:
-            await page.goto(url, wait_until='domcontentloaded', timeout=60_000)
-            await page.wait_for_timeout(12_000)
-        except PWTimeout:
-            print(f'[Massimo Dutti] Timeout: {url}')
-            return
+            resp = requests.get('https://serpapi.com/search', params=params, timeout=20)
+            resp.raise_for_status()
+            return resp.json().get('shopping_results', [])
         except Exception as e:
-            print(f'[Massimo Dutti] Помилка: {e}')
-            return
+            print(f'[Massimo Dutti] SerpAPI помилка: {e}')
+            return []
 
-        try:
-            for txt in ['Accept all', 'Accept', 'Дозволити все']:
-                btn = page.locator(f'button:has-text("{txt}")')
-                if await btn.count() > 0:
-                    await btn.first.click()
-                    await page.wait_for_timeout(1500)
+    def run(self):
+        for query, category, subcategory, formality, gender, seasons in self.CATEGORIES:
+            results = self.search(query)
+            print(f'[Massimo Dutti] "{query}": {len(results)} результатів')
+            saved = 0
+            seen_urls: set = set()
+            for r in results:
+                if saved >= 20:
                     break
-        except Exception:
-            pass
-
-        for _ in range(10):
-            await page.keyboard.press('End')
-            await page.wait_for_timeout(500)
-
-        html = await page.content()
-        saved = self._parse_html(html, category, formality, gender)
-        print(f'[Massimo Dutti] {path}: {saved} товарів збережено')
-
-    def _parse_html(self, html, category, formality, gender):
-        soup = BeautifulSoup(html, 'html.parser')
-        saved = 0
-        seen: set[str] = set()
-
-        cards = (
-            soup.select('article')
-            or soup.select('[class*="ProductCard"]')
-            or soup.select('[class*="product-item"]')
-            or soup.select('li[class*="product"]')
-        )
-        print(f'[Massimo Dutti] Знайдено карток: {len(cards)}')
-
-        for card in cards:
-            name_el = (
-                card.select_one('h2') or card.select_one('h3')
-                or card.select_one('[class*="name"]')
-            )
-            name = name_el.get_text(strip=True) if name_el else ''
-            if not name or len(name) < 3:
-                continue
-
-            link_el = card.select_one('a[href]')
-            href = link_el['href'] if link_el else ''
-            source_url = href if href.startswith('http') else self.base_url + href
-            if not source_url or source_url in seen:
-                continue
-            seen.add(source_url)
-
-            price_el = (
-                card.select_one('[class*="price"]')
-                or card.select_one('[class*="Price"]')
-            )
-            price = self._parse_price(price_el.get_text() if price_el else '')
-
-            img_el = card.select_one('img')
-            image_url = ''
-            if img_el:
-                image_url = img_el.get('data-src') or img_el.get('src') or ''
-                if image_url.startswith('//'):
-                    image_url = 'https:' + image_url
-
-            self.save_item({
-                'name': name, 'source_url': source_url,
-                'category': category, 'formality': formality,
-                'price': price, 'currency': 'UAH',
-                'image_url': image_url, 'color': '', 'material': '',
-                'pattern': 'solid', 'gender': gender,
-            }, [])
-            saved += 1
-        return saved
-
-    @staticmethod
-    def _parse_price(text):
-        if not text:
-            return None
-        cleaned = text.replace('\xa0', '').replace('\u202f', '').replace(' ', '')
-        m = re.search(r'[\d]+[,.]?\d*', cleaned)
-        if m:
-            try:
-                return float(m.group().replace(',', '.'))
-            except ValueError:
-                pass
-        return None
+                name = r.get('title', '')
+                if not name or len(name) < 3:
+                    continue
+                link = r.get('link', '').strip()
+                if not link:
+                    slug = hashlib.md5(name.encode()).hexdigest()[:16]
+                    link = f'https://www.massimodutti.com/product/{slug}'
+                link = link[:255]
+                if link in seen_urls:
+                    continue
+                seen_urls.add(link)
+                self.save_item({
+                    'name':        name[:255],
+                    'source_url':  link,
+                    'category':    category,
+                    'subcategory': subcategory,
+                    'formality':   formality,
+                    'price':       r.get('extracted_price'),
+                    'currency':    'USD',
+                    'image_url':   r.get('thumbnail', '')[:500],
+                    'color':       '',
+                    'material':    '',
+                    'pattern':     'solid',
+                    'gender':      gender,
+                    'seasons':     seasons,
+                    'tag_source':  'scraper',
+                    'tagged_at':   timezone.now(),
+                }, [])
+                saved += 1

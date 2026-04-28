@@ -1,147 +1,92 @@
 """
-COS Scraper — Playwright.
-api.cos.com мертвий. Використовується фіксований wait.
-Вимога: python -m playwright install chromium
+COS Scraper — SerpAPI Google Shopping.
+Playwright повертає 303 redirect (сайт блокує headless браузери).
 """
-import asyncio
-import re
-from playwright.async_api import async_playwright, TimeoutError as PWTimeout
-from bs4 import BeautifulSoup
+import os
+import hashlib
+import requests
+from dotenv import load_dotenv
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
+
+load_dotenv()
 
 
 class CosScraper(BaseScraper):
-    brand_name = 'COS'
-    base_url   = 'https://www.cos.com'
+    brand_name  = 'COS'
+    base_url    = 'https://www.cos.com'
+    SERPAPI_KEY = os.environ.get('SERPAPI_KEY', '')
 
-    CATEGORY_MAP = [
-        ('/en-gb/men/shirts',          'tops',      'smart_casual', 'M'),
-        ('/en-gb/men/trousers',         'bottoms',   'smart_casual', 'M'),
-        ('/en-gb/men/coats-jackets',    'outerwear', 'smart_casual', 'M'),
-        ('/en-gb/men/knitwear',         'tops',      'casual',       'M'),
-        ('/en-gb/women/shirts-blouses', 'tops',      'smart_casual', 'F'),
-        ('/en-gb/women/trousers',       'bottoms',   'smart_casual', 'F'),
-        ('/en-gb/women/dresses',        'onepiece',  'cocktail',     'F'),
-        ('/en-gb/women/coats-jackets',  'outerwear', 'smart_casual', 'F'),
+    # (query, category, subcategory, formality, gender, seasons)
+    CATEGORIES = [
+        ('men shirt',           'tops',      'shirt',    'smart_casual',    'M', ['spring', 'summer', 'autumn']),
+        ('men t-shirt',         'tops',      't_shirt',  'smart_casual',    'M', ['spring', 'summer']),
+        ('men trousers',        'bottoms',   'trousers', 'smart_casual',    'M', ['spring', 'autumn', 'winter']),
+        ('men coat jacket',     'outerwear', 'coat',     'smart_casual',    'M', ['autumn', 'winter']),
+        ('men knitwear sweater','layering',  'sweater',  'smart_casual',    'M', ['autumn', 'winter']),
+        ('men blazer suit',     'layering',  'blazer',   'business_casual', 'M', ['spring', 'autumn']),
+        ('women shirt blouse',  'tops',      'blouse',   'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('women t-shirt top',   'tops',      't_shirt',  'smart_casual',    'F', ['spring', 'summer']),
+        ('women trousers',      'bottoms',   'trousers', 'smart_casual',    'F', ['spring', 'autumn', 'winter']),
+        ('women skirt',         'bottoms',   'skirt',    'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('women dress',         'onepiece',  'dress',    'cocktail',        'F', ['spring', 'summer', 'autumn']),
+        ('women coat jacket',   'outerwear', 'coat',     'smart_casual',    'F', ['autumn', 'winter']),
+        ('women knitwear',      'layering',  'sweater',  'smart_casual',    'F', ['autumn', 'winter']),
     ]
 
+    def search(self, query: str) -> list[dict]:
+        if not self.SERPAPI_KEY:
+            print('[COS] SERPAPI_KEY не заповнено — пропускаємо')
+            return []
+        params = {
+            'engine':  'google_shopping',
+            'q':       f'COS {query}',
+            'api_key': self.SERPAPI_KEY,
+            'num':     20,
+        }
+        try:
+            resp = requests.get('https://serpapi.com/search', params=params, timeout=20)
+            resp.raise_for_status()
+            return resp.json().get('shopping_results', [])
+        except Exception as e:
+            print(f'[COS] SerpAPI помилка: {e}')
+            return []
+
     def run(self):
-        print('[COS] Запуск Playwright...')
-        try:
-            asyncio.run(self._run_async())
-        except Exception as e:
-            print(f'[COS] КРИТИЧНА ПОМИЛКА: {e}')
-            print('[COS] Переконайся що chromium встановлений: python -m playwright install chromium')
-
-    async def _run_async(self):
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=True)
-            ctx = await browser.new_context(
-                user_agent=(
-                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                    'AppleWebKit/537.36 (KHTML, like Gecko) '
-                    'Chrome/121.0.0.0 Safari/537.36'
-                ),
-                locale='en-GB',
-                viewport={'width': 1280, 'height': 900},
-            )
-            page = await ctx.new_page()
-            print('[COS] Chromium готовий')
-            for path, category, formality, gender in self.CATEGORY_MAP:
-                await self._scrape_category(page, path, category, formality, gender)
-            await browser.close()
-            print('[COS] Готово')
-
-    async def _scrape_category(self, page, path, category, formality, gender):
-        url = f'{self.base_url}{path}'
-        print(f'[COS] → {url}')
-        try:
-            await page.goto(url, wait_until='domcontentloaded', timeout=40_000)
-            await page.wait_for_timeout(8_000)
-        except PWTimeout:
-            print(f'[COS] Timeout: {url}')
-            return
-        except Exception as e:
-            print(f'[COS] Помилка goto: {e}')
-            return
-
-        for _ in range(8):
-            await page.keyboard.press('End')
-            await page.wait_for_timeout(600)
-
-        html = await page.content()
-        print(f'[COS] HTML отримано ({len(html)} байт)')
-        saved = self._parse_html(html, category, formality, gender)
-        print(f'[COS] {category}/{gender}: {saved} товарів збережено')
-
-    def _parse_html(self, html, category, formality, gender):
-        soup = BeautifulSoup(html, 'html.parser')
-        cards = (
-            soup.select('article')
-            or soup.select('[data-testid="product"]')
-            or soup.select('[class*="ProductCard"]')
-            or soup.select('[class*="product-tile"]')
-            or soup.select('[class*="product-item"]')
-        )
-        print(f'[COS] Знайдено карток: {len(cards)}')
-
-        if not cards:
-            cards = []
-            for a in soup.select('a[href*="/en-gb/"]'):
-                h = a.select_one('h2, h3, [class*="name"]')
-                if h:
-                    cards.append(a)
-
-        saved = 0
-        seen: set[str] = set()
-        for card in cards:
-            name_el = (
-                card.select_one('h2') or card.select_one('h3')
-                or card.select_one('[class*="name"]')
-                or card.select_one('[class*="title"]')
-            )
-            name = name_el.get_text(strip=True) if name_el else ''
-            if not name or len(name) < 3:
-                continue
-
-            link_el = card.select_one('a[href]') if card.name != 'a' else card
-            href = link_el.get('href', '') if link_el else ''
-            source_url = href if href.startswith('http') else self.base_url + href
-            if not source_url or source_url in seen:
-                continue
-            seen.add(source_url)
-
-            price_el = (
-                card.select_one('[class*="price"]')
-                or card.select_one('[class*="Price"]')
-            )
-            price = self._parse_price(price_el.get_text() if price_el else '')
-
-            img_el = card.select_one('img')
-            image_url = ''
-            if img_el:
-                image_url = img_el.get('data-src') or img_el.get('src') or ''
-                if image_url.startswith('//'):
-                    image_url = 'https:' + image_url
-
-            self.save_item({
-                'name': name, 'source_url': source_url,
-                'category': category, 'formality': formality,
-                'price': price, 'currency': 'GBP',
-                'image_url': image_url, 'color': '', 'material': '',
-                'pattern': 'solid', 'gender': gender,
-            }, [])
-            saved += 1
-        return saved
-
-    @staticmethod
-    def _parse_price(text):
-        if not text:
-            return None
-        m = re.search(r'[\d]+\.?\d*', text.replace('£', '').replace(',', ''))
-        if m:
-            try:
-                return float(m.group())
-            except ValueError:
-                pass
-        return None
+        for query, category, subcategory, formality, gender, seasons in self.CATEGORIES:
+            results = self.search(query)
+            print(f'[COS] "{query}": {len(results)} результатів')
+            saved = 0
+            seen_urls: set = set()
+            for r in results:
+                if saved >= 20:
+                    break
+                name = r.get('title', '')
+                if not name or len(name) < 3:
+                    continue
+                link = r.get('link', '').strip()
+                if not link:
+                    slug = hashlib.md5(name.encode()).hexdigest()[:16]
+                    link = f'https://www.cos.com/product/{slug}'
+                link = link[:255]
+                if link in seen_urls:
+                    continue
+                seen_urls.add(link)
+                self.save_item({
+                    'name':        name[:255],
+                    'source_url':  link,
+                    'category':    category,
+                    'subcategory': subcategory,
+                    'formality':   formality,
+                    'price':       r.get('extracted_price'),
+                    'currency':    'GBP',
+                    'image_url':   r.get('thumbnail', '')[:500],
+                    'color':       '',
+                    'material':    '',
+                    'pattern':     'solid',
+                    'gender':      gender,
+                    'seasons':     seasons,
+                    'tag_source':  'scraper',
+                    'tagged_at':   timezone.now(),
+                }, [])
+                saved += 1

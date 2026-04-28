@@ -1,6 +1,7 @@
 import os
 import requests
 from dotenv import load_dotenv
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
 
 load_dotenv()
@@ -9,25 +10,27 @@ load_dotenv()
 class LevisScraper(BaseScraper):
     """
     Levi's — Algolia Search API.
-    ФІКС: ключі з .env замість хардкоду.
-    Реальні ключі знайти в DevTools → Network → фільтр 'algolia'.
+    Ключі знайти в DevTools → Network → фільтр 'algolia'.
     """
     brand_name = "Levi's"
     base_url   = 'https://www.levi.com/UA/uk_UA'
 
     ALGOLIA_APP_ID  = os.environ.get('LEVI_ALGOLIA_APP_ID', '')
     ALGOLIA_API_KEY = os.environ.get('LEVI_ALGOLIA_API_KEY', '')
-    ALGOLIA_INDEX   = 'levi_UA_products'  # уточнити через DevTools
+    ALGOLIA_INDEX   = 'levi_UA_products'
 
+    # (facet, category, subcategory, formality, gender, seasons)
     CATEGORY_FACETS = [
-        ('tops',     'casual',       'mens-tops'),
-        ('bottoms',  'casual',       'mens-bottoms'),
-        ('tops',     'casual',       'womens-tops'),
-        ('bottoms',  'casual',       'womens-bottoms'),
-        ('outerwear','smart_casual', 'mens-outerwear'),
+        ('mens-tops',      'tops',      't_shirt',  'smart_casual', 'M', ['spring', 'summer']),
+        ('mens-shirts',    'tops',      'shirt',    'smart_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('mens-bottoms',   'bottoms',   'jeans',    'smart_casual', 'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('mens-outerwear', 'outerwear', 'coat',     'smart_casual', 'M', ['autumn', 'winter']),
+        ('womens-tops',    'tops',      't_shirt',  'smart_casual', 'F', ['spring', 'summer']),
+        ('womens-bottoms', 'bottoms',   'jeans',    'smart_casual', 'F', ['spring', 'summer', 'autumn', 'winter']),
+        ('womens-dresses', 'onepiece',  'dress',    'smart_casual', 'F', ['spring', 'summer', 'autumn']),
     ]
 
-    def search_products(self, category_facet: str) -> list[dict]:
+    def search_products(self, facet: str) -> list[dict]:
         url = (
             f'https://{self.ALGOLIA_APP_ID}-dsn.algolia.net'
             f'/1/indexes/{self.ALGOLIA_INDEX}/query'
@@ -37,7 +40,7 @@ class LevisScraper(BaseScraper):
             'X-Algolia-Application-Id': self.ALGOLIA_APP_ID,
             'X-Algolia-API-Key':        self.ALGOLIA_API_KEY,
         }
-        payload = {'params': f'facetFilters=category:{category_facet}&hitsPerPage=200'}
+        payload = {'params': f'facetFilters=category:{facet}&hitsPerPage=200'}
         try:
             resp = requests.post(url, json=payload, headers=headers, timeout=15)
             resp.raise_for_status()
@@ -48,11 +51,11 @@ class LevisScraper(BaseScraper):
 
     def run(self):
         if not self.ALGOLIA_APP_ID:
-            print("[Levi's] ⚠️  LEVI_ALGOLIA_APP_ID не заповнено в .env — скрапер пропущено")
+            print("[Levi's] LEVI_ALGOLIA_APP_ID не заповнено в .env — скрапер пропущено")
             return
 
-        for category, formality, facet in self.CATEGORY_FACETS:
-            hits = self.search_products(facet)
+        for facet, category, subcategory, formality, gender, seasons in self.CATEGORY_FACETS:
+            hits = self.search_products(facet)[:20]
             print(f"[Levi's] facet={facet} → знайдено: {len(hits)}")
             for hit in hits:
                 name = hit.get('name', '')
@@ -60,15 +63,19 @@ class LevisScraper(BaseScraper):
                     continue
                 sizes = [s['label'] for s in hit.get('sizes', []) if s.get('available')]
                 self.save_item({
-                    'name':       name,
-                    'source_url': f"{self.base_url}/{hit.get('url', '')}",
-                    'category':   category,
-                    'formality':  formality,
-                    'price':      hit.get('price'),
-                    'currency':   'UAH',
-                    'image_url':  hit.get('image', ''),
-                    'color':      hit.get('color', ''),
-                    'material':   '',
-                    'pattern':    'solid',
-                    'gender':     'U',
+                    'name':        name[:255],
+                    'source_url':  f"{self.base_url}/{hit.get('url', '')}",
+                    'category':    category,
+                    'subcategory': subcategory,
+                    'formality':   formality,
+                    'price':       hit.get('price'),
+                    'currency':    'UAH',
+                    'image_url':   hit.get('image', '')[:500],
+                    'color':       hit.get('color', '')[:100],
+                    'material':    '',
+                    'pattern':     'solid',
+                    'gender':      gender,
+                    'seasons':     seasons,
+                    'tag_source':  'scraper',
+                    'tagged_at':   timezone.now(),
                 }, sizes)

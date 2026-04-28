@@ -1,35 +1,87 @@
-import requests
+"""
+Diesel Scraper — Playwright.
+Сайт на React — звичайний requests не рендерить сторінку.
+Вимога: python -m playwright install chromium
+"""
+import asyncio
+import re
+from playwright.async_api import async_playwright, TimeoutError as PWTimeout
 from bs4 import BeautifulSoup
+from django.utils import timezone
 from trapApp.scrapers.base import BaseScraper
 
 
 class DieselScraper(BaseScraper):
-    """
-    Diesel — HTML scraping каталогу.
-    ФІКС: en-ua більше не існує, перейшли на en-gb.
-    """
-    brand_name = 'Diesel'
-    base_url   = 'https://www.diesel.com'
+    brand_name         = 'Diesel'
+    base_url           = 'https://www.diesel.com'
+    LIMIT_PER_CATEGORY = 20
 
+    # (path, category, subcategory, formality, gender, seasons)
     CATEGORY_MAP = [
-        ('/en-gb/category/mens-t-shirts',  'tops',      'casual',       'M'),
-        ('/en-gb/category/mens-jeans',     'bottoms',   'casual',       'M'),
-        ('/en-gb/category/mens-jackets',   'outerwear', 'smart_casual', 'M'),
-        ('/en-gb/category/mens-hoodies',   'tops',      'casual',       'M'),
-        ('/en-gb/category/mens-shoes',     'footwear',  'casual',       'M'),
+        ('/en-gb/category/mens-t-shirts',    'tops',      't_shirt',  'smart_casual', 'M', ['spring', 'summer']),
+        ('/en-gb/category/mens-jeans',       'bottoms',   'jeans',    'smart_casual', 'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('/en-gb/category/mens-jackets',     'outerwear', 'coat',     'smart_casual', 'M', ['autumn', 'winter']),
+        ('/en-gb/category/mens-hoodies',     'layering',  'hoodie',   'smart_casual', 'M', ['spring', 'autumn', 'winter']),
+        ('/en-gb/category/mens-shirts',      'tops',      'shirt',    'smart_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('/en-gb/category/mens-shoes',       'footwear',  'sneakers', 'smart_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('/en-gb/category/womens-t-shirts',  'tops',      't_shirt',  'smart_casual', 'F', ['spring', 'summer']),
+        ('/en-gb/category/womens-jeans',     'bottoms',   'jeans',    'smart_casual', 'F', ['spring', 'summer', 'autumn', 'winter']),
+        ('/en-gb/category/womens-dresses',   'onepiece',  'dress',    'smart_casual', 'F', ['spring', 'summer', 'autumn']),
+        ('/en-gb/category/womens-jackets',   'outerwear', 'coat',     'smart_casual', 'F', ['autumn', 'winter']),
+        ('/en-gb/category/womens-shoes',     'footwear',  'sneakers', 'smart_casual', 'F', ['spring', 'summer', 'autumn']),
     ]
 
-    def scrape_category(self, path, category, formality, gender):
-        url = self.base_url + path
+    def run(self):
+        print('[Diesel] Запуск Playwright...')
         try:
-            resp = requests.get(url, headers=self.headers, timeout=15)
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, 'html.parser')
+            asyncio.run(self._run_async())
+        except Exception as e:
+            print(f'[Diesel] КРИТИЧНА ПОМИЛКА: {e}')
+
+    async def _run_async(self):
+        async with async_playwright() as p:
+            browser = await p.chromium.launch(headless=True)
+            ctx = await browser.new_context(
+                user_agent=(
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                    'AppleWebKit/537.36 (KHTML, like Gecko) '
+                    'Chrome/121.0.0.0 Safari/537.36'
+                ),
+                locale='en-GB',
+                viewport={'width': 1280, 'height': 900},
+            )
+            page = await ctx.new_page()
+            for path, category, subcategory, formality, gender, seasons in self.CATEGORY_MAP:
+                await self._scrape_category(page, path, category, subcategory, formality, gender, seasons)
+            await browser.close()
+            print('[Diesel] Готово')
+
+    async def _scrape_category(self, page, path, category, subcategory, formality, gender, seasons):
+        url = self.base_url + path
+        print(f'[Diesel] → {url}')
+        try:
+            await page.goto(url, wait_until='domcontentloaded', timeout=45_000)
+            await page.wait_for_timeout(8_000)
+        except PWTimeout:
+            print(f'[Diesel] Timeout: {url}')
+            return
         except Exception as e:
             print(f'[Diesel] Помилка: {e}')
             return
 
-        # Diesel оновив верстку — широкий набір селекторів
+        for _ in range(8):
+            await page.keyboard.press('End')
+            await page.wait_for_timeout(600)
+
+        html = await page.content()
+        saved = self._parse_html(html, category, subcategory, formality, gender, seasons)
+        print(f'[Diesel] {path}: {saved} товарів збережено')
+
+    def _parse_html(self, html, category, subcategory, formality, gender, seasons):
+        soup = BeautifulSoup(html, 'html.parser')
+        saved = 0
+        seen: set[str] = set()
+
         cards = (
             soup.select('[data-product-id]')
             or soup.select('.product-tile')
@@ -38,50 +90,60 @@ class DieselScraper(BaseScraper):
         )
         print(f'[Diesel] Знайдено карток: {len(cards)}')
 
-        seen: set[str] = set()
         for card in cards:
-            name_tag = card.select_one('[class*="name"], [class*="title"], h2, h3')
-            if not name_tag:
-                continue
-            name = name_tag.get_text(strip=True)
+            if saved >= self.LIMIT_PER_CATEGORY:
+                break
+
+            name_el = card.select_one('[class*="name"], [class*="title"], h2, h3')
+            name = name_el.get_text(strip=True) if name_el else ''
             if not name or len(name) < 3:
                 continue
 
-            link_tag = card.select_one('a[href]')
-            href = link_tag['href'] if link_tag else ''
+            link_el = card.select_one('a[href]')
+            href = link_el['href'] if link_el else ''
             source_url = href if href.startswith('http') else self.base_url + href
             if not source_url or source_url in seen:
                 continue
             seen.add(source_url)
 
-            price_tag = card.select_one('[class*="price"], [class*="Price"]')
-            price_text = price_tag.get_text(strip=True) if price_tag else ''
-            try:
-                price = float(''.join(c for c in price_text if c.isdigit() or c == '.') or '0') or None
-            except ValueError:
-                price = None
+            price_el = card.select_one('[class*="price"], [class*="Price"]')
+            price = self._parse_price(price_el.get_text() if price_el else '')
 
-            img_tag = card.select_one('img')
+            img_el = card.select_one('img')
             image_url = ''
-            if img_tag:
-                image_url = img_tag.get('data-src') or img_tag.get('src') or ''
+            if img_el:
+                image_url = img_el.get('data-src') or img_el.get('src') or ''
                 if image_url.startswith('//'):
                     image_url = 'https:' + image_url
 
             self.save_item({
-                'name':       name,
-                'source_url': source_url,
-                'category':   category,
-                'formality':  formality,
-                'price':      price,
-                'currency':   'GBP',
-                'image_url':  image_url,
-                'color':      '',
-                'material':   '',
-                'pattern':    'solid',
-                'gender':     gender,
+                'name':        name[:255],
+                'source_url':  source_url[:255],
+                'category':    category,
+                'subcategory': subcategory,
+                'formality':   formality,
+                'price':       price,
+                'currency':    'GBP',
+                'image_url':   image_url[:500],
+                'color':       '',
+                'material':    '',
+                'pattern':     'solid',
+                'gender':      gender,
+                'seasons':     seasons,
+                'tag_source':  'scraper',
+                'tagged_at':   timezone.now(),
             }, [])
+            saved += 1
+        return saved
 
-    def run(self):
-        for path, category, formality, gender in self.CATEGORY_MAP:
-            self.scrape_category(path, category, formality, gender)
+    @staticmethod
+    def _parse_price(text):
+        if not text:
+            return None
+        m = re.search(r'[\d]+\.?\d*', text.replace('£', '').replace(',', ''))
+        if m:
+            try:
+                return float(m.group())
+            except ValueError:
+                pass
+        return None

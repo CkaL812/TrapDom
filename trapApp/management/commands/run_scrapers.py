@@ -10,6 +10,7 @@ from trapApp.scrapers.guess import GuessScraper
 from trapApp.scrapers.suitsupply import SuitsupplyScraper
 from trapApp.scrapers.ted_baker import TedBakerScraper
 from trapApp.scrapers.ed_hardy import EdHardyScraper
+from trapApp.scrapers.farfetch import TomFordScraper, GiorgioArmaniScraper, SandroScraper
 
 SCRAPERS = [
     ZaraScraper,
@@ -23,20 +24,26 @@ SCRAPERS = [
     SuitsupplyScraper,
     TedBakerScraper,
     EdHardyScraper,
+    TomFordScraper,
+    GiorgioArmaniScraper,
+    SandroScraper,
 ]
 
 BRAND_ALIASES = {
-    'zara': ZaraScraper,
-    'cos': CosScraper,
+    'zara':    ZaraScraper,
+    'cos':     CosScraper,
     'massimo': MassimoDuttiScraper,
-    'ralph': RalphLaurenScraper,
-    'hugo': HugoBossScraper,
-    'levis': LevisScraper,
-    'diesel': DieselScraper,
-    'guess': GuessScraper,
-    'suits': SuitsupplyScraper,
-    'ted': TedBakerScraper,
-    'ed': EdHardyScraper,
+    'ralph':   RalphLaurenScraper,
+    'hugo':    HugoBossScraper,
+    'levis':   LevisScraper,
+    'diesel':  DieselScraper,
+    'guess':   GuessScraper,
+    'suits':   SuitsupplyScraper,
+    'ted':     TedBakerScraper,
+    'ed':      EdHardyScraper,
+    'tomford': TomFordScraper,
+    'armani':  GiorgioArmaniScraper,
+    'sandro':  SandroScraper,
 }
 
 

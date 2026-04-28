@@ -2,6 +2,7 @@ import json
 import re
 import time
 import requests
+from django.utils import timezone
 from bs4 import BeautifulSoup
 from trapApp.scrapers.base import BaseScraper
 
@@ -9,19 +10,25 @@ from trapApp.scrapers.base import BaseScraper
 class HugoBossScraper(BaseScraper):
     brand_name = 'Hugo Boss'
     base_url   = 'https://www.hugoboss.com'
-    PAGE_SIZE  = 4
+    PAGE_SIZE  = 24
 
+    # (path, category, subcategory, formality, gender, seasons)
     CATEGORY_MAP = [
-        ('/uk/men-shirts/',      'tops',      'smart_casual', 'M'),
-        ('/uk/men-polo-shirts/', 'tops',      'smart_casual', 'M'),
-        ('/uk/men-trousers/',    'bottoms',   'smart_casual', 'M'),
-        ('/uk/men-suits/',       'layering',  'formal',       'M'),
-        ('/uk/men-jackets/',     'outerwear', 'smart_casual', 'M'),
-        ('/uk/men-jeans/',       'bottoms',   'casual',       'M'),
-        ('/uk/women-dresses/',   'onepiece',  'cocktail',     'F'),
-        ('/uk/women-blouses/',   'tops',      'smart_casual', 'F'),
-        ('/uk/women-trousers/',  'bottoms',   'smart_casual', 'F'),
+        ('/uk/men-shirts/',       'tops',      'shirt',    'business_casual', 'M', ['spring', 'summer', 'autumn']),
+        ('/uk/men-polo-shirts/',  'tops',      't_shirt',  'smart_casual',    'M', ['spring', 'summer']),
+        ('/uk/men-t-shirts/',     'tops',      't_shirt',  'smart_casual',    'M', ['spring', 'summer']),
+        ('/uk/men-trousers/',     'bottoms',   'trousers', 'business_casual', 'M', ['spring', 'autumn', 'winter']),
+        ('/uk/men-suits/',        'layering',  'suit_set', 'business_formal', 'M', ['spring', 'autumn', 'winter']),
+        ('/uk/men-jackets/',      'outerwear', 'coat',     'smart_casual',    'M', ['autumn', 'winter']),
+        ('/uk/men-jeans/',        'bottoms',   'jeans',    'smart_casual',    'M', ['spring', 'summer', 'autumn', 'winter']),
+        ('/uk/women-dresses/',    'onepiece',  'dress',    'cocktail',        'F', ['spring', 'summer', 'autumn']),
+        ('/uk/women-blouses/',    'tops',      'blouse',   'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('/uk/women-trousers/',   'bottoms',   'trousers', 'smart_casual',    'F', ['spring', 'autumn', 'winter']),
+        ('/uk/women-skirts/',     'bottoms',   'skirt',    'smart_casual',    'F', ['spring', 'summer', 'autumn']),
+        ('/uk/women-jackets/',    'outerwear', 'coat',     'smart_casual',    'F', ['autumn', 'winter']),
     ]
+
+    CATEGORY_LIMIT = 20
 
     HEADERS = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -32,12 +39,10 @@ class HugoBossScraper(BaseScraper):
     }
 
     def run(self):
-        for path, category, formality, gender in self.CATEGORY_MAP:
-            self._scrape_category(path, category, formality, gender)
+        for path, category, subcategory, formality, gender, seasons in self.CATEGORY_MAP:
+            self._scrape_category(path, category, subcategory, formality, gender, seasons)
 
-    CATEGORY_LIMIT = 20
-
-    def _scrape_category(self, path, category, formality, gender):
+    def _scrape_category(self, path, category, subcategory, formality, gender, seasons):
         start = 0
         seen: set[str] = set()
 
@@ -66,22 +71,25 @@ class HugoBossScraper(BaseScraper):
                     continue
                 seen.add(source_url)
                 new += 1
-                print(f'[Hugo Boss] img: {image_url[:80] if image_url else "EMPTY"}')
                 self.save_item({
-                    'name':       name[:255],
-                    'source_url': source_url[:500],
-                    'category':   category,
-                    'formality':  formality,
-                    'price':      price,
-                    'currency':   'GBP',
-                    'image_url':  image_url[:500] if image_url else '',
-                    'color':      '',
-                    'material':   '',
-                    'pattern':    'solid',
-                    'gender':     gender,
+                    'name':        name[:255],
+                    'source_url':  source_url[:255],
+                    'category':    category,
+                    'subcategory': subcategory,
+                    'formality':   formality,
+                    'price':       price,
+                    'currency':    'GBP',
+                    'image_url':   image_url[:500] if image_url else '',
+                    'color':       '',
+                    'material':    '',
+                    'pattern':     'solid',
+                    'gender':      gender,
+                    'seasons':     seasons,
+                    'tag_source':  'scraper',
+                    'tagged_at':   timezone.now(),
                 }, [])
 
-            print(f'[Hugo Boss] start={start}: {new} нових')
+            print(f'[Hugo Boss] start={start}: {new} нових, всього {len(seen)}')
 
             if len(seen) >= self.CATEGORY_LIMIT:
                 print(f'[Hugo Boss] {path}: ліміт {self.CATEGORY_LIMIT} — стоп')
@@ -104,10 +112,8 @@ class HugoBossScraper(BaseScraper):
             if not href:
                 continue
             source_url = href if href.startswith('http') else self.base_url + href
-
             if source_url in seen_urls:
                 continue
-
             if not any(x in source_url for x in ['.html', '/p/', 'product']):
                 if re.search(r'-\d{5,}', source_url) is None:
                     continue
@@ -118,7 +124,6 @@ class HugoBossScraper(BaseScraper):
                 continue
             price = product_data.get('price') or None
 
-            # Image from data attribute (always present, clean URL)
             image_url = card.get('data-originalimage', '')
             if not image_url:
                 img = card.select_one('img[src*="hugoboss"]') or card.select_one('img')
