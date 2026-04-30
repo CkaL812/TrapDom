@@ -72,6 +72,15 @@
                         <span>Профіль</span>
                     </a>
 
+                    <a href="{% url 'my_outfits' %}"
+                       class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
+                              text-grunge-gray hover:text-off-white hover:bg-charcoal-800
+                              border-b border-charcoal-700 border-l-2 border-l-transparent
+                              hover:border-l-off-white transition-colors duration-150">
+                        <i class="fa-solid fa-layer-group w-3 text-center"></i>
+                        <span>Образи</span>
+                    </a>
+
                     <a href="{% url 'logout' %}"
                        class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
                               text-grunge-gray hover:text-red-400 hover:bg-charcoal-800
@@ -136,6 +145,10 @@
             <a href="{% url 'note_list' %}"
                 class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
                 Мої заходи
+            </a>
+            <a href="{% url 'my_outfits' %}"
+                class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
+                Мої образи
             </a>
             {% endif %}
         </div>

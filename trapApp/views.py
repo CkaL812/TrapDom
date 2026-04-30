@@ -13,7 +13,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import ClothingItem, Event, CustomUser, Brand, Note, Style
+from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit
 from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm, NoteForm
 from .cart import Cart
 
@@ -1174,9 +1174,104 @@ def wardrobe_upload(request):
     all_matched = [item for _, items in ordered_cat_items for item in items]
     cat_main_label = _WARDROBE_CATEGORY_LABELS.get(category, {}).get('title', category)
 
+    saved_outfit_id = None
+    if request.user.is_authenticated:
+        outfit_obj = SavedOutfit.objects.create(
+            user=request.user,
+            source='wardrobe',
+            name=f'Гардероб — {cat_main_label}',
+            photo=saved_path,
+        )
+        outfit_obj.items.set(all_matched)
+        saved_outfit_id = outfit_obj.pk
+
     return render(request, 'trapApp/wardrobe_results.html', {
         'upload_image_url':        upload_image_url,
         'uploaded_category_label': cat_main_label,
         'ordered_cat_items':       ordered_cat_items,
         'all_matched':             all_matched,
+        'saved_outfit_id':         saved_outfit_id,
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ЗБЕРЕЖЕНІ ОБРАЗИ
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required(login_url='/login/')
+def my_outfits(request):
+    outfits = (
+        SavedOutfit.objects
+        .filter(user=request.user)
+        .prefetch_related('items__brand')
+        .order_by('-created_at')
+    )
+    return render(request, 'trapApp/my_outfits.html', {'outfits': outfits})
+
+
+@login_required(login_url='/login/')
+def save_outfit(request):
+    """AJAX POST: зберігає образ з picker або note в SavedOutfit."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'bad json'}, status=400)
+
+    item_ids = [int(i) for i in body.get('item_ids', []) if str(i).isdigit()]
+    source   = body.get('source', 'picker')
+    name     = body.get('name', '') or 'Образ'
+    note_id  = body.get('note_id')
+
+    if source not in ('picker', 'wardrobe', 'note'):
+        source = 'picker'
+
+    outfit = SavedOutfit.objects.create(
+        user=request.user,
+        name=name,
+        source=source,
+    )
+    if item_ids:
+        outfit.items.set(ClothingItem.objects.filter(id__in=item_ids))
+    if note_id:
+        try:
+            outfit.note = Note.objects.get(pk=note_id, user=request.user)
+            outfit.save(update_fields=['note'])
+        except Note.DoesNotExist:
+            pass
+
+    return JsonResponse({'status': 'ok', 'outfit_id': outfit.pk})
+
+
+@login_required(login_url='/login/')
+def outfit_detail(request, pk):
+    outfit = get_object_or_404(SavedOutfit, pk=pk, user=request.user)
+
+    items = sorted(
+        outfit.items.select_related('brand').all(),
+        key=lambda x: (CATEGORY_ORDER.index(x.category) if x.category in CATEGORY_ORDER else 99),
+    )
+
+    # Групуємо по категоріях
+    from itertools import groupby
+    ordered_cat_items = []
+    for cat_key in CATEGORY_ORDER:
+        cat_group = [i for i in items if i.category == cat_key]
+        if cat_group:
+            ordered_cat_items.append((cat_key, cat_group))
+
+    return render(request, 'trapApp/outfit_detail.html', {
+        'outfit':            outfit,
+        'items':             items,
+        'ordered_cat_items': ordered_cat_items,
+    })
+
+
+@login_required(login_url='/login/')
+def delete_outfit(request, pk):
+    outfit = get_object_or_404(SavedOutfit, pk=pk, user=request.user)
+    if request.method == 'POST':
+        outfit.delete()
+    return redirect('my_outfits')

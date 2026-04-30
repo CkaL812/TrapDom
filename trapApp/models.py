@@ -480,3 +480,40 @@ class Note(models.Model):
 
     def __str__(self):
         return f"{self.get_event_name_display()} — {self.event_date}"
+
+
+# ══════════════════════════════════════════════════════════════════
+#                     SAVED OUTFIT (збережені образи)
+# ══════════════════════════════════════════════════════════════════
+
+class SavedOutfit(models.Model):
+    SOURCE_CHOICES = [
+        ('picker',   'Підбір образу'),
+        ('wardrobe', 'Гардероб'),
+        ('note',     'Захід'),
+    ]
+
+    user       = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='saved_outfits')
+    name       = models.CharField(max_length=200, blank=True)
+    source     = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='picker')
+    items      = models.ManyToManyField(ClothingItem, blank=True, related_name='saved_outfits')
+    note       = models.ForeignKey(Note, on_delete=models.SET_NULL, null=True, blank=True, related_name='saved_outfits')
+    photo      = models.ImageField(upload_to='wardrobe_uploads/', null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['-created_at']
+        verbose_name        = 'Збережений образ'
+        verbose_name_plural = 'Збережені образи'
+
+    def __str__(self):
+        return f"{self.user.email} — {self.get_source_display()} — {self.created_at:%d.%m.%Y}"
+
+    def get_cover(self):
+        """Перше фото образу або фото завантажене користувачем."""
+        if self.photo:
+            return self.photo.url
+        first = self.items.exclude(image_url='').first()
+        if first:
+            return first.image_local.url if first.image_local else first.image_url
+        return None

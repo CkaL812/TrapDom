@@ -1,0 +1,175 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Мої образи — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Особистий кабінет</p>
+        <h1 class="font-mono text-4xl uppercase tracking-widest text-off-white">Мої образи</h1>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-10">
+
+        {% if outfits %}
+
+        <!-- Фільтр по джерелу -->
+        <div class="flex gap-0 mb-8 border-b border-charcoal-700 overflow-x-auto">
+            <button onclick="filterOutfits('all')" id="tab-all"
+                class="outfit-tab active px-5 py-3 font-mono text-[10px] uppercase tracking-widest whitespace-nowrap">
+                Всі <span class="outfit-tab-count ml-1">{{ outfits|length }}</span>
+            </button>
+            <button onclick="filterOutfits('picker')" id="tab-picker"
+                class="outfit-tab px-5 py-3 font-mono text-[10px] uppercase tracking-widest whitespace-nowrap">
+                Підбір образу
+            </button>
+            <button onclick="filterOutfits('wardrobe')" id="tab-wardrobe"
+                class="outfit-tab px-5 py-3 font-mono text-[10px] uppercase tracking-widest whitespace-nowrap">
+                Гардероб
+            </button>
+            <button onclick="filterOutfits('note')" id="tab-note"
+                class="outfit-tab px-5 py-3 font-mono text-[10px] uppercase tracking-widest whitespace-nowrap">
+                Заходи
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="outfits-grid">
+            {% for outfit in outfits %}
+            <div class="outfit-card bg-charcoal-800 border border-charcoal-700 hover:border-grunge-gray transition-all duration-200"
+                 data-source="{{ outfit.source }}">
+
+                <!-- Колаж фото (до 4 штук) -->
+                <a href="{% url 'outfit_detail' outfit.pk %}" class="relative aspect-[4/3] bg-charcoal-700 overflow-hidden block">
+                    {% with cover=outfit.get_cover %}
+                    {% if outfit.photo %}
+                        <img src="{{ outfit.photo.url }}" alt="{{ outfit.name }}"
+                             class="w-full h-full object-cover" loading="lazy">
+                    {% elif outfit.items.exists %}
+                        <div class="grid {% if outfit.items.count == 1 %}grid-cols-1{% else %}grid-cols-2{% endif %} h-full gap-[1px]">
+                            {% for item in outfit.items.all|slice:":4" %}
+                            <div class="overflow-hidden bg-charcoal-700">
+                                {% if item.image_local %}
+                                    <img src="{{ item.image_local.url }}" alt="{{ item.name }}"
+                                         class="w-full h-full object-cover" loading="lazy">
+                                {% elif item.image_url %}
+                                    <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                                         class="w-full h-full object-cover" loading="lazy">
+                                {% else %}
+                                    <div class="w-full h-full flex items-center justify-center">
+                                        <i class="fa-solid fa-shirt text-grunge-gray text-2xl"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fa-solid fa-layer-group text-grunge-gray text-4xl"></i>
+                        </div>
+                    {% endif %}
+                    {% endwith %}
+
+                    <!-- Бейдж джерела -->
+                    <span class="absolute top-2 left-2 px-2 py-1 text-[8px] font-mono uppercase tracking-widest bg-charcoal-900/90 text-grunge-gray border border-charcoal-700">
+                        {% if outfit.source == 'picker' %}Підбір
+                        {% elif outfit.source == 'wardrobe' %}Гардероб
+                        {% else %}Захід{% endif %}
+                    </span>
+                </a>
+
+                <!-- Інфо -->
+                <div class="p-4">
+                    <p class="font-mono text-xs text-off-white leading-tight mb-1 line-clamp-1">{{ outfit.name }}</p>
+                    <p class="font-mono text-[9px] text-grunge-gray mb-3">
+                        {{ outfit.created_at|date:"d.m.Y" }} · {{ outfit.items.count }} речей
+                    </p>
+
+                    <!-- Бренди -->
+                    {% with brands=outfit.items.all %}
+                    {% if brands %}
+                    <p class="font-mono text-[9px] text-grunge-gray truncate mb-3">
+                        {% for item in brands|slice:":3" %}{{ item.brand.name }}{% if not forloop.last %} · {% endif %}{% endfor %}
+                        {% if brands.count > 3 %}+{{ brands.count|add:"-3" }} ще{% endif %}
+                    </p>
+                    {% endif %}
+                    {% endwith %}
+
+                    <div class="flex items-center justify-between pt-3 border-t border-charcoal-700">
+                        <a href="{% url 'outfit_detail' outfit.pk %}"
+                           class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors flex items-center gap-1">
+                            <i class="fa-solid fa-eye text-[9px]"></i>
+                            Переглянути
+                        </a>
+
+                        <form method="post" action="{% url 'delete_outfit' outfit.pk %}"
+                              onsubmit="return confirm('Видалити образ?')">
+                            {% csrf_token %}
+                            <button type="submit"
+                                class="text-grunge-gray hover:text-red-500 transition-colors p-1"
+                                aria-label="Видалити">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% else %}
+
+        <!-- Порожній стан -->
+        <div class="border border-charcoal-700 bg-charcoal-800 py-24 text-center max-w-lg mx-auto mt-10">
+            <i class="fa-solid fa-layer-group text-grunge-gray text-5xl mb-6 block"></i>
+            <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray mb-2">Образів ще немає</p>
+            <p class="font-mono text-[10px] text-grunge-gray mb-8">Підбери образ або завантаж свій одяг</p>
+            <div class="flex gap-3 justify-center">
+                <a href="{% url 'outfit_picker' %}"
+                   class="border border-charcoal-700 hover:border-off-white text-grunge-gray hover:text-off-white font-mono text-[10px] uppercase tracking-widest px-5 py-3 transition-all">
+                    Підібрати образ
+                </a>
+                <a href="{% url 'wardrobe_upload' %}"
+                   class="border border-charcoal-700 hover:border-off-white text-grunge-gray hover:text-off-white font-mono text-[10px] uppercase tracking-widest px-5 py-3 transition-all">
+                    Гардероб
+                </a>
+            </div>
+        </div>
+
+        {% endif %}
+
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+.outfit-tab {
+    color: #3A3A3A;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: all 0.2s ease;
+    background: transparent;
+    cursor: pointer;
+}
+.outfit-tab:hover { color: #A0A0A0; }
+.outfit-tab.active { color: #F5F5F0; border-bottom-color: #F5F5F0; }
+.outfit-tab-count { color: #2A2A2A; }
+.outfit-card { transition: border-color 0.2s ease; }
+</style>
+<script>
+function filterOutfits(source) {
+    document.querySelectorAll('.outfit-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-' + source).classList.add('active');
+    document.querySelectorAll('.outfit-card').forEach(card => {
+        if (source === 'all' || card.dataset.source === source) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+</script>
+{% endblock %}
+

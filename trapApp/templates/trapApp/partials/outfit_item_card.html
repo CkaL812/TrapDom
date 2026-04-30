@@ -1,0 +1,45 @@
+<div class="item-card bg-charcoal-800">
+    <a href="{% url 'product_detail' item.pk %}" class="item-img-wrap aspect-[3/4] bg-charcoal-700 block">
+        {% if item.image_local %}
+            <img src="{{ item.image_local.url }}" alt="{{ item.name }}"
+                 class="w-full h-full object-cover" loading="lazy">
+        {% elif item.image_url %}
+            <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                 class="w-full h-full object-cover" loading="lazy">
+        {% else %}
+            <div class="w-full h-full flex items-center justify-center">
+                <i class="fa-solid fa-shirt text-grunge-gray text-3xl"></i>
+            </div>
+        {% endif %}
+        {% if item.sale_price %}
+        <span class="absolute top-2 right-2 bg-off-white text-charcoal-900 text-[9px] font-mono uppercase px-2 py-0.5">SALE</span>
+        {% endif %}
+    </a>
+    <div class="p-3">
+        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-1">{{ item.brand.name }}</p>
+        <p class="text-sm font-mono text-off-white leading-tight mb-2 line-clamp-2">{{ item.name }}</p>
+        {% if item.color %}
+        <div class="flex items-center gap-1 mb-2">
+            {% if item.color_hex %}<span class="color-dot" style="background-color:{{ item.color_hex }}"></span>{% endif %}
+            <span class="text-[10px] font-mono text-grunge-gray">{{ item.color }}</span>
+        </div>
+        {% endif %}
+        <div class="flex items-center justify-between pt-2 border-t border-charcoal-700">
+            <div>
+                {% if item.sale_price %}
+                    <span class="text-off-white font-mono text-xs font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                    <span class="text-grunge-gray font-mono text-[10px] line-through ml-1">{{ item.price }}</span>
+                {% elif item.price %}
+                    <span class="text-off-white font-mono text-xs">{{ item.price }} {{ item.currency }}</span>
+                {% else %}
+                    <span class="text-grunge-gray font-mono text-[10px]">— ціна —</span>
+                {% endif %}
+            </div>
+            <button onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                    class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                    aria-label="Додати в кошик">
+                <i class="fa-solid fa-bag-shopping text-base"></i>
+            </button>
+        </div>
+    </div>
+</div>

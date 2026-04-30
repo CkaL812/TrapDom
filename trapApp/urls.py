@@ -26,6 +26,12 @@ urlpatterns = [
     # ── Гардероб ───────────────────────────────────────────────────────────
     path('wardrobe/', views.wardrobe_upload, name='wardrobe_upload'),
 
+    # ── Збережені образи ───────────────────────────────────────────────────
+    path('outfits/',                     views.my_outfits,    name='my_outfits'),
+    path('outfits/save/',                views.save_outfit,   name='save_outfit'),
+    path('outfits/<int:pk>/',            views.outfit_detail, name='outfit_detail'),
+    path('outfits/<int:pk>/delete/',     views.delete_outfit, name='delete_outfit'),
+
     # ── Нотатки / заходи ───────────────────────────────────────────────────
     path('notes/',                        views.note_list,       name='note_list'),
     path('notes/new/',                    views.note_create,     name='note_create'),

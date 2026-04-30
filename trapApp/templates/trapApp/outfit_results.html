@@ -35,10 +35,22 @@
                     {% endif %}
                 </div>
             </div>
-            <a href="{% url 'outfit_picker' %}"
-                class="self-end border border-charcoal-700 bg-charcoal-800 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-5 py-3 transition-all duration-200 flex items-center gap-2">
-                Підібрати знову
-            </a>
+            <div class="flex gap-2 self-end flex-wrap">
+                {% if user.is_authenticated %}
+                <button id="save-outfit-btn"
+                    onclick="saveOutfitFromPicker(this)"
+                    data-item-ids="{% for item in items %}{{ item.id }}{% if not forloop.last %},{% endif %}{% endfor %}"
+                    data-name="{{ outfit_name }}"
+                    class="border border-charcoal-700 bg-charcoal-800 hover:border-off-white text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-5 py-3 transition-all duration-200 flex items-center gap-2">
+                    <i class="fa-regular fa-bookmark text-xs"></i>
+                    Зберегти образ
+                </button>
+                {% endif %}
+                <a href="{% url 'outfit_picker' %}"
+                    class="border border-charcoal-700 bg-charcoal-800 hover:border-grunge-gray text-grunge-gray hover:text-off-white font-mono text-xs uppercase tracking-widest px-5 py-3 transition-all duration-200 flex items-center gap-2">
+                    Підібрати знову
+                </a>
+            </div>
         </div>
 
     </div>
@@ -174,4 +186,27 @@
 
 {% block extra_js %}
 <script src="{% static 'trapApp/js/outfit_results_page.js' %}"></script>
+<script>
+function saveOutfitFromPicker(btn) {
+    const ids = btn.dataset.itemIds.split(',').map(Number).filter(Boolean);
+    const name = btn.dataset.name || 'Підібраний образ';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-check text-xs"></i> Збережено';
+    fetch('{% url "save_outfit" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({item_ids: ids, source: 'picker', name: name}),
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'ok') {
+            btn.classList.add('border-off-white', 'text-off-white');
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-regular fa-bookmark text-xs"></i> Зберегти образ';
+        }
+    })
+    .catch(() => { btn.disabled = false; });
+}
+</script>
 {% endblock %}

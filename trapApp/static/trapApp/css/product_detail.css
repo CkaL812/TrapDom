@@ -32,7 +32,7 @@
 .info-col .brand-label {
     font: 10px/1 'Courier New', monospace;
     text-transform: uppercase; letter-spacing: .15em;
-    color: #A0A0A0; margin-bottom: .25rem;
+    color: #C8C8C8; margin-bottom: .25rem;
 }
 .info-col .title {
     font: 400 1.4rem/1.2 'Courier New', monospace;
@@ -52,7 +52,7 @@
 .section-label {
     font: 10px/1 'Courier New', monospace;
     text-transform: uppercase; letter-spacing: .15em;
-    color: #A0A0A0; margin-bottom: .75rem;
+    color: #C8C8C8; margin-bottom: .75rem;
 }
 
 .sizes { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1.5rem; }
@@ -60,11 +60,11 @@
     min-width: 42px; height: 42px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid #2A2A2A; background: none;
-    color: #A0A0A0; font: 11px 'Courier New', monospace;
+    color: #C8C8C8; font: 11px 'Courier New', monospace;
     text-transform: uppercase; cursor: pointer;
     padding: 0 10px; transition: all .2s;
 }
-.size-btn:hover { border-color: #A0A0A0; color: #F5F5F0; }
+.size-btn:hover { border-color: #C8C8C8; color: #F5F5F0; }
 .size-btn.active { border-color: #F5F5F0; color: #F5F5F0; background: #2A2A2A; }
 .size-btn.no-stock { opacity: .25; cursor: not-allowed; text-decoration: line-through; }
 
@@ -73,7 +73,7 @@
     font: 11px 'Courier New', monospace;
     text-transform: uppercase; letter-spacing: .05em;
     padding: 6px 14px; border: 1px solid #2A2A2A;
-    color: #A0A0A0; margin-bottom: 1.5rem;
+    color: #C8C8C8; margin-bottom: 1.5rem;
 }
 .color-tag .swatch {
     width: 12px; height: 12px; border-radius: 50%; border: 1px solid #444;
@@ -84,10 +84,10 @@
     width: 42px; height: 42px;
     display: flex; align-items: center; justify-content: center;
     border: 1px solid #2A2A2A; background: none;
-    color: #A0A0A0; font-size: 14px;
+    color: #C8C8C8; font-size: 14px;
     cursor: pointer; transition: all .2s;
 }
-.qty button:hover { border-color: #A0A0A0; color: #F5F5F0; }
+.qty button:hover { border-color: #C8C8C8; color: #F5F5F0; }
 .qty .num {
     width: 56px; height: 42px;
     display: flex; align-items: center; justify-content: center;
@@ -96,7 +96,7 @@
 }
 
 .desc {
-    font-size: .875rem; line-height: 1.7; color: #A0A0A0;
+    font-size: .875rem; line-height: 1.7; color: #C8C8C8;
     margin-bottom: 1.5rem; padding-bottom: 1.5rem;
     border-bottom: 1px solid #2A2A2A;
 }
@@ -112,7 +112,7 @@
 .btn-cart { border: 1px solid #F5F5F0; background: none; color: #F5F5F0; }
 .btn-cart:hover { background: #F5F5F0; color: #121212; }
 .btn-buy { border: none; background: #F5F5F0; color: #121212; font-weight: 700; }
-.btn-buy:hover { background: #A0A0A0; }
+.btn-buy:hover { background: #C8C8C8; }
 
 .related { max-width: 1200px; margin: 0 auto; padding: 0 1.5rem 4rem; }
 .related-items { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; }
@@ -120,7 +120,7 @@
     border: 1px solid #2A2A2A; background: #1E1E1E;
     transition: border-color .2s; text-decoration: none; color: inherit; display: block;
 }
-.rel-card:hover { border-color: #A0A0A0; }
+.rel-card:hover { border-color: #C8C8C8; }
 .rel-card .ri { aspect-ratio: 3/4; overflow: hidden; background: #2A2A2A; }
 .rel-card .ri img { width: 100%; height: 100%; object-fit: cover; }
 .rel-card .rb { padding: .75rem; }
@@ -130,7 +130,7 @@
     display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
     -webkit-box-orient: vertical; overflow: hidden;
 }
-.rel-card .rp { font: 11px 'Courier New', monospace; color: #A0A0A0; }
+.rel-card .rp { font: 11px 'Courier New', monospace; color: #C8C8C8; }
 
 @media(max-width:768px)  { .product-grid  { grid-template-columns: 1fr; gap: 2rem; } }
 @media(max-width:1024px) { .related-items { grid-template-columns: repeat(3,1fr); } }

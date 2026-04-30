@@ -15,7 +15,7 @@
         <div class="flex items-end justify-between flex-wrap gap-4">
             <div>
                 <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Гардероб / Результат</p>
-                <h1 class="font-bebas text-4xl tracking-widest text-off-white">Підібраний образ</h1>
+                <h1 class="font-mono text-3xl uppercase tracking-widest text-off-white">Підібраний образ</h1>
             </div>
             <a href="{% url 'wardrobe_upload' %}" class="wr-btn-secondary">
                 <i class="fa-solid fa-arrow-left" style="font-size:9px;"></i>
@@ -43,8 +43,8 @@
             <!-- Підібрані речі -->
             <div class="wr-hero-info">
                 {% for cat, items in ordered_cat_items %}
-                <div style="margin-bottom:32px;">
-                    <p style="font-family:'Courier New',monospace;font-size:9px;letter-spacing:0.3em;text-transform:uppercase;color:#3A3A3A;padding-bottom:10px;border-bottom:1px solid #1A1A1A;margin-bottom:12px;">
+                <div style="margin-bottom:40px;">
+                    <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray pb-3 mb-4" style="border-bottom:1px solid #1A1A1A;">
                         {% if cat == 'tops' %}Верх
                         {% elif cat == 'layering' %}Другий шар
                         {% elif cat == 'bottoms' %}Низ
@@ -54,102 +54,72 @@
                         {% elif cat == 'accessory' %}Аксесуари
                         {% else %}{{ cat }}{% endif %}
                     </p>
-                    <div class="wr-grid">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                         {% for item in items %}
-                        <a href="{% url 'product_detail' item.pk %}" class="wr-card wr-card-visible">
-                            <div class="wr-card-img">
+                        <div class="item-card bg-charcoal-800">
+
+                            <!-- Фото -->
+                            <a href="{% url 'product_detail' item.pk %}" class="item-img-wrap aspect-[3/4] bg-charcoal-700 block">
                                 {% if item.image_local %}
-                                    <img src="{{ item.image_local.url }}" alt="{{ item.name }}" loading="lazy">
+                                    <img src="{{ item.image_local.url }}" alt="{{ item.name }}"
+                                         class="w-full h-full object-cover" loading="lazy">
                                 {% elif item.image_url %}
-                                    <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+                                    <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                                         class="w-full h-full object-cover" loading="lazy">
                                 {% else %}
-                                    <div class="wr-card-no-img"><i class="fa-solid fa-shirt"></i></div>
+                                    <div class="w-full h-full flex items-center justify-center">
+                                        <i class="fa-solid fa-shirt text-grunge-gray text-3xl"></i>
+                                    </div>
                                 {% endif %}
                                 {% if item.sale_price %}
-                                    <span class="wr-card-sale-badge">SALE</span>
+                                <span class="absolute top-2 right-2 bg-off-white text-charcoal-900 text-[9px] font-mono uppercase px-2 py-0.5">SALE</span>
                                 {% endif %}
-                            </div>
-                            <div class="wr-card-info">
-                                <p class="wr-card-brand">{{ item.brand.name }}</p>
-                                <p class="wr-card-name">{{ item.name }}</p>
-                                <div class="wr-card-price">
-                                    {% if item.sale_price %}
-                                        <span class="wr-price-sale">{{ item.sale_price }} {{ item.currency }}</span>
-                                        <span class="wr-price-old">{{ item.price }}</span>
-                                    {% elif item.price %}
-                                        <span class="wr-price-main">{{ item.price }} {{ item.currency }}</span>
-                                    {% else %}
-                                        <span class="wr-price-na">— ціна —</span>
-                                    {% endif %}
+                            </a>
+
+                            <!-- Інфо -->
+                            <div class="p-3">
+                                <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-1">{{ item.brand.name }}</p>
+                                <p class="text-sm font-mono text-off-white leading-tight mb-2 line-clamp-2">{{ item.name }}</p>
+                                {% if item.color %}
+                                <div class="flex items-center gap-1 mb-2">
+                                    {% if item.color_hex %}<span class="color-dot" style="background-color:{{ item.color_hex }}"></span>{% endif %}
+                                    <span class="text-[10px] font-mono text-grunge-gray">{{ item.color }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="flex items-center justify-between pt-2 border-t border-charcoal-700">
+                                    <div>
+                                        {% if item.sale_price %}
+                                            <span class="text-off-white font-mono text-xs font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                            <span class="text-grunge-gray font-mono text-[10px] line-through ml-1">{{ item.price }}</span>
+                                        {% elif item.price %}
+                                            <span class="text-off-white font-mono text-xs">{{ item.price }} {{ item.currency }}</span>
+                                        {% else %}
+                                            <span class="text-grunge-gray font-mono text-[10px]">— ціна —</span>
+                                        {% endif %}
+                                    </div>
+                                    <button
+                                        onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                        class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                        aria-label="Додати в кошик">
+                                        <i class="fa-solid fa-bag-shopping text-base"></i>
+                                    </button>
                                 </div>
                             </div>
-                        </a>
+                        </div>
                         {% endfor %}
                     </div>
                 </div>
                 {% empty %}
-                <div class="wr-empty">
-                    <i class="fa-solid fa-shirt"></i>
-                    Не знайдено підходящих речей у магазині
+                <div class="border border-charcoal-700 bg-charcoal-800 p-16 text-center">
+                    <i class="fa-solid fa-shirt text-grunge-gray text-4xl mb-4 block"></i>
+                    <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest">Не знайдено підходящих речей у магазині</p>
                 </div>
                 {% endfor %}
             </div>
         </div>
-
-        <!-- Outfit board -->
-        {% if all_matched %}
-        <div style="margin-top:40px;">
-            <div class="wr-board-header">
-                <span class="wr-board-title">Образ цілком</span>
-                <div class="wr-board-line"></div>
-                <span class="wr-board-count">{{ all_matched|length }} речей</span>
-            </div>
-            <div class="wr-board">
-                <!-- Ваша річ -->
-                <div class="wr-board-item wr-board-yours">
-                    <div class="wr-board-thumb">
-                        <img src="{{ upload_image_url }}" alt="Ваш одяг">
-                        <div class="wr-board-badge yours">Ваш одяг</div>
-                    </div>
-                    <span class="wr-board-label">{{ uploaded_category_label }}</span>
-                </div>
-
-                <!-- Розділювач -->
-                <div class="wr-board-plus">+</div>
-
-                <!-- Підібрані -->
-                {% for item in all_matched %}
-                <a href="{% url 'product_detail' item.pk %}" class="wr-board-item">
-                    <div class="wr-board-thumb">
-                        {% if item.image_local %}
-                            <img src="{{ item.image_local.url }}" alt="{{ item.name }}" loading="lazy">
-                        {% elif item.image_url %}
-                            <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
-                        {% else %}
-                            <div class="wr-board-no-img"><i class="fa-solid fa-shirt"></i></div>
-                        {% endif %}
-                        <div class="wr-board-hover-info">
-                            <p class="wr-board-hover-brand">{{ item.brand.name }}</p>
-                            <p class="wr-board-hover-price">
-                                {% if item.sale_price %}{{ item.sale_price }}
-                                {% elif item.price %}{{ item.price }}
-                                {% endif %}
-                                {% if item.currency %}{{ item.currency }}{% endif %}
-                            </p>
-                        </div>
-                    </div>
-                    <span class="wr-board-label">{{ item.get_category_display }}</span>
-                </a>
-                {% if not forloop.last %}
-                <div class="wr-board-connector"></div>
-                {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
 
         <!-- Повторити -->
-        <div style="text-align:center;padding-top:40px;">
+        <div style="text-align:center;padding-top:48px;border-top:1px solid #1A1A1A;margin-top:48px;">
             <a href="{% url 'wardrobe_upload' %}" class="wr-btn-secondary">
                 <i class="fa-solid fa-rotate-right"></i>
                 Підібрати інший образ

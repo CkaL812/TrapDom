@@ -12,7 +12,7 @@
 
     <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
         <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Гардероб</p>
-        <h1 class="font-bebas text-5xl tracking-widest text-off-white">Підбір образу</h1>
+        <h1 class="font-mono text-4xl uppercase tracking-widest text-off-white">Підбір образу</h1>
         <p class="mt-3 text-[11px] font-mono text-grunge-gray max-w-lg leading-relaxed">
             Завантажте фото власного одягу — система підбере речі з магазину що пасують до вашого образу за кольором і категорією.
         </p>
@@ -50,7 +50,7 @@
                     <!-- Категорія -->
                     <div>
                         <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-1">Що ви завантажили?</p>
-                        <p class="text-[9px] font-mono text-charcoal-700 mb-4">Оберіть категорію вашого одягу</p>
+                        <p class="text-[9px] font-mono text-grunge-gray mb-4">Оберіть категорію вашого одягу</p>
                         <div class="wr-cat-list">
                             {% for cat_key, labels in wardrobe_categories.items %}
                             <div class="wr-cat-chip">
@@ -91,7 +91,7 @@
                             </div>
                             <div id="submit-progress-bar"></div>
                         </button>
-                        <p class="mt-3 text-[9px] font-mono text-charcoal-700 text-center">
+                        <p class="mt-3 text-[9px] font-mono text-grunge-gray text-center">
                             Підбір враховує колір вашого одягу
                         </p>
                     </div>
@@ -161,3 +161,4 @@
 })();
 </script>
 {% endblock %}
+

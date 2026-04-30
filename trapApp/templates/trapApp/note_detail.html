@@ -168,7 +168,7 @@
             <div class="flex items-center gap-3 mb-3">
                 <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">{{ group.grouper }}</p>
                 <div class="flex-1 border-t border-charcoal-700"></div>
-                <span class="font-mono text-[8px] text-charcoal-700">{{ group.list|length }}</span>
+                <span class="font-mono text-[8px] text-grunge-gray">{{ group.list|length }}</span>
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {% for item in group.list %}
@@ -184,7 +184,7 @@
                              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         {% else %}
                         <div class="w-full h-full flex items-center justify-center">
-                            <i class="fa-regular fa-image text-charcoal-700 text-2xl"></i>
+                            <i class="fa-regular fa-image text-grunge-gray text-2xl"></i>
                         </div>
                         {% endif %}
                         <span class="absolute bottom-0 left-0 right-0 px-2 py-1 bg-charcoal-900/80
@@ -253,3 +253,4 @@
     </div>
 </main>
 {% endblock %}
+

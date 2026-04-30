@@ -3,7 +3,7 @@
    ═══════════════════════════════════════════════════ */
 
 /* ── Collapsible ── */
-.collapsible-menu.is-open { border-color: #A0A0A0; }
+.collapsible-menu.is-open { border-color: #C8C8C8; }
 .collapsible-trigger      { cursor: pointer; }
 .collapsible-body {
     overflow: hidden;
@@ -23,26 +23,26 @@
 }
 .event-wheel-item.active {
     color: #F5F5F0;
-    border-left: 2px solid #A0A0A0;
+    border-left: 2px solid #C8C8C8;
     background: #2A2A2A;
 }
 
 /* ── Legacy ── */
 .option-card            { cursor: pointer; transition: all 0.2s ease; border: 1px solid #2A2A2A; }
-.option-card:hover      { border-color: #A0A0A0; }
-.option-card.selected   { border-color: #A0A0A0; background: #1E1E1E; }
+.option-card:hover      { border-color: #C8C8C8; }
+.option-card.selected   { border-color: #C8C8C8; background: #1E1E1E; }
 
 /* ── Style chips ── */
 .style-chip {
     background: #1E1E1E;
     border-color: #2A2A2A;
-    color: #A0A0A0;
+    color: #C8C8C8;
     cursor: pointer;
     user-select: none;
 }
-.style-chip:hover          { border-color: #A0A0A0; color: #F5F5F0; }
+.style-chip:hover          { border-color: #C8C8C8; color: #F5F5F0; }
 .style-chip.selected       { background: #F5F5F0; border-color: #F5F5F0; color: #1E1E1E; }
-.style-chip.selected:hover { background: #A0A0A0; border-color: #A0A0A0; }
+.style-chip.selected:hover { background: #C8C8C8; border-color: #C8C8C8; }
 
 /* ── Selects ── */
 select {
@@ -59,7 +59,7 @@ select {
     bottom: 0;
     left: 0;
     height: 2px;
-    background: #A0A0A0;
+    background: #C8C8C8;
     width: 0%;
     transition: width 0.2s ease;
 }
@@ -75,7 +75,7 @@ select {
     position: relative;
     transition: border-color 0.3s ease;
 }
-.age-module.is-active { border-color: #A0A0A0; }
+.age-module.is-active { border-color: #C8C8C8; }
 
 /* Великий display (як на старому цифровому приладі) */
 .age-display-box {
@@ -105,14 +105,14 @@ select {
 }
 
 .age-module.is-active .age-display-box {
-    border-color: #A0A0A0;
+    border-color: #C8C8C8;
 }
 
 .age-display {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 32px;
     line-height: 0.95;
-    color: #A0A0A0;
+    color: #C8C8C8;
     font-weight: 300;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
@@ -135,7 +135,7 @@ select {
     font-size: 8px;
     text-transform: uppercase;
     letter-spacing: 0.3em;
-    color: #3A3A3A;
+    color: #888888;
     margin-top: 4px;
 }
 
@@ -148,7 +148,7 @@ select {
     justify-content: center;
     border: 1px solid #2A2A2A;
     background: #1E1E1E;
-    color: #A0A0A0;
+    color: #C8C8C8;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 14px;
     line-height: 1;
@@ -186,10 +186,10 @@ select {
 }
 .age-tick.age-tick-major {
     height: 12px;
-    background: #3A3A3A;
+    background: #888888;
 }
 .age-tick.active {
-    background: #A0A0A0;
+    background: #C8C8C8;
 }
 .age-tick.active.age-tick-major {
     background: #F5F5F0;
@@ -240,7 +240,7 @@ select {
     position: relative;
     transition: border-color 0.3s ease;
 }
-.budget-module.is-active { border-color: #A0A0A0; }
+.budget-module.is-active { border-color: #C8C8C8; }
 
 .eq-canvas {
     position: relative;
@@ -258,7 +258,7 @@ select {
 }
 
 .budget-module.is-active .eq-canvas {
-    border-color: #3A3A3A;
+    border-color: #888888;
 }
 
 /* Сітка на фоні canvas (subtle) */

@@ -5,7 +5,7 @@
     border-left: 2px solid transparent;
 }
 .cat-btn:hover { color: #F5F5F0; background: #2A2A2A; }
-.cat-btn.active { color: #121212; border-left-color: #A0A0A0; background: #A0A0A0; }
+.cat-btn.active { color: #121212; border-left-color: #C8C8C8; background: #C8C8C8; }
 
 .subcat-filter-btn {
     cursor: pointer;
@@ -19,4 +19,4 @@
     transition: all 0.2s ease;
     border: 1px solid #2A2A2A;
 }
-.item-card:hover { border-color: #A0A0A0; }
+.item-card:hover { border-color: #C8C8C8; }

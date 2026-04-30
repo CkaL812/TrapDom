@@ -79,13 +79,13 @@
                     <div class="border-t border-charcoal-700 bg-charcoal-900">
                         <a href="{% url 'brand_category' brand.slug category_key %}{% if gender %}?gender={{ gender }}{% endif %}"
                            class="subcat-btn {% if not subcategory_key %}active{% endif %}">
-                            Усі <span class="text-charcoal-700 ml-1">({{ cat_count }})</span>
+                            Усі <span class="text-grunge-gray ml-1">({{ cat_count }})</span>
                         </a>
                         {% for sub_key, sub_label, sub_count in subcategories %}
                         <a href="{% url 'brand_category' brand.slug category_key %}?subcat={{ sub_key }}{% if gender %}&gender={{ gender }}{% endif %}"
                            class="subcat-btn {% if sub_key == subcategory_key %}active{% endif %}">
                             {{ sub_label }}
-                            <span class="text-charcoal-700 ml-1">({{ sub_count }})</span>
+                            <span class="text-grunge-gray ml-1">({{ sub_count }})</span>
                         </a>
                         {% endfor %}
                     </div>
@@ -230,4 +230,4 @@
         </div>
     </div>
 </main>
-{% endblock %}
+{% endblock %}
