@@ -6,9 +6,11 @@ class TrapappConfig(AppConfig):
     name = 'trapApp'
 
     def ready(self):
-        # Django reloader spawns a second process; only start the scheduler in the real one
-        if os.environ.get('RUN_MAIN') != 'true':
-            return
+        # При runserver з reloader: запускаємо тільки в дочірньому процесі (RUN_MAIN=true)
+        # При runserver --noreload або gunicorn: RUN_MAIN не встановлено → запускаємо одразу
+        run_main = os.environ.get('RUN_MAIN')
+        if run_main == 'false':
+            return  # батьківський процес reloader — пропускаємо
         self._start_scheduler()
 
     def _start_scheduler(self):

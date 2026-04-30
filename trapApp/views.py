@@ -220,8 +220,8 @@ def _filter_qs(qs, payload, formality_levels, opts):
             Q(gender='F') |
             (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
         )
-    else:  # 'U' — лише речі, явно позначені як унісекс
-        qs = qs.filter(gender='U')
+    else:  # 'U' — без обмеження по гендеру, показуємо всі
+        pass
 
     if season and opts.get('season', True):
         qs = qs.filter(seasons__name=season)
@@ -930,8 +930,7 @@ def note_outfit_builder(request, pk):
         base_items = base_items.filter(
             Q(gender='F') | (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
         )
-    else:
-        base_items = base_items.filter(gender='U')
+    # else U — без обмеження по гендеру, показуємо всі
 
     # Підкатегорії для поточної category (з кількостями)
     subcat_labels = dict(ClothingItem.SUBCATEGORY_CHOICES)
@@ -985,140 +984,162 @@ def note_reset_outfit(request, pk):
 
 _WARDROBE_COMPLEMENTS = {
     'tops':      ['bottoms', 'footwear', 'layering', 'accessory'],
-    'layering':  ['tops', 'bottoms', 'footwear'],
+    'layering':  ['bottoms', 'footwear', 'accessory'],
     'bottoms':   ['tops', 'footwear', 'layering', 'accessory'],
     'onepiece':  ['footwear', 'accessory', 'outerwear'],
-    'outerwear': ['tops', 'bottoms', 'footwear'],
-    'footwear':  ['tops', 'bottoms', 'outerwear'],
+    'outerwear': ['bottoms', 'footwear', 'accessory'],
+    'footwear':  ['tops', 'bottoms', 'accessory'],
     'accessory': ['tops', 'bottoms', 'footwear'],
 }
 
-_CLIP_TAGGER = None
+# Людські назви категорій для форми
+_WARDROBE_CATEGORY_LABELS = {
+    'tops':      {'title': 'Верх',         'hint': 'футболка · сорочка · топ'},
+    'layering':  {'title': 'Другий шар',   'hint': 'худі · светр · кардиган'},
+    'bottoms':   {'title': 'Низ',          'hint': 'штани · джинси · шорти'},
+    'onepiece':  {'title': 'Суцільний',    'hint': 'сукня · комбінезон'},
+    'outerwear': {'title': 'Верхній одяг', 'hint': 'куртка · пальто · пуховик'},
+    'footwear':  {'title': 'Взуття',       'hint': 'кросівки · черевики'},
+    'accessory': {'title': 'Аксесуар',     'hint': 'сумка · шапка · ремінь'},
+}
 
 
-def _get_wardrobe_clip():
-    """Singleton: завантажуємо CLIP один раз, потім кешуємо в пам'яті."""
-    global _CLIP_TAGGER
-    if _CLIP_TAGGER is None:
-        try:
-            from .tagger.clip_tagger import ClipTagger
-            _CLIP_TAGGER = ClipTagger()
-        except Exception as exc:
-            logger.warning(f'[wardrobe] CLIP недоступний: {exc}')
-    return _CLIP_TAGGER
-
-
-def _wardrobe_clip_analysis(pil_image):
+def _extract_dominant_color(pil_image):
     """
-    Намагається визначити formality та стилі завантаженого фото через CLIP.
-    Повертає (formality_str, styles_list). При невдачі — (None, []).
+    Повертає (h°, s, v) домінантного кольору одягу на фото.
+    Використовує тільки PIL + colorsys — без ML.
     """
-    tagger = _get_wardrobe_clip()
-    if tagger is None:
-        return None, []
+    import colorsys
     try:
-        img_emb = tagger._compute_image_embedding(pil_image)
-        formality, _ = tagger._classify(img_emb, tagger._formality_emb)
-        styles = [s for s, c in tagger._classify_topn(img_emb, tagger._style_emb, n=2) if c >= 0.2]
-        return formality, styles
-    except Exception as exc:
-        logger.warning(f'[wardrobe] CLIP аналіз не вдався: {exc}')
-        return None, []
+        img = pil_image.copy().convert('RGB')
+        w, h = img.size
+        # Центральна зона 60%×70% — відсікаємо фон і манекен/людину
+        x0, y0 = int(w * 0.2), int(h * 0.12)
+        x1, y1 = int(w * 0.8), int(h * 0.88)
+        region = img.crop((x0, y0, x1, y1))
+        region = region.resize((24, 24), resample=1)
+        pixels = list(region.getdata())
+        # Відфільтровуємо майже-білий фон і занадто темні пікселі
+        filtered = [
+            (r, g, b) for r, g, b in pixels
+            if 18 < (r + g + b) / 3 < 228
+        ]
+        if len(filtered) < 8:
+            filtered = pixels
+        r_avg = sum(p[0] for p in filtered) / len(filtered)
+        g_avg = sum(p[1] for p in filtered) / len(filtered)
+        b_avg = sum(p[2] for p in filtered) / len(filtered)
+        h_val, s_val, v_val = colorsys.rgb_to_hsv(r_avg / 255, g_avg / 255, b_avg / 255)
+        return round(h_val * 360, 1), round(s_val, 3), round(v_val, 3)
+    except Exception:
+        return None, None, None
 
 
-_WARDROBE_PASSES = [
-    {'formality': True,  'styles': True,  'season': True},
-    {'formality': True,  'styles': True,  'season': False},
-    {'formality': True,  'styles': False, 'season': False},
-    {'formality': False, 'styles': False, 'season': False},
-]
-
-
-def _wardrobe_pick_items(complement_cats, formality, styles, gender_code, season=None):
+def _color_harmony_score(item_hex, dominant_hsv):
     """
-    Для кожної комплементарної категорії підбирає найкращі 3 товари.
-    Прогресивно послаблює фільтри (formality → styles → season) до першого успіху.
-    Сортує по кількості збігів стилів (style_match).
+    Повертає 0–10: наскільки колір item_hex гармонує з dominant_hsv.
+    Вищий score → більш гармонійна пара.
+    Використовує тільки colorsys (stdlib).
     """
-    nearby_formalities = FORMALITY_MAP.get(formality, []) if formality else []
+    dh, ds, dv = dominant_hsv
+    if not item_hex or dh is None:
+        return 5  # немає даних → нейтральний score
 
+    import colorsys
+    try:
+        hx = item_hex.lstrip('#')
+        if len(hx) != 6:
+            return 5
+        r = int(hx[0:2], 16) / 255
+        g = int(hx[2:4], 16) / 255
+        b = int(hx[4:6], 16) / 255
+        ih, is_, iv = colorsys.rgb_to_hsv(r, g, b)
+        ih *= 360
+
+        # Нейтральні речі (чорний/білий/сірий/беж) підходять до всього
+        if is_ < 0.15 or iv < 0.12:
+            return 9
+        # Якщо uploaded item нейтральний — підходить будь-що
+        if ds < 0.15:
+            return 8
+
+        hue_diff = abs(ih - dh)
+        if hue_diff > 180:
+            hue_diff = 360 - hue_diff
+
+        if hue_diff <= 15:             return 10  # монохромний
+        if hue_diff <= 30:             return 9   # аналогічний
+        if hue_diff <= 60:             return 7   # близько аналогічний
+        if 150 <= hue_diff <= 210:     return 6   # комплементарний
+        if hue_diff <= 90:             return 4   # тріадний
+        return 2                                   # конфліктний
+    except Exception:
+        return 5
+
+
+def _wardrobe_pick_items(complement_cats, gender_code, dominant_hsv=None, per_cat=4):
+    """
+    Підбирає per_cat товарів для кожної категорії.
+    Якщо є dominant_hsv — сортує пул за колірною гармонією,
+    береться верхній ешелон з невеликою рандомізацією.
+    """
+    use_color = dominant_hsv and dominant_hsv[0] is not None
     cat_items = {}
-    for cat in complement_cats:
-        base_qs = ClothingItem.objects.filter(category=cat).select_related('brand')
 
-        # Гендерний фільтр
+    for cat in complement_cats:
+        qs = ClothingItem.objects.filter(category=cat).select_related('brand')
         if gender_code == 'M':
-            base_qs = base_qs.filter(
+            qs = qs.filter(
                 Q(gender='M') | (Q(gender='U') & ~Q(subcategory__in=_FEMALE_ONLY_SUBCATS))
             )
         elif gender_code == 'F':
-            base_qs = base_qs.filter(
+            qs = qs.filter(
                 Q(gender='F') | (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
             )
 
-        picked = []
-        for opts in _WARDROBE_PASSES:
-            qs = base_qs
+        pool = list(qs.order_by('?')[:100])
+        if not pool:
+            continue
 
-            if opts['formality'] and nearby_formalities:
-                qs = qs.filter(formality__in=nearby_formalities)
-
-            if opts['styles'] and styles:
-                qs = qs.filter(styles__name__in=styles).distinct()
-
-            if opts['season'] and season:
-                qs = qs.filter(seasons__name=season)
-
-            # Сортуємо по кількості збігів стилів → найбільш релевантні першими
-            if styles and opts['styles']:
-                qs = qs.annotate(
-                    style_match=Count('styles', filter=Q(styles__name__in=styles))
-                ).order_by('-style_match', 'id')
-            else:
-                qs = qs.order_by('id')
-
-            pool = list(qs[:30])
-            if pool:
-                # Беремо топ-3, але додаємо трохи варіативності серед рівноцінних
-                top_score = getattr(pool[0], 'style_match', 0)
-                same_score = [x for x in pool if getattr(x, 'style_match', 0) == top_score]
-                rest       = [x for x in pool if getattr(x, 'style_match', 0) < top_score]
-                picked = random.sample(same_score, min(3, len(same_score)))
-                if len(picked) < 3 and rest:
-                    picked += random.sample(rest, min(3 - len(picked), len(rest)))
-                break
-
-        if picked:
-            cat_items[cat] = picked
+        if use_color and len(pool) > per_cat:
+            scored = [(item, _color_harmony_score(item.color_hex, dominant_hsv)) for item in pool]
+            scored.sort(key=lambda x: x[1], reverse=True)
+            best_score = scored[0][1]
+            # Беремо всі items зі score в межах 2 балів від найкращого → рандомізуємо серед них
+            top_tier = [item for item, s in scored if s >= best_score - 2]
+            random.shuffle(top_tier)
+            cat_items[cat] = top_tier[:per_cat]
+        else:
+            cat_items[cat] = random.sample(pool, min(per_cat, len(pool)))
 
     return cat_items
 
 
 @login_required(login_url='/login/')
 def wardrobe_upload(request):
+    valid_cats = set(dict(ClothingItem.CATEGORY_CHOICES).keys())
+
     if request.method == 'GET':
         return render(request, 'trapApp/wardrobe_upload.html', {
-            'categories':    ClothingItem.CATEGORY_CHOICES,
-            'style_choices': Style.STYLE_CHOICES,
+            'wardrobe_categories': _WARDROBE_CATEGORY_LABELS,
         })
 
-    # ── POST: обробляємо завантажене фото ──────────────────────────────────
-    photo          = request.FILES.get('photo')
-    category       = request.POST.get('category', 'tops')
-    gender_raw     = request.POST.get('gender', 'U')
-    gender_code    = {'M': 'M', 'F': 'F', 'U': 'U'}.get(gender_raw, 'U')
-    form_styles    = request.POST.getlist('styles')          # обрані стилі з форми
-    form_formality = request.POST.get('formality', '')       # обрана формальність
-    season         = request.POST.get('season', '')
+    # ── POST ──────────────────────────────────────────────────────────────
+    photo       = request.FILES.get('photo')
+    gender_raw  = request.POST.get('gender', 'U')
+    category    = request.POST.get('category', 'tops')
+    gender_code = {'M': 'M', 'F': 'F', 'U': 'U'}.get(gender_raw, 'U')
+
+    if category not in valid_cats:
+        category = 'tops'
 
     if not photo:
         messages.error(request, 'Будь ласка, завантажте фото одягу')
         return render(request, 'trapApp/wardrobe_upload.html', {
-            'categories':  ClothingItem.CATEGORY_CHOICES,
-            'style_choices': Style.STYLE_CHOICES,
+            'wardrobe_categories': _WARDROBE_CATEGORY_LABELS,
         })
 
-    # Зберігаємо зображення в media/wardrobe/
+    # Зберігаємо фото
     from django.core.files.storage import default_storage
     from django.core.files.base import ContentFile
     import uuid
@@ -1130,44 +1151,32 @@ def wardrobe_upload(request):
     saved_path = default_storage.save(filename, ContentFile(photo.read()))
     upload_image_url = settings.MEDIA_URL + saved_path
 
-    # Опціональний CLIP аналіз стилю (доповнює вибір користувача, не замінює)
-    clip_formality  = None
-    clip_styles     = []
+    # Аналіз кольору через PIL (без ML)
+    dominant_hsv = (None, None, None)
     try:
         from PIL import Image as PILImage
         photo.seek(0)
         pil_img = PILImage.open(photo).convert('RGB')
-        clip_formality, clip_styles = _wardrobe_clip_analysis(pil_img)
-    except Exception:
-        pass
+        dominant_hsv = _extract_dominant_color(pil_img)
+        logger.info(f'[wardrobe] dominant HSV: {dominant_hsv}')
+    except Exception as exc:
+        logger.warning(f'[wardrobe] color extract failed: {exc}')
 
-    # Пріоритет: вибір користувача > CLIP
-    formality = form_formality or clip_formality
-    styles    = form_styles or clip_styles
+    # Підбір комплементів з колірним скорингом
+    complement_cats = _WARDROBE_COMPLEMENTS.get(category, ['bottoms', 'footwear', 'accessory'])
+    cat_items = _wardrobe_pick_items(complement_cats, gender_code, dominant_hsv)
 
-    # Підбір товарів з прогресивними фільтрами
-    complement_cats = _WARDROBE_COMPLEMENTS.get(category, ['tops', 'bottoms', 'footwear'])
-    cat_items = _wardrobe_pick_items(complement_cats, formality, styles, gender_code, season or None)
-
-    # Впорядковуємо категорії за CATEGORY_ORDER
     ordered_cat_items = [
         (cat, cat_items[cat])
         for cat in CATEGORY_ORDER
         if cat in cat_items
     ]
-
     all_matched = [item for _, items in ordered_cat_items for item in items]
-    category_labels = dict(ClothingItem.CATEGORY_CHOICES)
+    cat_main_label = _WARDROBE_CATEGORY_LABELS.get(category, {}).get('title', category)
 
     return render(request, 'trapApp/wardrobe_results.html', {
-        'upload_image_url':         upload_image_url,
-        'uploaded_category':        category,
-        'uploaded_category_label':  category_labels.get(category, category),
-        'gender_code':              gender_code,
-        'ordered_cat_items':        ordered_cat_items,
-        'category_labels':          category_labels,
-        'all_matched':              all_matched,
-        'detected_formality':       formality,
-        'detected_styles':          styles,
-        'categories':               ClothingItem.CATEGORY_CHOICES,
+        'upload_image_url':        upload_image_url,
+        'uploaded_category_label': cat_main_label,
+        'ordered_cat_items':       ordered_cat_items,
+        'all_matched':             all_matched,
     })

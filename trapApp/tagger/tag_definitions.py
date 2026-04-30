@@ -9,6 +9,22 @@
 
 
 # ══════════════════════════════════════════════════════════════════
+#  CLIP-ПРОМПТИ: category (7 основних)
+#  Використовується для класифікації фото від користувача у гардеробі.
+#  7 варіантів → softmax надійний (не 50+).
+# ══════════════════════════════════════════════════════════════════
+CATEGORY_PROMPTS = {
+    'tops':      'a photo of a shirt, t-shirt, blouse, or any top garment worn on the upper body',
+    'layering':  'a photo of a hoodie, sweater, cardigan, blazer, or layering piece worn over a top',
+    'bottoms':   'a photo of pants, jeans, trousers, shorts, or a skirt worn on the lower body',
+    'onepiece':  'a photo of a dress, jumpsuit, or one-piece garment covering the whole body',
+    'outerwear': 'a photo of a coat, jacket, puffer, or outer layer worn over clothes',
+    'footwear':  'a photo of shoes, sneakers, boots, sandals, or any footwear',
+    'accessory': 'a photo of a bag, belt, scarf, hat, sunglasses, or fashion accessory',
+}
+
+
+# ══════════════════════════════════════════════════════════════════
 #  CLIP-ПРОМПТИ: subcategory
 #  Для ефективності звужуються до категорії товару (tops → тільки tops-підкатегорії)
 # ══════════════════════════════════════════════════════════════════

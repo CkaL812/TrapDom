@@ -25,6 +25,7 @@ import requests
 from django.db.models import QuerySet
 
 from .tag_definitions import (
+    CATEGORY_PROMPTS,
     SUBCATEGORY_PROMPTS,
     STYLE_PROMPTS,
     FORMALITY_PROMPTS,
@@ -72,8 +73,9 @@ class ClipTagger:
 
         # Попередньо обчислюємо text embeddings для всіх промптів (один раз)
         log.info('[ClipTagger] Обчислення text embeddings...')
-        self._style_emb = self._precompute_text_embeddings(STYLE_PROMPTS)
-        self._formality_emb = self._precompute_text_embeddings(FORMALITY_PROMPTS)
+        self._category_emb    = self._precompute_text_embeddings(CATEGORY_PROMPTS)
+        self._style_emb       = self._precompute_text_embeddings(STYLE_PROMPTS)
+        self._formality_emb   = self._precompute_text_embeddings(FORMALITY_PROMPTS)
         self._subcategory_emb = self._precompute_text_embeddings(SUBCATEGORY_PROMPTS)
 
         log.info(f'[ClipTagger] Готово за {time.time()-t0:.1f}s. Device: {self.device}')
