@@ -7,6 +7,14 @@
 .cat-btn:hover { color: #F5F5F0; background: #2A2A2A; }
 .cat-btn.active { color: #121212; border-left-color: #A0A0A0; background: #A0A0A0; }
 
+.subcat-filter-btn {
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+    border-left: 2px solid transparent;
+}
+.subcat-filter-btn:hover { background: #1a1a1a; }
+.subcat-filter-btn.active { border-left-color: #F5F5F0; color: #F5F5F0 !important; }
+
 .item-card {
     transition: all 0.2s ease;
     border: 1px solid #2A2A2A;

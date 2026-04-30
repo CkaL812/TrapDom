@@ -37,10 +37,10 @@
             <div class="gender-filter-bar">
                 <span class="gender-filter-label">Стать</span>
                 <div class="gender-selector">
-                    <a href="{{ base_url }}" class="gender-card {% if not gender %}active{% endif %}">Всі</a>
-                    <a href="{{ base_url }}?gender=M" class="gender-card {% if gender == 'M' %}active{% endif %}">Чоловіча</a>
-                    <a href="{{ base_url }}?gender=F" class="gender-card {% if gender == 'F' %}active{% endif %}">Жіноча</a>
-                    <a href="{{ base_url }}?gender=U" class="gender-card {% if gender == 'U' %}active{% endif %}">Унісекс</a>
+                    <a href="{{ base_url }}{% if subcategory_key %}?subcat={{ subcategory_key }}{% endif %}" class="gender-card {% if not gender %}active{% endif %}">Всі</a>
+                    <a href="{{ base_url }}?{% if subcategory_key %}subcat={{ subcategory_key }}&{% endif %}gender=M" class="gender-card {% if gender == 'M' %}active{% endif %}">Чоловіча</a>
+                    <a href="{{ base_url }}?{% if subcategory_key %}subcat={{ subcategory_key }}&{% endif %}gender=F" class="gender-card {% if gender == 'F' %}active{% endif %}">Жіноча</a>
+                    <a href="{{ base_url }}?{% if subcategory_key %}subcat={{ subcategory_key }}&{% endif %}gender=U" class="gender-card {% if gender == 'U' %}active{% endif %}">Унісекс</a>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@
     <div class="max-w-[1440px] mx-auto px-6 py-10 flex gap-8 items-start">
 
         <!-- Sidebar -->
-        <aside class="hidden lg:block w-48 flex-shrink-0">
+        <aside class="hidden lg:block w-52 flex-shrink-0">
             <div class="sidebar-sticky">
                 <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3 px-1">Категорії</p>
                 <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
@@ -62,7 +62,7 @@
                     {% for cat_key, cat_label, cat_count in all_categories %}
                     {% if cat_count %}
                     <a href="{% url 'brand_category' brand.slug cat_key %}{% if gender %}?gender={{ gender }}{% endif %}"
-                       class="cat-btn {% if cat_key == category_key %}active{% endif %}">
+                       class="cat-btn {% if cat_key == category_key and not subcategory_key %}active{% endif %}">
                         {% if cat_key == 'tops' %}Верх
                         {% elif cat_key == 'layering' %}Другий шар
                         {% elif cat_key == 'bottoms' %}Низ
@@ -73,6 +73,24 @@
                         {% else %}{{ cat_label }}{% endif %}
                         <span class="text-grunge-gray ml-1">({{ cat_count }})</span>
                     </a>
+
+                    {% if cat_key == category_key and subcategories %}
+                    <!-- Підкатегорії -->
+                    <div class="border-t border-charcoal-700 bg-charcoal-900">
+                        <a href="{% url 'brand_category' brand.slug category_key %}{% if gender %}?gender={{ gender }}{% endif %}"
+                           class="subcat-btn {% if not subcategory_key %}active{% endif %}">
+                            Усі <span class="text-charcoal-700 ml-1">({{ cat_count }})</span>
+                        </a>
+                        {% for sub_key, sub_label, sub_count in subcategories %}
+                        <a href="{% url 'brand_category' brand.slug category_key %}?subcat={{ sub_key }}{% if gender %}&gender={{ gender }}{% endif %}"
+                           class="subcat-btn {% if sub_key == subcategory_key %}active{% endif %}">
+                            {{ sub_label }}
+                            <span class="text-charcoal-700 ml-1">({{ sub_count }})</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     {% endif %}
                     {% endfor %}
                 </div>
@@ -180,7 +198,7 @@
             {% if page_obj.paginator.num_pages > 1 %}
             <div class="mt-10 flex items-center justify-center gap-1 border-t border-charcoal-700 pt-8">
                 {% if page_obj.has_previous %}
-                <a href="?{% if gender %}gender={{ gender }}&{% endif %}page={{ page_obj.previous_page_number }}"
+                <a href="?{% if subcategory_key %}subcat={{ subcategory_key }}&{% endif %}{% if gender %}gender={{ gender }}&{% endif %}page={{ page_obj.previous_page_number }}"
                    class="pagination-btn">
                     <i class="fa-solid fa-arrow-left text-[10px]"></i>
                 </a>
@@ -190,7 +208,7 @@
                     {% if num == page_obj.number %}
                     <span class="pagination-btn active">{{ num }}</span>
                     {% elif num == 1 or num == page_obj.paginator.num_pages or num >= page_obj.number|add:"-2" and num <= page_obj.number|add:"2" %}
-                    <a href="?{% if gender %}gender={{ gender }}&{% endif %}page={{ num }}"
+                    <a href="?{% if subcategory_key %}subcat={{ subcategory_key }}&{% endif %}{% if gender %}gender={{ gender }}&{% endif %}page={{ num }}"
                        class="pagination-btn">{{ num }}</a>
                     {% elif num == page_obj.number|add:"-3" or num == page_obj.number|add:"3" %}
                     <span class="pagination-btn opacity-30">…</span>
@@ -198,7 +216,7 @@
                 {% endfor %}
 
                 {% if page_obj.has_next %}
-                <a href="?{% if gender %}gender={{ gender }}&{% endif %}page={{ page_obj.next_page_number }}"
+                <a href="?{% if subcategory_key %}subcat={{ subcategory_key }}&{% endif %}{% if gender %}gender={{ gender }}&{% endif %}page={{ page_obj.next_page_number }}"
                    class="pagination-btn">
                     <i class="fa-solid fa-arrow-right text-[10px]"></i>
                 </a>

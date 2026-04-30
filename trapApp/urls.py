@@ -23,6 +23,9 @@ urlpatterns = [
     path('cart/update/',              views.cart_update, name='cart_update'),
     path('cart/remove/',              views.cart_remove, name='cart_remove'),
 
+    # ── Гардероб ───────────────────────────────────────────────────────────
+    path('wardrobe/', views.wardrobe_upload, name='wardrobe_upload'),
+
     # ── Нотатки / заходи ───────────────────────────────────────────────────
     path('notes/',                        views.note_list,       name='note_list'),
     path('notes/new/',                    views.note_create,     name='note_create'),

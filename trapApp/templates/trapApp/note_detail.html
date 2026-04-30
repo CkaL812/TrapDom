@@ -161,39 +161,60 @@
             {% endif %}
         </div>
 
-        <!-- Сітка речей -->
-        <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-4">Образ</p>
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-            {% for item in items %}
-            <a href="{% url 'product_detail' item.pk %}"
-               class="group bg-charcoal-800 border border-charcoal-700
-                      hover:border-grunge-gray transition-colors duration-150 overflow-hidden">
-                <div class="aspect-[3/4] bg-charcoal-700 overflow-hidden">
-                    {% if item.image_url %}
-                    <img src="{{ item.image_url }}" alt="{{ item.name }}"
-                         class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
-                    {% else %}
-                    <div class="w-full h-full flex items-center justify-center">
-                        <i class="fa-regular fa-image text-charcoal-700 text-2xl"></i>
+        <!-- Образ згрупований по категоріях -->
+        {% regroup items by get_category_display as cat_groups %}
+        {% for group in cat_groups %}
+        <div class="mb-8">
+            <div class="flex items-center gap-3 mb-3">
+                <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">{{ group.grouper }}</p>
+                <div class="flex-1 border-t border-charcoal-700"></div>
+                <span class="font-mono text-[8px] text-charcoal-700">{{ group.list|length }}</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {% for item in group.list %}
+                <a href="{% url 'product_detail' item.pk %}"
+                   class="group bg-charcoal-800 border border-charcoal-700
+                          hover:border-grunge-gray transition-colors duration-150 overflow-hidden">
+                    <div class="relative aspect-[3/4] bg-charcoal-700 overflow-hidden">
+                        {% if item.image_local %}
+                        <img src="{{ item.image_local.url }}" alt="{{ item.name }}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        {% elif item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fa-regular fa-image text-charcoal-700 text-2xl"></i>
+                        </div>
+                        {% endif %}
+                        <span class="absolute bottom-0 left-0 right-0 px-2 py-1 bg-charcoal-900/80
+                                     font-mono text-[8px] uppercase tracking-widest text-grunge-gray">
+                            {{ item.get_subcategory_display }}
+                        </span>
                     </div>
-                    {% endif %}
-                </div>
-                <div class="p-3">
-                    <p class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray truncate">
-                        {{ item.brand.name }}
-                    </p>
-                    <p class="font-mono text-[11px] text-off-white truncate leading-snug mt-0.5">
-                        {{ item.name }}
-                    </p>
-                    {% if item.price %}
-                    <p class="font-mono text-[9px] text-grunge-gray mt-1.5">
-                        {{ item.price }} {{ item.currency }}
-                    </p>
-                    {% endif %}
-                </div>
-            </a>
-            {% endfor %}
+                    <div class="p-3">
+                        <p class="font-mono text-[8px] uppercase tracking-widest text-grunge-gray truncate">
+                            {{ item.brand.name }}
+                        </p>
+                        <p class="font-mono text-[11px] text-off-white truncate leading-snug mt-0.5">
+                            {{ item.name }}
+                        </p>
+                        {% if item.sale_price %}
+                        <p class="font-mono text-[9px] mt-1.5">
+                            <span class="text-off-white font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                            <span class="text-grunge-gray line-through ml-1">{{ item.price }}</span>
+                        </p>
+                        {% elif item.price %}
+                        <p class="font-mono text-[9px] text-grunge-gray mt-1.5">
+                            {{ item.price }} {{ item.currency }}
+                        </p>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
         </div>
+        {% endfor %}
 
         <!-- ══════════════════════════════════════════════════
              СТАН 3: Вручну, але ще нічого не вибрано

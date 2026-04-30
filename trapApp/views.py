@@ -13,7 +13,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import ClothingItem, Event, CustomUser, Brand, Note
+from .models import ClothingItem, Event, CustomUser, Brand, Note, Style
 from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm, NoteForm
 from .cart import Cart
 
@@ -612,31 +612,49 @@ def brands_list(request):
     return render(request, 'trapApp/brands_list.html', {'brands': brands})
 
 
-def _brand_context(brand, category_key=None, gender=None, page=1):
+def _brand_context(brand, category_key=None, subcategory_key=None, gender=None, page=1):
     base_q = Q(brand=brand)
     if gender:
         base_q &= Q(gender=gender)
 
-    cat_q = Q(brand=brand)
+    # Для підрахунку статей — без гендерного фільтра, але з category/subcat
+    scope_q = Q(brand=brand)
     if category_key:
-        cat_q &= Q(category=category_key)
+        scope_q &= Q(category=category_key)
 
     gender_counts = {
-        'all': ClothingItem.objects.filter(cat_q).count(),
-        'M':   ClothingItem.objects.filter(cat_q, gender='M').count(),
-        'F':   ClothingItem.objects.filter(cat_q, gender='F').count(),
-        'U':   ClothingItem.objects.filter(cat_q, gender='U').count(),
+        'all': ClothingItem.objects.filter(scope_q).count(),
+        'M':   ClothingItem.objects.filter(scope_q, gender='M').count(),
+        'F':   ClothingItem.objects.filter(scope_q, gender='F').count(),
+        'U':   ClothingItem.objects.filter(scope_q, gender='U').count(),
     }
 
     all_categories = []
-    for cat_key, cat_label in ClothingItem.CATEGORY_CHOICES:
-        count = ClothingItem.objects.filter(base_q, category=cat_key).count()
-        all_categories.append((cat_key, cat_label, count))
+    for ck, cl in ClothingItem.CATEGORY_CHOICES:
+        count = ClothingItem.objects.filter(base_q, category=ck).count()
+        all_categories.append((ck, cl, count))
 
     total_items = ClothingItem.objects.filter(base_q).count()
 
+    # Підкатегорії — тільки коли відкрита конкретна category
+    subcategories = []
     if category_key:
-        qs = ClothingItem.objects.filter(base_q, category=category_key).select_related('brand').order_by('id')
+        subcat_labels = dict(ClothingItem.SUBCATEGORY_CHOICES)
+        raw = (ClothingItem.objects
+               .filter(base_q, category=category_key)
+               .values('subcategory')
+               .annotate(n=Count('id'))
+               .order_by('-n'))
+        subcategories = [
+            (r['subcategory'], subcat_labels.get(r['subcategory'], r['subcategory']), r['n'])
+            for r in raw if r['n'] > 0
+        ]
+
+    if category_key:
+        qs = ClothingItem.objects.filter(base_q, category=category_key).select_related('brand')
+        if subcategory_key:
+            qs = qs.filter(subcategory=subcategory_key)
+        qs = qs.order_by('id')
         category_labels = dict(ClothingItem.CATEGORY_CHOICES)
         category_label = category_labels.get(category_key, '')
     else:
@@ -647,15 +665,17 @@ def _brand_context(brand, category_key=None, gender=None, page=1):
     page_obj = paginator.get_page(page)
 
     return {
-        'brand':          brand,
-        'items':          page_obj,
-        'page_obj':       page_obj,
-        'all_categories': all_categories,
-        'total_items':    total_items,
-        'category_key':   category_key,
-        'category_label': category_label,
-        'gender':         gender or '',
-        'gender_counts':  gender_counts,
+        'brand':           brand,
+        'items':           page_obj,
+        'page_obj':        page_obj,
+        'all_categories':  all_categories,
+        'total_items':     total_items,
+        'category_key':    category_key,
+        'category_label':  category_label,
+        'gender':          gender or '',
+        'gender_counts':   gender_counts,
+        'subcategories':   subcategories,
+        'subcategory_key': subcategory_key or '',
     }
 
 
@@ -673,8 +693,9 @@ def brand_category(request, slug, category):
     if category not in category_labels:
         raise Http404("Категорія не знайдена")
     gender = request.GET.get('gender', '')
+    subcat = request.GET.get('subcat', '')
     page   = request.GET.get('page', 1)
-    context = _brand_context(brand, category_key=category, gender=gender, page=page)
+    context = _brand_context(brand, category_key=category, subcategory_key=subcat or None, gender=gender, page=page)
     return render(request, 'trapApp/brand_detail.html', context)
 
 
@@ -895,10 +916,11 @@ def note_outfit_builder(request, pk):
         messages.success(request, 'Образ збережено!')
         return redirect('note_detail', pk=note.pk)
 
-    selected_ids = set(note.outfit_items.values_list('id', flat=True))
+    selected_ids   = set(note.outfit_items.values_list('id', flat=True))
+    selected_subcat = request.GET.get('subcat', '')
 
-    # Фільтруємо речі по гендеру нотатки (той самий принцип що й у _filter_qs)
-    gender_db = GENDER_MAP.get(note.gender, 'U')
+    # Фільтруємо речі по гендеру нотатки
+    gender_db  = GENDER_MAP.get(note.gender, 'U')
     base_items = ClothingItem.objects.filter(category=selected_cat).select_related('brand')
     if gender_db == 'M':
         base_items = base_items.filter(
@@ -910,8 +932,23 @@ def note_outfit_builder(request, pk):
         )
     else:
         base_items = base_items.filter(gender='U')
+
+    # Підкатегорії для поточної category (з кількостями)
+    subcat_labels = dict(ClothingItem.SUBCATEGORY_CHOICES)
+    raw_subcats = (base_items.values('subcategory')
+                   .annotate(n=Count('id'))
+                   .order_by('-n'))
+    subcategories = [
+        (r['subcategory'], subcat_labels.get(r['subcategory'], r['subcategory']), r['n'])
+        for r in raw_subcats if r['n'] > 0
+    ]
+
+    # Застосовуємо фільтр підкатегорії
+    if selected_subcat:
+        base_items = base_items.filter(subcategory=selected_subcat)
+
     items = base_items.order_by('brand__name', 'name')[:80]
-    # Передаємо категорії разом з кількістю вибраних речей у кожній
+
     categories_with_counts = [
         (c, label, note.outfit_items.filter(category=c).count())
         for c, label in ClothingItem.CATEGORY_CHOICES
@@ -921,6 +958,8 @@ def note_outfit_builder(request, pk):
         'note':                   note,
         'items':                  items,
         'selected_cat':           selected_cat,
+        'selected_subcat':        selected_subcat,
+        'subcategories':          subcategories,
         'selected_ids':           selected_ids,
         'categories_with_counts': categories_with_counts,
         'valid_cats':             valid_cats,
@@ -938,3 +977,197 @@ def note_reset_outfit(request, pk):
         note.save(update_fields=['outfit_locked', 'notification_sent'])
         messages.success(request, 'Образ скинуто — буде підібрано автоматично вчасно.')
     return redirect('note_detail', pk=pk)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ГАРДЕРОБ — підбір образу до власного одягу
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_WARDROBE_COMPLEMENTS = {
+    'tops':      ['bottoms', 'footwear', 'layering', 'accessory'],
+    'layering':  ['tops', 'bottoms', 'footwear'],
+    'bottoms':   ['tops', 'footwear', 'layering', 'accessory'],
+    'onepiece':  ['footwear', 'accessory', 'outerwear'],
+    'outerwear': ['tops', 'bottoms', 'footwear'],
+    'footwear':  ['tops', 'bottoms', 'outerwear'],
+    'accessory': ['tops', 'bottoms', 'footwear'],
+}
+
+_CLIP_TAGGER = None
+
+
+def _get_wardrobe_clip():
+    """Singleton: завантажуємо CLIP один раз, потім кешуємо в пам'яті."""
+    global _CLIP_TAGGER
+    if _CLIP_TAGGER is None:
+        try:
+            from .tagger.clip_tagger import ClipTagger
+            _CLIP_TAGGER = ClipTagger()
+        except Exception as exc:
+            logger.warning(f'[wardrobe] CLIP недоступний: {exc}')
+    return _CLIP_TAGGER
+
+
+def _wardrobe_clip_analysis(pil_image):
+    """
+    Намагається визначити formality та стилі завантаженого фото через CLIP.
+    Повертає (formality_str, styles_list). При невдачі — (None, []).
+    """
+    tagger = _get_wardrobe_clip()
+    if tagger is None:
+        return None, []
+    try:
+        img_emb = tagger._compute_image_embedding(pil_image)
+        formality, _ = tagger._classify(img_emb, tagger._formality_emb)
+        styles = [s for s, c in tagger._classify_topn(img_emb, tagger._style_emb, n=2) if c >= 0.2]
+        return formality, styles
+    except Exception as exc:
+        logger.warning(f'[wardrobe] CLIP аналіз не вдався: {exc}')
+        return None, []
+
+
+_WARDROBE_PASSES = [
+    {'formality': True,  'styles': True,  'season': True},
+    {'formality': True,  'styles': True,  'season': False},
+    {'formality': True,  'styles': False, 'season': False},
+    {'formality': False, 'styles': False, 'season': False},
+]
+
+
+def _wardrobe_pick_items(complement_cats, formality, styles, gender_code, season=None):
+    """
+    Для кожної комплементарної категорії підбирає найкращі 3 товари.
+    Прогресивно послаблює фільтри (formality → styles → season) до першого успіху.
+    Сортує по кількості збігів стилів (style_match).
+    """
+    nearby_formalities = FORMALITY_MAP.get(formality, []) if formality else []
+
+    cat_items = {}
+    for cat in complement_cats:
+        base_qs = ClothingItem.objects.filter(category=cat).select_related('brand')
+
+        # Гендерний фільтр
+        if gender_code == 'M':
+            base_qs = base_qs.filter(
+                Q(gender='M') | (Q(gender='U') & ~Q(subcategory__in=_FEMALE_ONLY_SUBCATS))
+            )
+        elif gender_code == 'F':
+            base_qs = base_qs.filter(
+                Q(gender='F') | (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
+            )
+
+        picked = []
+        for opts in _WARDROBE_PASSES:
+            qs = base_qs
+
+            if opts['formality'] and nearby_formalities:
+                qs = qs.filter(formality__in=nearby_formalities)
+
+            if opts['styles'] and styles:
+                qs = qs.filter(styles__name__in=styles).distinct()
+
+            if opts['season'] and season:
+                qs = qs.filter(seasons__name=season)
+
+            # Сортуємо по кількості збігів стилів → найбільш релевантні першими
+            if styles and opts['styles']:
+                qs = qs.annotate(
+                    style_match=Count('styles', filter=Q(styles__name__in=styles))
+                ).order_by('-style_match', 'id')
+            else:
+                qs = qs.order_by('id')
+
+            pool = list(qs[:30])
+            if pool:
+                # Беремо топ-3, але додаємо трохи варіативності серед рівноцінних
+                top_score = getattr(pool[0], 'style_match', 0)
+                same_score = [x for x in pool if getattr(x, 'style_match', 0) == top_score]
+                rest       = [x for x in pool if getattr(x, 'style_match', 0) < top_score]
+                picked = random.sample(same_score, min(3, len(same_score)))
+                if len(picked) < 3 and rest:
+                    picked += random.sample(rest, min(3 - len(picked), len(rest)))
+                break
+
+        if picked:
+            cat_items[cat] = picked
+
+    return cat_items
+
+
+@login_required(login_url='/login/')
+def wardrobe_upload(request):
+    if request.method == 'GET':
+        return render(request, 'trapApp/wardrobe_upload.html', {
+            'categories':    ClothingItem.CATEGORY_CHOICES,
+            'style_choices': Style.STYLE_CHOICES,
+        })
+
+    # ── POST: обробляємо завантажене фото ──────────────────────────────────
+    photo          = request.FILES.get('photo')
+    category       = request.POST.get('category', 'tops')
+    gender_raw     = request.POST.get('gender', 'U')
+    gender_code    = {'M': 'M', 'F': 'F', 'U': 'U'}.get(gender_raw, 'U')
+    form_styles    = request.POST.getlist('styles')          # обрані стилі з форми
+    form_formality = request.POST.get('formality', '')       # обрана формальність
+    season         = request.POST.get('season', '')
+
+    if not photo:
+        messages.error(request, 'Будь ласка, завантажте фото одягу')
+        return render(request, 'trapApp/wardrobe_upload.html', {
+            'categories':  ClothingItem.CATEGORY_CHOICES,
+            'style_choices': Style.STYLE_CHOICES,
+        })
+
+    # Зберігаємо зображення в media/wardrobe/
+    from django.core.files.storage import default_storage
+    from django.core.files.base import ContentFile
+    import uuid
+
+    ext = (photo.name.rsplit('.', 1)[-1].lower() if '.' in photo.name else 'jpg')
+    ext = ext if ext in ('jpg', 'jpeg', 'png', 'webp') else 'jpg'
+    filename = f'wardrobe/{uuid.uuid4().hex}.{ext}'
+    photo.seek(0)
+    saved_path = default_storage.save(filename, ContentFile(photo.read()))
+    upload_image_url = settings.MEDIA_URL + saved_path
+
+    # Опціональний CLIP аналіз стилю (доповнює вибір користувача, не замінює)
+    clip_formality  = None
+    clip_styles     = []
+    try:
+        from PIL import Image as PILImage
+        photo.seek(0)
+        pil_img = PILImage.open(photo).convert('RGB')
+        clip_formality, clip_styles = _wardrobe_clip_analysis(pil_img)
+    except Exception:
+        pass
+
+    # Пріоритет: вибір користувача > CLIP
+    formality = form_formality or clip_formality
+    styles    = form_styles or clip_styles
+
+    # Підбір товарів з прогресивними фільтрами
+    complement_cats = _WARDROBE_COMPLEMENTS.get(category, ['tops', 'bottoms', 'footwear'])
+    cat_items = _wardrobe_pick_items(complement_cats, formality, styles, gender_code, season or None)
+
+    # Впорядковуємо категорії за CATEGORY_ORDER
+    ordered_cat_items = [
+        (cat, cat_items[cat])
+        for cat in CATEGORY_ORDER
+        if cat in cat_items
+    ]
+
+    all_matched = [item for _, items in ordered_cat_items for item in items]
+    category_labels = dict(ClothingItem.CATEGORY_CHOICES)
+
+    return render(request, 'trapApp/wardrobe_results.html', {
+        'upload_image_url':         upload_image_url,
+        'uploaded_category':        category,
+        'uploaded_category_label':  category_labels.get(category, category),
+        'gender_code':              gender_code,
+        'ordered_cat_items':        ordered_cat_items,
+        'category_labels':          category_labels,
+        'all_matched':              all_matched,
+        'detected_formality':       formality,
+        'detected_styles':          styles,
+        'categories':               ClothingItem.CATEGORY_CHOICES,
+    })

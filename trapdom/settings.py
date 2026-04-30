@@ -148,3 +148,4 @@ EMAIL_USE_TLS       = True
 EMAIL_HOST_USER     = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL  = config('EMAIL_HOST_USER', default='noreply@trapdom.com')
+SITE_URL            = config('SITE_URL', default='http://127.0.0.1:8000')

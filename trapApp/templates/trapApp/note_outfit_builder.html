@@ -78,9 +78,27 @@
                         {% endfor %}
                     </div>
 
+                    <!-- Підкатегорії -->
+                    {% if subcategories %}
+                    <div class="flex gap-1.5 flex-wrap mb-4">
+                        <a href="?cat={{ selected_cat }}"
+                           class="px-3 py-1.5 font-mono text-[8px] uppercase tracking-widest border transition-colors
+                                  {% if not selected_subcat %}border-off-white text-off-white{% else %}border-charcoal-700 text-grunge-gray hover:border-grunge-gray hover:text-off-white{% endif %}">
+                            Всі
+                        </a>
+                        {% for sub_key, sub_label, sub_count in subcategories %}
+                        <a href="?cat={{ selected_cat }}&subcat={{ sub_key }}"
+                           class="px-3 py-1.5 font-mono text-[8px] uppercase tracking-widest border transition-colors
+                                  {% if selected_subcat == sub_key %}border-off-white text-off-white{% else %}border-charcoal-700 text-grunge-gray hover:border-grunge-gray hover:text-off-white{% endif %}">
+                            {{ sub_label }} <span class="opacity-50">({{ sub_count }})</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
                     <!-- Поточна категорія -->
                     <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-4">
-                        {{ selected_cat|capfirst }} — обирайте речі
+                        {{ selected_cat|capfirst }}{% if selected_subcat %} / {{ selected_subcat }}{% endif %} — обирайте речі
                     </p>
 
                     {% if items %}

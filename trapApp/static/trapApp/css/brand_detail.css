@@ -85,6 +85,23 @@
 .pagination-btn:hover { color: #F5F5F0; border-color: #A0A0A0; background: #2A2A2A; }
 .pagination-btn.active { color: #F5F5F0; border-color: #F5F5F0; background: #2A2A2A; cursor: default; }
 
+/* Subcategory buttons (nested under active category) */
+.subcat-btn {
+    display: block; width: 100%; text-align: left;
+    padding: 9px 16px 9px 24px;
+    font-family: 'Courier New', monospace; font-size: 9px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: #555;
+    border-left: 2px solid transparent;
+    border-bottom: 1px solid #222;
+    background: none; cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+}
+.subcat-btn:last-child { border-bottom: none; }
+.subcat-btn:hover { color: #A0A0A0; background: #1a1a1a; border-left-color: #555; }
+.subcat-btn.active { color: #F5F5F0 !important; border-left-color: #F5F5F0; background: #121212; }
+
 /* Add-to-cart button on hover */
 .cart-btn-wrap {
     position: absolute;

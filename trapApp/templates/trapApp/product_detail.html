@@ -11,11 +11,15 @@
 <main class="relative z-10 pt-20 min-h-screen">
 
     <!-- Breadcrumb -->
-    <div class="max-w-[1200px] mx-auto px-6 pt-6 flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-grunge-gray">
+    <div class="max-w-[1200px] mx-auto px-6 pt-6 flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-grunge-gray flex-wrap">
         <a href="{% url 'index' %}" class="hover:text-off-white transition-colors">Головна</a>
-        <span class="text-grunge-gray">/</span>
+        <span>/</span>
         <a href="{% url 'brand_detail' item.brand.slug %}" class="hover:text-off-white transition-colors">{{ item.brand.name }}</a>
-        <span class="text-grunge-gray">/</span>
+        <span>/</span>
+        <a href="{% url 'brand_category' item.brand.slug item.category %}" class="hover:text-off-white transition-colors">{{ item.get_category_display }}</a>
+        <span>/</span>
+        <a href="{% url 'brand_category' item.brand.slug item.category %}?subcat={{ item.subcategory }}" class="hover:text-off-white transition-colors">{{ item.get_subcategory_display }}</a>
+        <span>/</span>
         <span class="text-off-white">{{ item.name|truncatewords:4 }}</span>
     </div>
 

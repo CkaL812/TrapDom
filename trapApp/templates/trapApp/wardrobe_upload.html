@@ -1,0 +1,202 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Гардероб — підбір образу — TrapDom{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/wardrobe.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- Заголовок -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Гардероб</p>
+        <h1 class="font-bebas text-5xl tracking-widest text-off-white">Підбір образу</h1>
+        <p class="mt-3 text-[11px] font-mono text-grunge-gray max-w-lg leading-relaxed">
+            Завантажте фото власного одягу — система знайде речі з магазину що підходять до вашого стилю.
+        </p>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-10">
+        <form method="post" enctype="multipart/form-data" id="wardrobe-form">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+
+                <!-- ── Зона завантаження ── -->
+                <div>
+                    <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-4">Ваш одяг</p>
+
+                    <div class="upload-zone h-80 flex flex-col items-center justify-center" id="upload-zone">
+                        <input type="file" name="photo" id="photo-input" accept="image/*" required>
+                        <div class="upload-placeholder flex flex-col items-center gap-3 pointer-events-none" id="upload-placeholder">
+                            <i class="fa-regular fa-image text-grunge-gray text-3xl"></i>
+                            <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Завантажити фото</p>
+                            <p class="text-[9px] font-mono text-charcoal-700">JPG · PNG · WEBP — drag & drop</p>
+                        </div>
+                        <img id="upload-preview" class="upload-preview" alt="Попередній перегляд">
+                    </div>
+
+                    <!-- Категорія вашої речі -->
+                    <div class="mt-6">
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Що ви завантажили?</p>
+                        <div class="flex flex-wrap gap-2">
+                            {% for cat_key, cat_label in categories %}
+                            <div class="cat-chip">
+                                <input type="radio" name="category" id="cat_{{ cat_key }}" value="{{ cat_key }}"
+                                       {% if cat_key == 'tops' %}checked{% endif %}>
+                                <label for="cat_{{ cat_key }}">
+                                    {% if cat_key == 'tops' %}Верх
+                                    {% elif cat_key == 'layering' %}Другий шар
+                                    {% elif cat_key == 'bottoms' %}Низ
+                                    {% elif cat_key == 'onepiece' %}Суцільний
+                                    {% elif cat_key == 'outerwear' %}Верхній одяг
+                                    {% elif cat_key == 'footwear' %}Взуття
+                                    {% elif cat_key == 'accessory' %}Аксесуари
+                                    {% else %}{{ cat_label }}{% endif %}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Налаштування підбору ── -->
+                <div class="flex flex-col gap-7">
+
+                    <!-- Стать -->
+                    <div>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Стать образу</p>
+                        <div class="flex gap-0">
+                            <div class="gender-chip">
+                                <input type="radio" name="gender" id="gM" value="M">
+                                <label for="gM">Чоловіча</label>
+                            </div>
+                            <div class="gender-chip">
+                                <input type="radio" name="gender" id="gF" value="F">
+                                <label for="gF">Жіноча</label>
+                            </div>
+                            <div class="gender-chip">
+                                <input type="radio" name="gender" id="gU" value="U" checked>
+                                <label for="gU">Унісекс</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Стиль -->
+                    <div>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-1">Стиль</p>
+                        <p class="text-[9px] font-mono text-charcoal-700 mb-3">Оберіть 1-2 стилі що відповідають вашому одягу</p>
+                        <div class="flex flex-wrap gap-2">
+                            {% for style_key, style_label in style_choices %}
+                            <div class="cat-chip">
+                                <input type="checkbox" name="styles" id="style_{{ style_key }}" value="{{ style_key }}">
+                                <label for="style_{{ style_key }}">{{ style_label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Сезон -->
+                    <div>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Сезон <span class="text-charcoal-700 normal-case">(необов'язково)</span></p>
+                        <div class="flex gap-0">
+                            <div class="gender-chip">
+                                <input type="radio" name="season" id="sNone" value="" checked>
+                                <label for="sNone">Будь-який</label>
+                            </div>
+                            <div class="gender-chip">
+                                <input type="radio" name="season" id="sSp" value="spring">
+                                <label for="sSp">Весна</label>
+                            </div>
+                            <div class="gender-chip">
+                                <input type="radio" name="season" id="sSu" value="summer">
+                                <label for="sSu">Літо</label>
+                            </div>
+                            <div class="gender-chip">
+                                <input type="radio" name="season" id="sAu" value="autumn">
+                                <label for="sAu">Осінь</label>
+                            </div>
+                            <div class="gender-chip">
+                                <input type="radio" name="season" id="sWi" value="winter">
+                                <label for="sWi">Зима</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Кнопка -->
+                    <div class="mt-2">
+                        <button type="submit" id="submit-btn"
+                                class="w-full border border-charcoal-700 bg-charcoal-800 hover:border-off-white hover:bg-charcoal-700
+                                       text-off-white font-mono text-[10px] uppercase tracking-widest
+                                       py-4 transition-all duration-200 flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            <span id="btn-text">Підібрати образ</span>
+                        </button>
+                        <p class="mt-3 text-[9px] font-mono text-charcoal-700 text-center">
+                            Чим точніше вкажете стиль — тим краще збіг
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+    const input       = document.getElementById('photo-input');
+    const zone        = document.getElementById('upload-zone');
+    const preview     = document.getElementById('upload-preview');
+    const placeholder = document.getElementById('upload-placeholder');
+    const form        = document.getElementById('wardrobe-form');
+    const btnText     = document.getElementById('btn-text');
+
+    // Ліміт: не більше 2 стилів
+    const styleCheckboxes = document.querySelectorAll('input[name="styles"]');
+    styleCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const checked = document.querySelectorAll('input[name="styles"]:checked');
+            if (checked.length > 2) cb.checked = false;
+        });
+    });
+
+    function showPreview(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            preview.src = e.target.result;
+            preview.classList.add('visible');
+            placeholder.classList.add('hidden');
+        };
+        reader.readAsDataURL(file);
+    }
+
+    input.addEventListener('change', () => showPreview(input.files[0]));
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+            showPreview(file);
+        }
+    });
+
+    form.addEventListener('submit', () => {
+        btnText.textContent = 'Аналізуємо…';
+        document.getElementById('submit-btn').disabled = true;
+    });
+})();
+</script>
+{% endblock %}

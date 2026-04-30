@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ваш образ готовий — TrapDom</title>
+</head>
+<body style="margin:0;padding:0;background-color:#121212;font-family:'Courier New',Courier,monospace;">
+
+  <div style="max-width:600px;margin:0 auto;padding:0 20px 60px 20px;">
+
+    <!-- TOP LINE -->
+    <div style="border-bottom:1px solid #2A2A2A;padding:32px 0 20px 0;margin-bottom:40px;">
+      <p style="margin:0;font-size:9px;letter-spacing:0.45em;text-transform:uppercase;color:#A0A0A0;">
+        TrapDom &nbsp;/&nbsp; Streetwear
+      </p>
+    </div>
+
+    <!-- HEADING -->
+    <div style="margin-bottom:40px;">
+      <p style="margin:0 0 12px 0;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#A0A0A0;">
+        Сповіщення
+      </p>
+      <h1 style="margin:0;font-size:38px;letter-spacing:0.15em;text-transform:uppercase;color:#F5F5F0;line-height:1.1;font-weight:normal;">
+        Ваш образ<br>готовий
+      </h1>
+    </div>
+
+    <!-- EVENT BLOCK -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #2A2A2A;margin-bottom:40px;">
+      <tr>
+        <td style="padding:20px 24px;border-right:1px solid #2A2A2A;width:50%;vertical-align:top;">
+          <p style="margin:0 0 6px 0;font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:#A0A0A0;">Подія</p>
+          <p style="margin:0;font-size:13px;letter-spacing:0.15em;text-transform:uppercase;color:#F5F5F0;">{{ event_name }}</p>
+        </td>
+        <td style="padding:20px 24px;vertical-align:top;">
+          <p style="margin:0 0 6px 0;font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:#A0A0A0;">Дата та час</p>
+          <p style="margin:0;font-size:13px;letter-spacing:0.15em;color:#F5F5F0;">{{ event_date }}{% if event_time %} &nbsp;/&nbsp; {{ event_time }}{% endif %}</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- DIVIDER LABEL -->
+    <p style="margin:0 0 20px 0;font-size:9px;letter-spacing:0.35em;text-transform:uppercase;color:#A0A0A0;">
+      Підібраний образ &mdash; {{ items|length }} речей
+    </p>
+
+    <!-- ITEMS -->
+    {% for item in items %}
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #2A2A2A;margin-bottom:8px;">
+      <tr>
+        {% if item.image_url or item.image_local %}
+        <td style="width:80px;padding:0;vertical-align:top;">
+          <img src="{% if item.image_local %}{{ site_url }}{{ item.image_local.url }}{% else %}{{ item.image_url }}{% endif %}"
+               width="80" height="106"
+               style="display:block;width:80px;height:106px;object-fit:cover;filter:grayscale(20%);"
+               alt="{{ item.name }}">
+        </td>
+        {% endif %}
+        <td style="padding:14px 16px;vertical-align:top;border-left:1px solid #2A2A2A;">
+          <p style="margin:0 0 4px 0;font-size:8px;letter-spacing:0.25em;text-transform:uppercase;color:#A0A0A0;">
+            {{ item.brand.name }} &nbsp;&middot;&nbsp; {{ item.get_category_display }}
+          </p>
+          <p style="margin:0 0 10px 0;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#F5F5F0;line-height:1.4;">
+            {{ item.name }}
+          </p>
+          <p style="margin:0;font-size:10px;letter-spacing:0.1em;color:#A0A0A0;">
+            {% if item.sale_price %}
+              <span style="color:#F5F5F0;font-weight:bold;">{{ item.sale_price }} {{ item.currency }}</span>
+              &nbsp;<span style="text-decoration:line-through;">{{ item.price }}</span>
+            {% elif item.price %}
+              {{ item.price }} {{ item.currency }}
+            {% endif %}
+          </p>
+        </td>
+      </tr>
+    </table>
+    {% endfor %}
+
+    <!-- CTA BUTTON -->
+    <div style="margin-top:40px;text-align:center;">
+      <a href="{{ note_url }}"
+         style="display:inline-block;background-color:#F5F5F0;color:#121212;padding:16px 40px;font-family:'Courier New',Courier,monospace;font-size:9px;letter-spacing:0.4em;text-transform:uppercase;text-decoration:none;">
+        Переглянути образ
+      </a>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="margin-top:56px;border-top:1px solid #2A2A2A;padding-top:24px;">
+      <p style="margin:0 0 6px 0;font-size:9px;letter-spacing:0.3em;text-transform:uppercase;color:#2A2A2A;">
+        TrapDom — Професійний підбір одягу
+      </p>
+      <p style="margin:0;font-size:8px;letter-spacing:0.15em;color:#2A2A2A;">
+        Цей лист надіслано автоматично. Не потрібно відповідати.
+      </p>
+    </div>
+
+  </div>
+
+</body>
+</html>

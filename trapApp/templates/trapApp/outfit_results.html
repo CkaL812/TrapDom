@@ -47,19 +47,23 @@
     <div class="max-w-[1440px] mx-auto px-6 py-6 flex gap-8">
 
         <!-- SIDEBAR -->
-        <aside class="hidden lg:block w-48 flex-shrink-0">
-            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3 px-4">Категорії</p>
+        <aside class="hidden lg:block w-52 flex-shrink-0">
+            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3 px-1">Категорії</p>
             <div class="border border-charcoal-700 bg-charcoal-800 overflow-hidden">
-                <button class="cat-btn active w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-off-white" data-cat="all">
+                <button class="cat-btn active w-full text-left px-4 py-3.5 text-[10px] font-mono uppercase tracking-widest text-off-white" data-cat="all">
                     Всі
                     <span class="ml-1 text-grunge-gray">({{ items|length }})</span>
                 </button>
                 {% for cat in categories %}
-                <button class="cat-btn w-full text-left px-4 py-3.5 text-xs font-mono uppercase tracking-widest text-grunge-gray border-t border-charcoal-700" data-cat="{{ cat.key }}">
+                <button class="cat-btn w-full text-left px-4 py-3.5 text-[10px] font-mono uppercase tracking-widest text-grunge-gray border-t border-charcoal-700" data-cat="{{ cat.key }}">
                     {{ cat.label }}
                     <span class="ml-1 text-grunge-gray">({{ cat.count }})</span>
                 </button>
                 {% endfor %}
+            </div>
+            <!-- Підкатегорії (з'являються після вибору категорії) -->
+            <div id="subcat-panel" class="mt-2 border border-charcoal-700 bg-charcoal-800 overflow-hidden hidden">
+                <p class="text-[8px] font-mono uppercase tracking-widest text-grunge-gray px-4 py-2 border-b border-charcoal-700">Тип</p>
             </div>
             <p class="text-[9px] font-mono text-grunge-gray mt-3 px-1">
                 <span id="shown-count">{{ items|length }}</span> речей у образі
@@ -84,7 +88,7 @@
         <div class="flex-1">
             <div id="items-grid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
                 {% for item in items %}
-                <div class="item-card bg-charcoal-800 fade-up" data-cat="{{ item.category }}"
+                <div class="item-card bg-charcoal-800 fade-up" data-cat="{{ item.category }}" data-subcat="{{ item.subcategory }}"
                      style="animation-delay: {{ forloop.counter0 }}00ms">
 
                     <!-- Фото -->
@@ -99,7 +103,7 @@
                             </div>
                         {% endif %}
                         <span class="absolute top-3 left-3 bg-charcoal-900/80 backdrop-blur-sm text-[9px] font-mono uppercase tracking-widest text-grunge-gray px-2 py-1">
-                            {{ item.get_category_display }}
+                            {{ item.get_subcategory_display }}
                         </span>
                         {% if item.sale_price %}
                         <span class="absolute top-3 right-3 bg-accent-red text-off-white text-[9px] font-mono uppercase tracking-widest px-2 py-1">SALE</span>
