@@ -81,6 +81,15 @@
                         <span>Образи</span>
                     </a>
 
+                    <a href="{% url 'wishlist' %}"
+                       class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
+                              text-grunge-gray hover:text-red-400 hover:bg-charcoal-800
+                              border-b border-charcoal-700 border-l-2 border-l-transparent
+                              hover:border-l-red-400 transition-colors duration-150">
+                        <i class="fa-regular fa-heart w-3 text-center"></i>
+                        <span>Обране</span>
+                    </a>
+
                     <a href="{% url 'logout' %}"
                        class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
                               text-grunge-gray hover:text-red-400 hover:bg-charcoal-800

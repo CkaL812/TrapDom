@@ -52,6 +52,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'trapApp.context_processors.cart_context',
+                'trapApp.context_processors.wishlist_context',
                 'social_django.context_processors.backends',
                 'social_django.context_processors.login_redirect',
             ],

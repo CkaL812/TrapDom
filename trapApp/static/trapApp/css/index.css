@@ -111,7 +111,14 @@
 
 /* Brand panels */
 .brand-panel { display: none !important; }
-.brand-panel.active { display: grid !important; }
+.brand-panel.active {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+}
+@media (max-width: 768px) {
+    .brand-panel.active { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ── Brand Drawer ── */
 #drawer-overlay {

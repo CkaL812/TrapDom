@@ -13,7 +13,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit
+from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit, WishlistItem
 from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm, NoteForm
 from .cart import Cart
 
@@ -28,7 +28,7 @@ def index(request):
     brands = list(Brand.objects.all().order_by('name').prefetch_related('items'))
     for brand in brands:
         items = list(brand.items.all())
-        brand.random_items = random.sample(items, min(3, len(items)))
+        brand.random_items = random.sample(items, min(4, len(items)))
     return render(request, 'trapApp/index.html', {'brands': brands})
 
 
@@ -1275,3 +1275,34 @@ def delete_outfit(request, pk):
     if request.method == 'POST':
         outfit.delete()
     return redirect('my_outfits')
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ВІШЛІСТ
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required(login_url='/login/')
+def wishlist_view(request):
+    items = (
+        ClothingItem.objects
+        .filter(wishlisted_by__user=request.user)
+        .select_related('brand')
+        .order_by('-wishlisted_by__added_at')
+    )
+    return render(request, 'trapApp/wishlist.html', {'items': items})
+
+
+@login_required(login_url='/login/')
+@csrf_exempt
+def wishlist_toggle(request, item_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'method not allowed'}, status=405)
+    item = get_object_or_404(ClothingItem, pk=item_id)
+    obj, created = WishlistItem.objects.get_or_create(user=request.user, item=item)
+    if not created:
+        obj.delete()
+    return JsonResponse({
+        'status': 'ok',
+        'in_wishlist': created,
+        'count': WishlistItem.objects.filter(user=request.user).count(),
+    })

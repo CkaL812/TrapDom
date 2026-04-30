@@ -517,3 +517,22 @@ class SavedOutfit(models.Model):
         if first:
             return first.image_local.url if first.image_local else first.image_url
         return None
+
+
+# ══════════════════════════════════════════════════════════════════
+#                     WISHLIST (обрані товари)
+# ══════════════════════════════════════════════════════════════════
+
+class WishlistItem(models.Model):
+    user     = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='wishlist')
+    item     = models.ForeignKey(ClothingItem, on_delete=models.CASCADE, related_name='wishlisted_by')
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together     = ('user', 'item')
+        ordering            = ['-added_at']
+        verbose_name        = 'Обраний товар'
+        verbose_name_plural = 'Обрані товари'
+
+    def __str__(self):
+        return f'{self.user.email} → {self.item.name}'

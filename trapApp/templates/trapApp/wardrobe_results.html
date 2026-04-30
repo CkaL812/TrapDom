@@ -97,12 +97,20 @@
                                             <span class="text-grunge-gray font-mono text-[10px]">— ціна —</span>
                                         {% endif %}
                                     </div>
-                                    <button
-                                        onclick="trapAddToCart({{ item.id }}, '', 1, this)"
-                                        class="text-grunge-gray hover:text-off-white transition-colors p-1"
-                                        aria-label="Додати в кошик">
-                                        <i class="fa-solid fa-bag-shopping text-base"></i>
-                                    </button>
+                                    <div class="flex items-center gap-1">
+                                        {% if user.is_authenticated %}
+                                        <button onclick="trapToggleWishlist({{ item.id }}, this)"
+                                                class="transition-colors p-1 {% if item.id in wishlist_ids %}text-red-500{% else %}text-grunge-gray hover:text-red-400{% endif %}"
+                                                aria-label="Обране">
+                                            <i class="{% if item.id in wishlist_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart text-sm"></i>
+                                        </button>
+                                        {% endif %}
+                                        <button onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                                class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                                aria-label="Додати в кошик">
+                                            <i class="fa-solid fa-bag-shopping text-base"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -5,6 +5,17 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'trapApp/css/index.css' %}">
+<style>
+.brand-panel { display: none !important; }
+.brand-panel.active {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+}
+@media (max-width: 640px) {
+    .brand-panel.active { grid-template-columns: repeat(2, 1fr) !important; }
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -148,7 +159,7 @@
 
             <div class="flex-1 min-w-0">
                 {% for brand in brands %}
-                <div class="brand-panel {% if forloop.first %}active{% endif %} grid grid-cols-3 gap-3"
+                <div class="brand-panel {% if forloop.first %}active{% endif %}"
                      id="panel-{{ brand.slug }}">
 
                     {% for item in brand.random_items %}
@@ -165,28 +176,40 @@
                                  alt="{{ item.name }}">
                             {% else %}
                             <div class="w-full h-full flex items-center justify-center">
-                                <span style="font-family:'UnifrakturMaguntia',cursive; font-size:3rem; color:#2A2A2A; line-height:1;">
+                                <span style="font-family:'UnifrakturMaguntia',cursive; font-size:2rem; color:#2A2A2A; line-height:1;">
                                     {{ item.name|slice:":1" }}
                                 </span>
                             </div>
                             {% endif %}
+                            {% if item.sale_price %}
+                            <span class="absolute top-1 right-1 bg-off-white text-charcoal-900 text-[8px] font-mono uppercase px-1.5 py-0.5">SALE</span>
+                            {% endif %}
                         </a>
 
-                        <div class="p-2 flex flex-col flex-1">
-                            <h3 class="font-mono text-[9px] uppercase tracking-wider text-off-white mb-1 line-clamp-1">{{ item.name }}</h3>
-                            <div class="mt-auto flex items-center justify-between pt-1.5 border-t border-charcoal-700">
+                        <div class="p-3 flex flex-col flex-1">
+                            <h3 class="font-mono text-[10px] uppercase tracking-wider text-off-white mb-2 line-clamp-2">{{ item.name }}</h3>
+                            <div class="mt-auto flex items-center justify-between pt-2 border-t border-charcoal-700">
                                 {% if item.sale_price %}
-                                <span class="font-mono text-[9px] text-accent-red font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                <span class="font-mono text-xs text-accent-red font-bold">{{ item.sale_price }}</span>
                                 {% elif item.price %}
-                                <span class="font-mono text-[9px] text-off-white">{{ item.price }} {{ item.currency }}</span>
+                                <span class="font-mono text-xs text-off-white">{{ item.price }}</span>
                                 {% else %}
-                                <span class="font-mono text-[9px] text-grunge-gray">—</span>
+                                <span class="font-mono text-xs text-grunge-gray">—</span>
                                 {% endif %}
-                                <button onclick="trapAddToCart({{ item.id }}, '', 1, this)"
-                                    class="text-grunge-gray hover:text-off-white transition-colors"
-                                    aria-label="Додати в кошик">
-                                    <i class="fa-solid fa-bag-shopping text-[10px]"></i>
-                                </button>
+                                <div class="flex items-center gap-1">
+                                    {% if user.is_authenticated %}
+                                    <button onclick="trapToggleWishlist({{ item.id }}, this)"
+                                        class="transition-colors p-1 {% if item.id in wishlist_ids %}text-red-500{% else %}text-grunge-gray hover:text-red-400{% endif %}"
+                                        aria-label="Обране">
+                                        <i class="{% if item.id in wishlist_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart text-sm"></i>
+                                    </button>
+                                    {% endif %}
+                                    <button onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                        class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                        aria-label="Додати в кошик">
+                                        <i class="fa-solid fa-bag-shopping text-sm"></i>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

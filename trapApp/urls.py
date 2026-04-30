@@ -26,6 +26,10 @@ urlpatterns = [
     # ── Гардероб ───────────────────────────────────────────────────────────
     path('wardrobe/', views.wardrobe_upload, name='wardrobe_upload'),
 
+    # ── Вішліст ────────────────────────────────────────────────────────────
+    path('wishlist/',                      views.wishlist_view,   name='wishlist'),
+    path('wishlist/toggle/<int:item_id>/', views.wishlist_toggle, name='wishlist_toggle'),
+
     # ── Збережені образи ───────────────────────────────────────────────────
     path('outfits/',                     views.my_outfits,    name='my_outfits'),
     path('outfits/save/',                views.save_outfit,   name='save_outfit'),

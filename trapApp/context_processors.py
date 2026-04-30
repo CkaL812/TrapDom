@@ -13,3 +13,12 @@ def cart_context(request):
         'cart_total': cart.total,
         'cart_currency': cart.currency,
     }
+
+
+def wishlist_context(request):
+    if request.user.is_authenticated:
+        from .models import WishlistItem
+        ids = set(WishlistItem.objects.filter(user=request.user).values_list('item_id', flat=True))
+    else:
+        ids = set()
+    return {'wishlist_ids': ids}

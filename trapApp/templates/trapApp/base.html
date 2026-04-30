@@ -49,6 +49,27 @@
 {% include 'trapApp/partials/footer.html' %}
 
 <script src="{% static 'trapApp/js/header.js' %}"></script>
+<script>
+function trapToggleWishlist(itemId, btn) {
+    fetch('/wishlist/toggle/' + itemId + '/', {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}'},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.in_wishlist) {
+            btn.classList.remove('text-grunge-gray', 'hover:text-red-400');
+            btn.classList.add('text-red-500');
+            btn.innerHTML = '<i class="fa-solid fa-heart text-sm"></i>';
+        } else {
+            btn.classList.remove('text-red-500');
+            btn.classList.add('text-grunge-gray', 'hover:text-red-400');
+            btn.innerHTML = '<i class="fa-regular fa-heart text-sm"></i>';
+        }
+        if (window.FontAwesome) FontAwesome.dom.i2svg({ node: btn });
+    });
+}
+</script>
 {% block extra_js %}{% endblock %}
 </body>
 </html>
