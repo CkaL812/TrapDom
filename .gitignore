@@ -7,7 +7,10 @@ __pycache__/
 # Django
 db.sqlite3
 *.sqlite3
-media/
+media/*
+!media/brands/
+media/brands/*
+!media/brands/logos/
 
 # Virtual environment
 venv/
