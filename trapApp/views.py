@@ -615,12 +615,12 @@ def brands_list(request):
     return render(request, 'trapApp/brands_list.html', {'brands': brands})
 
 
-def _brand_context(brand, category_key=None, subcategory_key=None, gender=None, page=1):
+def _brand_context(brand, category_key=None, subcategory_key=None, gender=None,
+                   price_min=None, price_max=None, color=None, sort=None, page=1):
     base_q = Q(brand=brand)
     if gender:
         base_q &= Q(gender=gender)
 
-    # Для підрахунку статей — без гендерного фільтра, але з category/subcat
     scope_q = Q(brand=brand)
     if category_key:
         scope_q &= Q(category=category_key)
@@ -639,7 +639,6 @@ def _brand_context(brand, category_key=None, subcategory_key=None, gender=None, 
 
     total_items = ClothingItem.objects.filter(base_q).count()
 
-    # Підкатегорії — тільки коли відкрита конкретна category
     subcategories = []
     if category_key:
         subcat_labels = dict(ClothingItem.SUBCATEGORY_CHOICES)
@@ -657,48 +656,101 @@ def _brand_context(brand, category_key=None, subcategory_key=None, gender=None, 
         qs = ClothingItem.objects.filter(base_q, category=category_key).select_related('brand')
         if subcategory_key:
             qs = qs.filter(subcategory=subcategory_key)
-        qs = qs.order_by('id')
         category_labels = dict(ClothingItem.CATEGORY_CHOICES)
-        category_label = category_labels.get(category_key, '')
+        category_label  = category_labels.get(category_key, '')
     else:
-        qs = ClothingItem.objects.filter(base_q).select_related('brand').order_by('category', 'id')
+        qs = ClothingItem.objects.filter(base_q).select_related('brand')
         category_label = None
 
-    paginator = Paginator(qs, 10)
-    page_obj = paginator.get_page(page)
+    # Доступні кольори для поточного набору (до цінових фільтрів)
+    available_colors = (
+        qs.exclude(color='')
+          .values_list('color', flat=True)
+          .distinct()
+          .order_by('color')
+    )
+
+    # Мін/макс ціна для слайдера
+    from django.db.models import Min, Max
+    price_bounds = qs.filter(price__isnull=False).aggregate(lo=Min('price'), hi=Max('price'))
+    price_lo = int(price_bounds['lo'] or 0)
+    price_hi = int(price_bounds['hi'] or 0)
+
+    # Застосовуємо фільтри ціни та кольору
+    if price_min:
+        try:
+            qs = qs.filter(price__gte=int(price_min))
+        except ValueError:
+            pass
+    if price_max:
+        try:
+            qs = qs.filter(price__lte=int(price_max))
+        except ValueError:
+            pass
+    if color:
+        qs = qs.filter(color__iexact=color)
+
+    if sort == 'price_asc':
+        qs = qs.order_by('price')
+    elif sort == 'price_desc':
+        qs = qs.order_by('-price')
+    else:
+        qs = qs.order_by('category', 'id') if not category_key else qs.order_by('id')
+
+    paginator = Paginator(qs, 20)
+    page_obj  = paginator.get_page(page)
 
     return {
-        'brand':           brand,
-        'items':           page_obj,
-        'page_obj':        page_obj,
-        'all_categories':  all_categories,
-        'total_items':     total_items,
-        'category_key':    category_key,
-        'category_label':  category_label,
-        'gender':          gender or '',
-        'gender_counts':   gender_counts,
-        'subcategories':   subcategories,
-        'subcategory_key': subcategory_key or '',
+        'brand':            brand,
+        'items':            page_obj,
+        'page_obj':         page_obj,
+        'all_categories':   all_categories,
+        'total_items':      total_items,
+        'category_key':     category_key,
+        'category_label':   category_label,
+        'gender':           gender or '',
+        'gender_counts':    gender_counts,
+        'subcategories':    subcategories,
+        'subcategory_key':  subcategory_key or '',
+        'available_colors': list(available_colors),
+        'selected_color':   color or '',
+        'price_min':        price_min or '',
+        'price_max':        price_max or '',
+        'price_lo':         price_lo,
+        'price_hi':         price_hi,
+        'sort':             sort or '',
     }
 
 
 def brand_detail(request, slug):
     brand = get_object_or_404(Brand, slug=slug)
-    gender = request.GET.get('gender', '')
-    page   = request.GET.get('page', 1)
-    context = _brand_context(brand, category_key=None, gender=gender, page=page)
+    context = _brand_context(
+        brand,
+        gender    = request.GET.get('gender', ''),
+        price_min = request.GET.get('price_min', ''),
+        price_max = request.GET.get('price_max', ''),
+        color     = request.GET.get('color', ''),
+        sort      = request.GET.get('sort', ''),
+        page      = request.GET.get('page', 1),
+    )
     return render(request, 'trapApp/brand_detail.html', context)
 
 
 def brand_category(request, slug, category):
     brand = get_object_or_404(Brand, slug=slug)
-    category_labels = dict(ClothingItem.CATEGORY_CHOICES)
-    if category not in category_labels:
+    if category not in dict(ClothingItem.CATEGORY_CHOICES):
         raise Http404("Категорія не знайдена")
-    gender = request.GET.get('gender', '')
-    subcat = request.GET.get('subcat', '')
-    page   = request.GET.get('page', 1)
-    context = _brand_context(brand, category_key=category, subcategory_key=subcat or None, gender=gender, page=page)
+    context = _brand_context(
+        brand,
+        category_key    = category,
+        subcategory_key = request.GET.get('subcat', '') or None,
+        gender          = request.GET.get('gender', ''),
+        price_min       = request.GET.get('price_min', ''),
+        price_max       = request.GET.get('price_max', ''),
+        color           = request.GET.get('color', ''),
+        sort            = request.GET.get('sort', ''),
+        page            = request.GET.get('page', 1),
+    )
     return render(request, 'trapApp/brand_detail.html', context)
 
 
@@ -1386,7 +1438,8 @@ def checkout_view(request):
                 )
 
             cart.clear()
-            return redirect('order_confirm', pk=order.pk)
+            from django.urls import reverse
+            return redirect(reverse('order_detail', kwargs={'pk': order.pk}) + '?new=1')
 
     return render(request, 'trapApp/checkout.html', {
         'cart_items': cart_items,
@@ -1398,12 +1451,36 @@ def checkout_view(request):
 
 
 @login_required(login_url='/login/')
-def order_confirm(request, pk):
-    order = get_object_or_404(Order, pk=pk, user=request.user)
-    return render(request, 'trapApp/order_confirm.html', {'order': order})
-
-
-@login_required(login_url='/login/')
 def orders_view(request):
     orders = Order.objects.filter(user=request.user).prefetch_related('order_items')
     return render(request, 'trapApp/orders.html', {'orders': orders})
+
+
+@login_required(login_url='/login/')
+def orders_clear(request):
+    if request.method == 'POST':
+        Order.objects.filter(user=request.user).delete()
+        messages.success(request, 'Історію замовлень очищено')
+    return redirect('orders')
+
+
+@login_required(login_url='/login/')
+def cancel_order(request, pk):
+    order = get_object_or_404(Order, pk=pk, user=request.user)
+    if request.method == 'POST':
+        if order.status in ('pending', 'confirmed'):
+            order.status = 'cancelled'
+            order.save(update_fields=['status'])
+            messages.success(request, f'Замовлення #{order.pk} скасовано')
+        else:
+            messages.error(request, 'Це замовлення неможливо скасувати')
+    return redirect('order_detail', pk=pk)
+
+
+@login_required(login_url='/login/')
+def order_detail(request, pk):
+    order = get_object_or_404(Order, pk=pk, user=request.user)
+    return render(request, 'trapApp/order_confirm.html', {
+        'order':  order,
+        'is_new': request.GET.get('new') == '1',
+    })

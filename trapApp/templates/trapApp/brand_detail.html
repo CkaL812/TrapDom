@@ -46,6 +46,63 @@
         </div>
     </div>
 
+    <!-- Панель фільтрів -->
+    {% with has_filters=price_min|add:price_max|add:sort %}
+    <div class="border-b border-charcoal-700 bg-charcoal-800/50">
+        <div class="max-w-[1440px] mx-auto px-6 py-4">
+            <form method="GET" action="" id="filter-form" class="flex flex-wrap items-center gap-5">
+                {% if gender %}<input type="hidden" name="gender" value="{{ gender }}">{% endif %}
+                {% if subcategory_key %}<input type="hidden" name="subcat" value="{{ subcategory_key }}">{% endif %}
+                <input type="hidden" name="sort" id="sort-input" value="{{ sort }}">
+
+                <!-- Ціна -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray whitespace-nowrap">Ціна UAH</span>
+                    <input type="number" name="price_min" value="{{ price_min }}" placeholder="{{ price_lo }}"
+                           class="w-20 bg-charcoal-900 border border-charcoal-700 text-off-white font-mono text-xs
+                                  px-2 py-1.5 focus:outline-none focus:border-grunge-gray transition-colors placeholder-grunge-gray">
+                    <span class="text-grunge-gray font-mono text-xs">—</span>
+                    <input type="number" name="price_max" value="{{ price_max }}" placeholder="{{ price_hi }}"
+                           class="w-20 bg-charcoal-900 border border-charcoal-700 text-off-white font-mono text-xs
+                                  px-2 py-1.5 focus:outline-none focus:border-grunge-gray transition-colors placeholder-grunge-gray">
+                </div>
+
+                <!-- Сортування по ціні -->
+                <div class="flex items-center gap-2">
+                    <span class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Сорт.</span>
+                    <button type="button" onclick="toggleSort('price_asc')"
+                            class="font-mono text-[9px] uppercase tracking-wider px-3 py-1.5 border transition-all
+                                   {% if sort == 'price_asc' %}border-off-white text-off-white bg-charcoal-700{% else %}border-charcoal-700 text-grunge-gray hover:border-grunge-gray hover:text-off-white{% endif %}">
+                        Ціна ↑
+                    </button>
+                    <button type="button" onclick="toggleSort('price_desc')"
+                            class="font-mono text-[9px] uppercase tracking-wider px-3 py-1.5 border transition-all
+                                   {% if sort == 'price_desc' %}border-off-white text-off-white bg-charcoal-700{% else %}border-charcoal-700 text-grunge-gray hover:border-grunge-gray hover:text-off-white{% endif %}">
+                        Ціна ↓
+                    </button>
+                </div>
+
+                <!-- Дія -->
+                <div class="flex items-center gap-2 ml-auto">
+                    {% if price_min or price_max or sort %}
+                    <a href="?{% if gender %}gender={{ gender }}{% endif %}{% if subcategory_key %}&subcat={{ subcategory_key }}{% endif %}"
+                       class="font-mono text-[9px] uppercase tracking-widest px-4 py-1.5 border border-red-800
+                              text-red-400 hover:border-red-500 hover:text-red-300 transition-all flex items-center gap-1.5">
+                        <i class="fa-solid fa-rotate-left text-[8px]"></i> Скинути зміни
+                    </a>
+                    {% else %}
+                    <button type="submit"
+                            class="font-mono text-[9px] uppercase tracking-widest px-4 py-1.5
+                                   bg-off-white text-charcoal-900 hover:bg-grunge-gray transition-colors font-bold">
+                        Застосувати
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endwith %}
+
     <!-- Контент -->
     <div class="max-w-[1440px] mx-auto px-6 py-10 flex gap-8 items-start">
 
@@ -238,4 +295,14 @@
         </div>
     </div>
 </main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleSort(val) {
+    const input = document.getElementById('sort-input');
+    input.value = (input.value === val) ? '' : val;
+    document.getElementById('filter-form').submit();
+}
+</script>
 {% endblock %}

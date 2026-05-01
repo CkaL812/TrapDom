@@ -82,13 +82,16 @@
                     </div>
 
                     <div class="pt-4 border-t border-charcoal-700">
-                        <button type="submit"
+                        <button type="button" id="checkout-open-modal"
                                 class="w-full bg-off-white text-charcoal-900 font-mono text-sm uppercase tracking-widest
                                        py-4 font-bold hover:bg-grunge-gray transition-colors flex items-center justify-center gap-3">
                             <i class="fa-solid fa-check text-[11px]"></i>
                             Підтвердити замовлення — {{ cart_total }} {{ cart_currency }}
                         </button>
                     </div>
+
+                    <!-- Прихована кнопка сабміту — викликається з модалу -->
+                    <button type="submit" id="checkout-real-submit" class="hidden"></button>
                 </form>
             </div>
 
@@ -142,4 +145,129 @@
         </div>
     </div>
 </main>
+
+<div id="co-modal" class="fixed inset-0 z-[9998] hidden items-center justify-center" style="display:none;">
+    <div id="co-bg" class="absolute inset-0" style="background:rgba(10,10,10,.96);"></div>
+
+    <div id="co-box" class="relative mx-4 w-full max-w-lg" style="opacity:0;">
+
+        <!-- верхня риска -->
+        <div class="h-px bg-off-white mb-0"></div>
+
+        <div class="bg-charcoal-900 border-x border-charcoal-700">
+
+            <!-- закрити -->
+            <button onclick="closeCheckoutModal()"
+                    class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center
+                           text-grunge-gray hover:text-off-white transition-colors z-10">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+
+            <!-- ── СУМА ─────────────────────────────────── -->
+            <div class="px-8 pt-10 pb-8 border-b border-charcoal-700 text-center">
+                <p class="font-mono text-[9px] uppercase tracking-[.35em] text-grunge-gray mb-4">До оплати</p>
+                <p class="font-bebas text-[72px] leading-none text-off-white tracking-wider" id="co-total">
+                    {{ cart_total }} {{ cart_currency }}
+                </p>
+                <p class="font-mono text-[9px] text-grunge-gray mt-3 tracking-widest uppercase">
+                    Оплата при отриманні · Нова пошта або кур'єр
+                </p>
+            </div>
+
+            <!-- ── ТОВАРИ ───────────────────────────────── -->
+            <div id="co-items" class="border-b border-charcoal-700 max-h-40 overflow-y-auto"></div>
+
+            <!-- ── ДОСТАВКА ─────────────────────────────── -->
+            <div class="px-8 py-5 border-b border-charcoal-700">
+                <div class="flex items-start gap-3">
+                    <i class="fa-solid fa-location-dot text-[9px] text-grunge-gray mt-1 flex-shrink-0"></i>
+                    <p id="co-delivery" class="font-mono text-xs text-off-white leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- ── КНОПКИ ───────────────────────────────── -->
+            <div class="flex h-14">
+                <button onclick="closeCheckoutModal()"
+                        class="flex-1 border-r border-charcoal-700 font-mono text-[10px] uppercase
+                               tracking-widest text-grunge-gray hover:bg-charcoal-800 hover:text-off-white transition-all">
+                    Назад
+                </button>
+                <button onclick="submitCheckout()"
+                        class="flex-1 font-mono text-[11px] uppercase tracking-widest font-bold
+                               bg-off-white text-charcoal-900 hover:bg-grunge-gray transition-colors">
+                    Оформити замовлення
+                </button>
+            </div>
+        </div>
+
+        <!-- нижня риска -->
+        <div class="h-px bg-off-white"></div>
+    </div>
+</div>
+
+<style>
+@keyframes coIn  { from{opacity:0;transform:translateY(-20px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+@keyframes coBgIn{ from{opacity:0} to{opacity:1} }
+</style>
+
+{% block extra_js %}
+<script>
+var _coItems = [
+    {% for ci in cart_items %}
+    {n:"{{ ci.name|escapejs }}",b:"{{ ci.brand|escapejs }}",q:{{ ci.quantity }},p:"{{ ci.price }}",s:"{{ ci.size|default:'' }}"}{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+document.getElementById('checkout-open-modal').addEventListener('click', function () {
+    var form = this.closest('form');
+    var req  = ['full_name','phone','city','address'];
+    for (var i=0;i<req.length;i++){
+        var el = form.querySelector('[name="'+req[i]+'"]');
+        if (!el||!el.value.trim()){ el&&el.focus(); return; }
+    }
+
+    /* Заповнюємо доставку */
+    var name = form.querySelector('[name="full_name"]').value.trim();
+    var ph   = form.querySelector('[name="phone"]').value.trim();
+    var city = form.querySelector('[name="city"]').value.trim();
+    var addr = form.querySelector('[name="address"]').value.trim();
+    document.getElementById('co-delivery').textContent = name + ' · ' + ph + '\n' + city + ', ' + addr;
+
+    /* Заповнюємо товари */
+    var el = document.getElementById('co-items');
+    el.innerHTML = '';
+    _coItems.forEach(function(ci){
+        var d = document.createElement('div');
+        d.className = 'flex items-baseline justify-between px-8 py-3 border-b border-charcoal-700 last:border-b-0 gap-4';
+        d.innerHTML =
+            '<span class="font-mono text-xs text-off-white flex-1 min-w-0 truncate">' +
+                (ci.b?'<span style="color:#C8C8C8;margin-right:6px">'+ci.b+'</span>':'')+ci.n+
+                (ci.s?' <span style="color:#555">['+ci.s+']</span>':'')+
+            '</span>'+
+            '<span class="font-mono text-[10px] text-grunge-gray flex-shrink-0">'+ci.p+' &times; '+ci.q+'</span>';
+        el.appendChild(d);
+    });
+
+    /* Показуємо */
+    var m   = document.getElementById('co-modal');
+    var box = document.getElementById('co-box');
+    var bg  = document.getElementById('co-bg');
+    m.style.display = 'flex';
+    bg.style.animation  = 'none'; bg.offsetHeight; bg.style.animation  = 'coBgIn .2s ease both';
+    box.style.animation = 'none'; box.offsetHeight; box.style.animation = 'coIn .32s cubic-bezier(.22,1,.36,1) both';
+});
+
+function closeCheckoutModal(){
+    var m = document.getElementById('co-modal');
+    m.style.transition='opacity .18s ease';
+    m.style.opacity='0';
+    setTimeout(function(){ m.style.display='none'; m.style.opacity=''; m.style.transition=''; },190);
+}
+
+function submitCheckout(){ document.getElementById('checkout-real-submit').click(); }
+
+document.getElementById('co-bg').addEventListener('click', closeCheckoutModal);
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeCheckoutModal(); });
+</script>
+{% endblock %}
 {% endblock %}

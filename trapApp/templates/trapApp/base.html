@@ -48,6 +48,36 @@
 
 {% include 'trapApp/partials/footer.html' %}
 
+<!-- Кастомний модал підтвердження -->
+<div id="trap-modal" class="fixed inset-0 z-[9999] hidden" aria-modal="true" role="dialog">
+    <div id="trap-modal-bg" class="absolute inset-0 bg-black/75"></div>
+    <div class="absolute inset-0 flex items-center justify-center px-6">
+        <div id="trap-modal-box" class="relative bg-charcoal-900 border border-charcoal-700 w-full max-w-[380px]"
+             style="animation: trapModalIn 0.18s ease;">
+            <div class="border-b border-charcoal-700 px-6 py-4 flex items-center gap-3">
+                <i class="fa-solid fa-triangle-exclamation text-[10px] text-grunge-gray"></i>
+                <p class="text-[9px] font-mono uppercase tracking-[0.25em] text-grunge-gray">Підтвердження дії</p>
+            </div>
+            <div class="px-6 py-7">
+                <p id="trap-modal-msg" class="font-mono text-sm text-off-white leading-relaxed"></p>
+            </div>
+            <div class="border-t border-charcoal-700 flex">
+                <button id="trap-modal-no"
+                        class="flex-1 border-r border-charcoal-700 px-4 py-4 font-mono text-[10px]
+                               uppercase tracking-widest text-grunge-gray hover:bg-charcoal-800
+                               hover:text-off-white transition-all">
+                    Ні, залишити
+                </button>
+                <button id="trap-modal-yes"
+                        class="flex-1 px-4 py-4 font-mono text-[10px] uppercase tracking-widest
+                               font-bold text-red-400 hover:bg-red-950/30 hover:text-red-300 transition-all">
+                    Так, підтвердити
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="{% static 'trapApp/js/header.js' %}"></script>
 <script>
 function trapToggleWishlist(itemId, btn) {
@@ -71,5 +101,43 @@ function trapToggleWishlist(itemId, btn) {
 }
 </script>
 {% block extra_js %}{% endblock %}
+<script>
+(function () {
+    var _pending = null;
+
+    function _hide() {
+        document.getElementById('trap-modal').classList.add('hidden');
+        _pending = null;
+    }
+
+    document.getElementById('trap-modal-bg').addEventListener('click', _hide);
+    document.getElementById('trap-modal-no').addEventListener('click', _hide);
+    document.getElementById('trap-modal-yes').addEventListener('click', function () {
+        var form = _pending;
+        _hide();
+        if (form) {
+            form.dataset.confirmed = '1';
+            form.submit();
+        }
+    });
+
+    /* ESC закриває модал */
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') _hide();
+    });
+
+    /* Перехоплюємо всі форми з data-confirm */
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        var msg = form.dataset.confirm;
+        if (msg && !form.dataset.confirmed) {
+            e.preventDefault();
+            _pending = form;
+            document.getElementById('trap-modal-msg').textContent = msg;
+            document.getElementById('trap-modal').classList.remove('hidden');
+        }
+    }, true);
+})();
+</script>
 </body>
 </html>

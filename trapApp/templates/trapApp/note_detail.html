@@ -240,7 +240,7 @@
         <!-- Кнопка видалення — завжди внизу -->
         <div class="mt-10 pt-6 border-t border-charcoal-700 flex justify-end">
             <form method="POST" action="{% url 'note_delete' note.pk %}"
-                  onsubmit="return confirm('Видалити цей захід?')">
+                  data-confirm="Видалити захід «{{ note.event_name }}»? Цю дію не можна скасувати.">
                 {% csrf_token %}
                 <button type="submit"
                         class="flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest
@@ -253,4 +253,4 @@
     </div>
 </main>
 {% endblock %}
-
+

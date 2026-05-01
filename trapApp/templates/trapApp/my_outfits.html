@@ -104,7 +104,7 @@
                         </a>
 
                         <form method="post" action="{% url 'delete_outfit' outfit.pk %}"
-                              onsubmit="return confirm('Видалити образ?')">
+                              data-confirm="Видалити образ «{{ outfit.name }}»? Цю дію не можна скасувати.">
                             {% csrf_token %}
                             <button type="submit"
                                 class="text-grunge-gray hover:text-red-500 transition-colors p-1"

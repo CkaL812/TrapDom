@@ -40,9 +40,11 @@ urlpatterns = [
     path('search/', views.search_view, name='search'),
 
     # ── Чекаут / замовлення ───────────────────────────────────────────────
-    path('checkout/',        views.checkout_view, name='checkout'),
-    path('orders/',          views.orders_view,   name='orders'),
-    path('orders/<int:pk>/', views.order_confirm, name='order_confirm'),
+    path('checkout/',               views.checkout_view, name='checkout'),
+    path('orders/',                 views.orders_view,   name='orders'),
+    path('orders/clear/',           views.orders_clear,  name='orders_clear'),
+    path('orders/<int:pk>/',        views.order_detail,  name='order_detail'),
+    path('orders/<int:pk>/cancel/', views.cancel_order,  name='cancel_order'),
 
     # ── Нотатки / заходи ───────────────────────────────────────────────────
     path('notes/',                        views.note_list,       name='note_list'),

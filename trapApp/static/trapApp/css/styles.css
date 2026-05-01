@@ -1,5 +1,10 @@
 ::-webkit-scrollbar { display: none; }
 
+@keyframes trapModalIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
 body {
     background-color: #121212;
     color: #F5F5F0;
