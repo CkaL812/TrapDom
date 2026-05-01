@@ -36,6 +36,14 @@ urlpatterns = [
     path('outfits/<int:pk>/',            views.outfit_detail, name='outfit_detail'),
     path('outfits/<int:pk>/delete/',     views.delete_outfit, name='delete_outfit'),
 
+    # ── Пошук ─────────────────────────────────────────────────────────────
+    path('search/', views.search_view, name='search'),
+
+    # ── Чекаут / замовлення ───────────────────────────────────────────────
+    path('checkout/',        views.checkout_view, name='checkout'),
+    path('orders/',          views.orders_view,   name='orders'),
+    path('orders/<int:pk>/', views.order_confirm, name='order_confirm'),
+
     # ── Нотатки / заходи ───────────────────────────────────────────────────
     path('notes/',                        views.note_list,       name='note_list'),
     path('notes/new/',                    views.note_create,     name='note_create'),

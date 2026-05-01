@@ -1,0 +1,75 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Замовлення #{{ order.pk }} — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <div class="max-w-[680px] mx-auto px-6 py-20 text-center">
+
+        <div class="border border-charcoal-700 bg-charcoal-800 px-8 py-16">
+
+            <div class="w-16 h-16 border border-charcoal-700 bg-charcoal-900 flex items-center justify-center mx-auto mb-8">
+                <i class="fa-solid fa-check text-off-white text-xl"></i>
+            </div>
+
+            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-2">Замовлення оформлено</p>
+            <h1 class="font-mono text-3xl uppercase tracking-widest text-off-white mb-2">#{{ order.pk }}</h1>
+            <p class="text-[10px] font-mono text-grunge-gray mb-10">{{ order.created_at|date:"d.m.Y о H:i" }}</p>
+
+            <div class="border-t border-charcoal-700 pt-8 mb-8 text-left space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Отримувач</span>
+                    <span class="text-sm font-mono text-off-white">{{ order.full_name }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Телефон</span>
+                    <span class="text-sm font-mono text-off-white">{{ order.phone }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Місто</span>
+                    <span class="text-sm font-mono text-off-white">{{ order.city }}</span>
+                </div>
+                <div class="flex justify-between items-start">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Адреса</span>
+                    <span class="text-sm font-mono text-off-white text-right max-w-xs">{{ order.address }}</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-charcoal-700 pt-3 mt-3">
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Сума</span>
+                    <span class="text-lg font-mono text-off-white font-bold">{{ order.total }} {{ order.currency }}</span>
+                </div>
+            </div>
+
+            <!-- Список товарів -->
+            <div class="border-t border-charcoal-700 pt-6 mb-10 text-left space-y-2">
+                {% for oi in order.order_items.all %}
+                <div class="flex items-center justify-between py-2 border-b border-charcoal-700 last:border-b-0">
+                    <span class="text-[11px] font-mono text-off-white line-clamp-1 flex-1 mr-4">{{ oi.name }}</span>
+                    <span class="text-[10px] font-mono text-grunge-gray flex-shrink-0">
+                        {{ oi.price }} × {{ oi.quantity }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <p class="text-[10px] font-mono text-grunge-gray mb-8">
+                Менеджер звʼяжеться з вами для підтвердження найближчим часом.
+            </p>
+
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="{% url 'orders' %}"
+                   class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white
+                          font-mono text-[10px] uppercase tracking-widest px-6 py-3 transition-all">
+                    Мої замовлення
+                </a>
+                <a href="{% url 'brands_list' %}"
+                   class="bg-off-white text-charcoal-900 hover:bg-grunge-gray
+                          font-mono text-[10px] uppercase tracking-widest px-6 py-3 transition-all font-bold">
+                    До каталогу
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+{% endblock %}

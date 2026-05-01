@@ -1,0 +1,41 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — TrapDom</title>
+    <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" defer crossorigin="anonymous"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: {
+                'charcoal-900': '#121212', 'charcoal-800': '#1E1E1E',
+                'charcoal-700': '#2A2A2A', 'off-white': '#F5F5F0', 'grunge-gray': '#C8C8C8',
+            }, fontFamily: { mono: ['"Courier New"', 'monospace'] } } }
+        }
+    </script>
+    <link rel="stylesheet" href="{% static 'trapApp/css/styles.css' %}">
+</head>
+<body class="bg-charcoal-900 text-off-white min-h-screen flex items-center justify-center">
+<div class="grunge-texture fixed inset-0 z-0"></div>
+<div class="relative z-10 text-center px-6">
+    <p class="font-mono text-[180px] leading-none text-charcoal-700 select-none">404</p>
+    <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray mb-2 -mt-4">Сторінка не знайдена</p>
+    <p class="font-mono text-[10px] text-grunge-gray mb-10">Можливо, посилання застаріле або сторінку було видалено</p>
+    <div class="flex items-center justify-center gap-4">
+        <a href="/"
+           class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white
+                  font-mono text-[10px] uppercase tracking-widest px-6 py-3 transition-all">
+            <i class="fa-solid fa-arrow-left mr-2 text-[9px]"></i>На головну
+        </a>
+        <a href="/brands/"
+           class="bg-off-white text-charcoal-900 hover:bg-grunge-gray font-mono text-[10px] uppercase
+                  tracking-widest px-6 py-3 transition-all font-bold">
+            До каталогу
+        </a>
+    </div>
+</div>
+</body>
+</html>

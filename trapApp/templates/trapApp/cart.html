@@ -130,10 +130,11 @@
                     </span>
                 </div>
 
-                <button class="w-full bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest
-                               py-4 hover:bg-grunge-gray transition-colors duration-200 mb-3">
+                <a href="{% url 'checkout' %}"
+                   class="block w-full bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest
+                          py-4 hover:bg-grunge-gray transition-colors duration-200 mb-3 text-center font-bold">
                     Оформити замовлення
-                </button>
+                </a>
                 <a href="{% url 'brands_list' %}"
                    class="block w-full border border-charcoal-700 hover:border-grunge-gray text-grunge-gray
                           hover:text-off-white font-mono text-xs uppercase tracking-widest py-3

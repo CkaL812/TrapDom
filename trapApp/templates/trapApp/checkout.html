@@ -1,0 +1,145 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Оформлення замовлення — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Кошик / Оформлення</p>
+        <h1 class="font-mono text-4xl uppercase tracking-widest text-off-white">Оформлення замовлення</h1>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+            <!-- Форма доставки -->
+            <div>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-6">
+                    <span class="text-accent-red mr-2">01</span>Дані доставки
+                </p>
+                <form method="POST" class="flex flex-col gap-4">
+                    {% csrf_token %}
+
+                    <div>
+                        <label class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray block mb-1.5">
+                            Імʼя та прізвище
+                        </label>
+                        <input type="text" name="full_name" value="{{ form_data.full_name|default:'' }}"
+                               placeholder="Іван Петренко"
+                               class="w-full bg-charcoal-800 border {% if errors.full_name %}border-red-500{% else %}border-charcoal-700{% endif %}
+                                      text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray
+                                      transition-colors placeholder-grunge-gray">
+                        {% if errors.full_name %}<p class="text-red-400 text-[10px] font-mono mt-1">{{ errors.full_name }}</p>{% endif %}
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray block mb-1.5">
+                            Номер телефону
+                        </label>
+                        <input type="tel" name="phone" value="{{ form_data.phone|default:'' }}"
+                               placeholder="+380 00 000 00 00"
+                               class="w-full bg-charcoal-800 border {% if errors.phone %}border-red-500{% else %}border-charcoal-700{% endif %}
+                                      text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray
+                                      transition-colors placeholder-grunge-gray">
+                        {% if errors.phone %}<p class="text-red-400 text-[10px] font-mono mt-1">{{ errors.phone }}</p>{% endif %}
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray block mb-1.5">
+                            Місто
+                        </label>
+                        <input type="text" name="city" value="{{ form_data.city|default:'' }}"
+                               placeholder="Київ"
+                               class="w-full bg-charcoal-800 border {% if errors.city %}border-red-500{% else %}border-charcoal-700{% endif %}
+                                      text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray
+                                      transition-colors placeholder-grunge-gray">
+                        {% if errors.city %}<p class="text-red-400 text-[10px] font-mono mt-1">{{ errors.city }}</p>{% endif %}
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray block mb-1.5">
+                            Адреса (відділення Нової пошти або адреса)
+                        </label>
+                        <input type="text" name="address" value="{{ form_data.address|default:'' }}"
+                               placeholder="вул. Хрещатик 1, кв. 5 або НП №12"
+                               class="w-full bg-charcoal-800 border {% if errors.address %}border-red-500{% else %}border-charcoal-700{% endif %}
+                                      text-off-white font-mono text-sm px-4 py-3 focus:outline-none focus:border-grunge-gray
+                                      transition-colors placeholder-grunge-gray">
+                        {% if errors.address %}<p class="text-red-400 text-[10px] font-mono mt-1">{{ errors.address }}</p>{% endif %}
+                    </div>
+
+                    <div>
+                        <label class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray block mb-1.5">
+                            Коментар (необовʼязково)
+                        </label>
+                        <textarea name="comment" rows="3"
+                                  placeholder="Будь-які побажання до замовлення..."
+                                  class="w-full bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm
+                                         px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors
+                                         placeholder-grunge-gray resize-none">{{ form_data.comment|default:'' }}</textarea>
+                    </div>
+
+                    <div class="pt-4 border-t border-charcoal-700">
+                        <button type="submit"
+                                class="w-full bg-off-white text-charcoal-900 font-mono text-sm uppercase tracking-widest
+                                       py-4 font-bold hover:bg-grunge-gray transition-colors flex items-center justify-center gap-3">
+                            <i class="fa-solid fa-check text-[11px]"></i>
+                            Підтвердити замовлення — {{ cart_total }} {{ cart_currency }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Підсумок кошика -->
+            <div>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-6">
+                    <span class="text-accent-red mr-2">02</span>Ваше замовлення
+                </p>
+                <div class="border border-charcoal-700 bg-charcoal-800">
+                    {% for ci in cart_items %}
+                    <div class="flex items-center gap-4 px-4 py-4 border-b border-charcoal-700 last:border-b-0">
+                        <div class="w-16 h-20 bg-charcoal-700 flex-shrink-0 overflow-hidden">
+                            {% if ci.image_local %}
+                                <img src="{{ ci.image_local }}" alt="{{ ci.name }}" class="w-full h-full object-cover">
+                            {% elif ci.image_url %}
+                                <img src="{{ ci.image_url }}" alt="{{ ci.name }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <div class="w-full h-full flex items-center justify-center">
+                                    <i class="fa-solid fa-shirt text-grunge-gray"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">{{ ci.brand }}</p>
+                            <p class="text-sm font-mono text-off-white leading-tight line-clamp-2">{{ ci.name }}</p>
+                            {% if ci.size %}<p class="text-[10px] font-mono text-grunge-gray mt-0.5">Розмір: {{ ci.size }}</p>{% endif %}
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="text-xs font-mono text-off-white font-bold">{{ ci.price }} {{ cart_currency }}</p>
+                            <p class="text-[10px] font-mono text-grunge-gray">× {{ ci.quantity }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    <div class="px-4 py-4 flex items-center justify-between">
+                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Разом</p>
+                        <p class="font-mono text-lg text-off-white font-bold">{{ cart_total }} {{ cart_currency }}</p>
+                    </div>
+                </div>
+
+                <div class="mt-4 border border-charcoal-700 bg-charcoal-800 px-4 py-4">
+                    <div class="flex items-start gap-3">
+                        <i class="fa-solid fa-circle-info text-[10px] text-grunge-gray mt-0.5 flex-shrink-0"></i>
+                        <p class="text-[10px] font-mono text-grunge-gray leading-relaxed">
+                            Оплата при отриманні. Доставка Новою поштою або кур'єром.
+                            Менеджер звʼяжеться з вами для підтвердження.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+{% endblock %}

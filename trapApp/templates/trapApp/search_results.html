@@ -1,0 +1,99 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Пошук{% if q %}: {{ q }}{% endif %} — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Пошук</p>
+        <form method="GET" action="{% url 'search' %}" class="flex items-center gap-3 max-w-xl">
+            <input type="text" name="q" value="{{ q }}"
+                   placeholder="Назва товару або бренд..."
+                   autofocus
+                   class="flex-1 bg-charcoal-800 border border-charcoal-700 text-off-white font-mono text-sm
+                          px-4 py-3 focus:outline-none focus:border-grunge-gray transition-colors placeholder-grunge-gray">
+            <button type="submit"
+                    class="bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest
+                           px-5 py-3 hover:bg-grunge-gray transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-magnifying-glass text-[11px]"></i>
+                Знайти
+            </button>
+        </form>
+        {% if q %}
+        <p class="text-[10px] font-mono text-grunge-gray mt-4">
+            {% if results %}{{ results|length }} результат{% if results|length == 1 %}{% elif results|length < 5 %}и{% else %}ів{% endif %} для «{{ q }}»
+            {% else %}Нічого не знайдено для «{{ q }}»{% endif %}
+        </p>
+        {% endif %}
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-10">
+        {% if results %}
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {% for item in results %}
+            <div class="item-card bg-charcoal-800" style="border:1px solid #2A2A2A;">
+                <a href="{% url 'product_detail' item.pk %}" class="item-img-wrap aspect-[3/4] bg-charcoal-700 block relative overflow-hidden">
+                    {% if item.image_local %}
+                        <img src="{{ item.image_local.url }}" alt="{{ item.name }}" class="w-full h-full object-cover" loading="lazy">
+                    {% elif item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-full h-full object-cover" loading="lazy">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center">
+                            <i class="fa-solid fa-shirt text-grunge-gray text-3xl"></i>
+                        </div>
+                    {% endif %}
+                    {% if item.sale_price %}
+                    <span class="absolute top-2 right-2 bg-off-white text-charcoal-900 text-[9px] font-mono uppercase px-2 py-0.5">SALE</span>
+                    {% endif %}
+                </a>
+                <div class="p-3">
+                    <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-1">{{ item.brand.name }}</p>
+                    <p class="text-sm font-mono text-off-white leading-tight mb-2 line-clamp-2">{{ item.name }}</p>
+                    <div class="flex items-center justify-between pt-2 border-t border-charcoal-700">
+                        <div>
+                            {% if item.sale_price %}
+                                <span class="text-off-white font-mono text-xs font-bold">{{ item.sale_price }} {{ item.currency }}</span>
+                                <span class="text-grunge-gray font-mono text-[10px] line-through ml-1">{{ item.price }}</span>
+                            {% elif item.price %}
+                                <span class="text-off-white font-mono text-xs">{{ item.price }} {{ item.currency }}</span>
+                            {% else %}
+                                <span class="text-grunge-gray font-mono text-[10px]">— ціна —</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-1">
+                            {% if user.is_authenticated %}
+                            <button onclick="trapToggleWishlist({{ item.id }}, this)"
+                                    class="transition-colors p-1 {% if item.id in wishlist_ids %}text-red-500{% else %}text-grunge-gray hover:text-red-400{% endif %}"
+                                    aria-label="Обране">
+                                <i class="{% if item.id in wishlist_ids %}fa-solid{% else %}fa-regular{% endif %} fa-heart text-sm"></i>
+                            </button>
+                            {% endif %}
+                            <button onclick="trapAddToCart({{ item.id }}, '', 1, this)"
+                                    class="text-grunge-gray hover:text-off-white transition-colors p-1"
+                                    aria-label="Додати в кошик">
+                                <i class="fa-solid fa-bag-shopping text-base"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% elif q %}
+        <div class="border border-charcoal-700 bg-charcoal-800 py-24 text-center max-w-md mx-auto mt-10">
+            <i class="fa-solid fa-magnifying-glass text-grunge-gray text-5xl mb-6 block"></i>
+            <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray mb-2">Нічого не знайдено</p>
+            <p class="font-mono text-[10px] text-grunge-gray mb-8">Спробуйте інший запит</p>
+            <a href="{% url 'brands_list' %}"
+               class="border border-charcoal-700 hover:border-off-white text-grunge-gray hover:text-off-white
+                      font-mono text-[10px] uppercase tracking-widest px-6 py-3 transition-all inline-block">
+                До каталогу
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</main>
+{% endblock %}

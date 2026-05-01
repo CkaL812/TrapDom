@@ -209,6 +209,60 @@
             </div>
 
         </div>
+
+        <!-- 05 · Останні замовлення -->
+        <div class="border border-charcoal-700 p-6 lg:col-span-2 mt-2">
+            <div class="flex items-center justify-between mb-6">
+                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">
+                    <span class="text-accent-red mr-2">05</span>Останні замовлення
+                </p>
+                <a href="{% url 'orders' %}"
+                   class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors">
+                    Всі замовлення →
+                </a>
+            </div>
+
+            {% if orders %}
+            <div class="flex flex-col gap-3">
+                {% for order in orders %}
+                <div class="border border-charcoal-700 bg-charcoal-800 px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-6">
+                        <div>
+                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">№</p>
+                            <p class="font-mono text-sm text-off-white font-bold">#{{ order.pk }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Дата</p>
+                            <p class="font-mono text-sm text-off-white">{{ order.created_at|date:"d.m.Y" }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Сума</p>
+                            <p class="font-mono text-sm text-off-white font-bold">{{ order.total }} {{ order.currency }}</p>
+                        </div>
+                        <div class="hidden sm:block">
+                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Товарів</p>
+                            <p class="font-mono text-sm text-off-white">{{ order.order_items.count }}</p>
+                        </div>
+                    </div>
+                    <span class="text-[9px] font-mono uppercase tracking-wider px-3 py-1 border
+                                 {% if order.status == 'delivered' %}border-green-700 text-green-400
+                                 {% elif order.status == 'shipped' %}border-blue-700 text-blue-400
+                                 {% elif order.status == 'confirmed' %}border-charcoal-700 text-off-white
+                                 {% elif order.status == 'cancelled' %}border-red-800 text-red-400
+                                 {% else %}border-charcoal-700 text-grunge-gray{% endif %}">
+                        {{ order.get_status_display }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="border border-charcoal-700 bg-charcoal-900 py-10 text-center">
+                <i class="fa-regular fa-rectangle-list text-grunge-gray text-3xl mb-3 block"></i>
+                <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Замовлень ще немає</p>
+            </div>
+            {% endif %}
+        </div>
+
     </div>
 </main>
 {% endwith %}

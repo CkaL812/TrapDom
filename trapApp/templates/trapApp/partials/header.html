@@ -21,9 +21,27 @@
 
         <!-- Права частина -->
         <div class="flex items-center space-x-6">
-            <button class="text-off-white hover:text-grunge-gray transition-colors" aria-label="Search">
-                <i class="fa-solid fa-magnifying-glass"></i>
-            </button>
+            <div class="relative" id="search-wrap">
+                <button id="search-toggle" class="text-off-white hover:text-grunge-gray transition-colors" aria-label="Search">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
+                <div id="search-box"
+                     class="absolute right-0 top-full mt-3 w-72 bg-charcoal-900 border border-charcoal-700
+                            shadow-[0_8px_32px_rgba(0,0,0,0.6)] opacity-0 invisible -translate-y-2
+                            transition-all duration-200 ease-out z-50 p-3">
+                    <form method="GET" action="{% url 'search' %}" class="flex items-center gap-2">
+                        <input type="text" name="q" placeholder="Пошук товарів..."
+                               id="search-input"
+                               class="flex-1 bg-charcoal-800 border border-charcoal-700 text-off-white
+                                      font-mono text-xs px-3 py-2 focus:outline-none focus:border-grunge-gray
+                                      transition-colors placeholder-grunge-gray">
+                        <button type="submit"
+                                class="text-grunge-gray hover:text-off-white transition-colors p-2">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
 
             {% if user.is_authenticated %}
             <div class="relative group">
@@ -79,6 +97,15 @@
                               hover:border-l-off-white transition-colors duration-150">
                         <i class="fa-solid fa-layer-group w-3 text-center"></i>
                         <span>Образи</span>
+                    </a>
+
+                    <a href="{% url 'orders' %}"
+                       class="flex items-center gap-3 pl-[14px] pr-4 py-3 text-[11px] font-mono uppercase tracking-widest
+                              text-grunge-gray hover:text-off-white hover:bg-charcoal-800
+                              border-b border-charcoal-700 border-l-2 border-l-transparent
+                              hover:border-l-off-white transition-colors duration-150">
+                        <i class="fa-regular fa-rectangle-list w-3 text-center"></i>
+                        <span>Замовлення</span>
                     </a>
 
                     <a href="{% url 'wishlist' %}"
@@ -168,3 +195,31 @@
 
 {# ── Cart Drawer ── #}
 {% include 'trapApp/partials/cart_drawer.html' %}
+
+<script>
+(function() {
+    const toggle = document.getElementById('search-toggle');
+    const box    = document.getElementById('search-box');
+    const input  = document.getElementById('search-input');
+    if (!toggle) return;
+
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const open = !box.classList.contains('invisible');
+        if (open) {
+            box.classList.add('opacity-0', 'invisible', '-translate-y-2');
+        } else {
+            box.classList.remove('opacity-0', 'invisible', '-translate-y-2');
+            box.classList.add('opacity-100', 'visible', 'translate-y-0');
+            setTimeout(() => input && input.focus(), 50);
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!document.getElementById('search-wrap').contains(e.target)) {
+            box.classList.add('opacity-0', 'invisible', '-translate-y-2');
+            box.classList.remove('opacity-100', 'visible', 'translate-y-0');
+        }
+    });
+})();
+</script>

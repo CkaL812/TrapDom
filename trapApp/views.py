@@ -13,7 +13,7 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit, WishlistItem
+from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit, WishlistItem, Order, OrderItem
 from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm, NoteForm
 from .cart import Cart
 
@@ -595,11 +595,14 @@ def profile_view(request):
                     messages.success(request, 'Пароль встановлено')
                     return redirect('profile')
 
+    orders = Order.objects.filter(user=user).prefetch_related('order_items')[:5]
+
     return render(request, 'trapApp/profile.html', {
         'profile_form':  profile_form,
         'password_form': password_form,
         'has_password':  has_password,
         'has_google':    has_google,
+        'orders':        orders,
     })
 
 
@@ -1306,3 +1309,101 @@ def wishlist_toggle(request, item_id):
         'in_wishlist': created,
         'count': WishlistItem.objects.filter(user=request.user).count(),
     })
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ПОШУК
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def search_view(request):
+    q = request.GET.get('q', '').strip()
+    results = []
+    if q:
+        results = (
+            ClothingItem.objects
+            .filter(Q(name__icontains=q) | Q(brand__name__icontains=q))
+            .select_related('brand')
+            .order_by('brand__name', 'name')[:60]
+        )
+    return render(request, 'trapApp/search_results.html', {'q': q, 'results': results})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   ЧЕКАУТ / ЗАМОВЛЕННЯ
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@login_required(login_url='/login/')
+def checkout_view(request):
+    cart = Cart(request)
+    cart_items = cart.to_list()
+    if not cart_items:
+        return redirect('cart')
+
+    errors = {}
+    form_data = {}
+
+    if request.method == 'POST':
+        form_data = {
+            'full_name': request.POST.get('full_name', '').strip(),
+            'phone':     request.POST.get('phone', '').strip(),
+            'city':      request.POST.get('city', '').strip(),
+            'address':   request.POST.get('address', '').strip(),
+            'comment':   request.POST.get('comment', '').strip(),
+        }
+        if not form_data['full_name']:
+            errors['full_name'] = "Вкажіть ім'я та прізвище"
+        if not form_data['phone']:
+            errors['phone'] = 'Вкажіть номер телефону'
+        if not form_data['city']:
+            errors['city'] = 'Вкажіть місто'
+        if not form_data['address']:
+            errors['address'] = 'Вкажіть адресу доставки'
+
+        if not errors:
+            total = cart.total
+            currency = cart.currency or 'UAH'
+
+            order = Order.objects.create(
+                user=request.user,
+                full_name=form_data['full_name'],
+                phone=form_data['phone'],
+                city=form_data['city'],
+                address=form_data['address'],
+                comment=form_data['comment'],
+                total=total,
+                currency=currency,
+            )
+
+            for ci in cart_items:
+                item_obj = ClothingItem.objects.filter(pk=ci['id']).first()
+                OrderItem.objects.create(
+                    order=order,
+                    item=item_obj,
+                    name=ci['name'],
+                    price=ci['price'],
+                    quantity=ci['quantity'],
+                    size=ci.get('size', ''),
+                )
+
+            cart.clear()
+            return redirect('order_confirm', pk=order.pk)
+
+    return render(request, 'trapApp/checkout.html', {
+        'cart_items': cart_items,
+        'cart_total': cart.total,
+        'cart_currency': cart.currency,
+        'form_data': form_data,
+        'errors': errors,
+    })
+
+
+@login_required(login_url='/login/')
+def order_confirm(request, pk):
+    order = get_object_or_404(Order, pk=pk, user=request.user)
+    return render(request, 'trapApp/order_confirm.html', {'order': order})
+
+
+@login_required(login_url='/login/')
+def orders_view(request):
+    orders = Order.objects.filter(user=request.user).prefetch_related('order_items')
+    return render(request, 'trapApp/orders.html', {'orders': orders})
