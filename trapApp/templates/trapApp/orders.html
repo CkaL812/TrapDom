@@ -1,33 +1,34 @@
 {% extends 'trapApp/base.html' %}
 {% load static %}
 
-{% block title %}Мої замовлення — TrapDom{% endblock %}
+{% block title %}Замовлення — TrapDom{% endblock %}
 
 {% block content %}
 <main class="relative z-10 pt-20 min-h-screen">
 
+    <!-- Хедер -->
     <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
         <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Особистий кабінет</p>
         <div class="flex items-end justify-between flex-wrap gap-4">
-            <h1 class="font-mono text-4xl uppercase tracking-widest text-off-white">Замовлення</h1>
+            <h1 class="font-mono text-5xl uppercase tracking-widest text-off-white leading-none">Замовлення</h1>
             <div class="flex items-center gap-3">
                 {% if orders %}
                 <form method="POST" action="{% url 'orders_clear' %}"
                       data-confirm="Видалити всю історію замовлень? Цю дію не можна скасувати.">
                     {% csrf_token %}
                     <button type="submit"
-                            class="border border-red-900 text-red-500 hover:border-red-600 hover:text-red-400
-                                   font-mono text-[10px] uppercase tracking-widest px-4 py-2 transition-all
-                                   flex items-center gap-2">
-                        <i class="fa-solid fa-trash text-[9px]"></i> Очистити всі
+                            class="border border-red-900 text-red-500 hover:border-red-600 hover:bg-red-950/20
+                                   hover:text-red-400 font-mono text-[9px] uppercase tracking-widest
+                                   px-4 py-2.5 transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-trash-can text-[9px]"></i> Очистити все
                     </button>
                 </form>
                 {% endif %}
                 <a href="{% url 'brands_list' %}"
-                   class="border border-charcoal-700 bg-charcoal-800 hover:border-grunge-gray text-grunge-gray
-                          hover:text-off-white font-mono text-[10px] uppercase tracking-widest px-4 py-2 transition-all
-                          flex items-center gap-2">
-                    <i class="fa-solid fa-arrow-left text-[9px]"></i> До каталогу
+                   class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray
+                          hover:text-off-white font-mono text-[9px] uppercase tracking-widest
+                          px-4 py-2.5 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-arrow-left text-[9px]"></i> Каталог
                 </a>
             </div>
         </div>
@@ -36,46 +37,126 @@
     <div class="max-w-[1440px] mx-auto px-6 py-10">
 
         {% if orders %}
-        <div class="flex flex-col gap-4">
+
+        <!-- Таблиця замовлень -->
+        <div class="border border-charcoal-700">
+
+            <!-- Заголовки колонок (десктоп) -->
+            <div class="hidden lg:grid border-b border-charcoal-700 bg-charcoal-800"
+                 style="grid-template-columns: 80px 1fr 160px 180px 100px;">
+                <div class="px-6 py-3"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">№</span></div>
+                <div class="px-4 py-3"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Дата · Доставка</span></div>
+                <div class="px-4 py-3 text-right"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Сума</span></div>
+                <div class="px-4 py-3"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Статус</span></div>
+                <div></div>
+            </div>
+
             {% for order in orders %}
-            <div class="border border-charcoal-700 bg-charcoal-800">
-                <!-- Шапка замовлення -->
-                <div class="flex items-center justify-between px-6 py-4 border-b border-charcoal-700 flex-wrap gap-3">
-                    <div class="flex items-center gap-6 flex-wrap">
-                        <div>
-                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Замовлення</p>
-                            <p class="font-mono text-sm text-off-white font-bold">#{{ order.pk }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Дата</p>
-                            <p class="font-mono text-sm text-off-white">{{ order.created_at|date:"d.m.Y" }}</p>
-                        </div>
-                        <div>
-                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Сума</p>
-                            <p class="font-mono text-sm text-off-white font-bold">{{ order.total }} {{ order.currency }}</p>
-                        </div>
+            <div class="group border-b border-charcoal-700 last:border-b-0 hover:bg-charcoal-800/70 transition-colors">
+
+                <!-- Рядок: десктоп -->
+                <div class="hidden lg:grid items-center"
+                     style="grid-template-columns: 80px 1fr 160px 180px 100px;">
+
+                    <!-- Номер -->
+                    <div class="px-6 py-6">
+                        <span class="font-bebas text-3xl leading-none
+                                     {% if order.status == 'cancelled' %}text-grunge-gray{% else %}text-off-white{% endif %}">
+                            #{{ order.pk }}
+                        </span>
                     </div>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="text-[9px] font-mono uppercase tracking-wider px-3 py-1 border
+
+                    <!-- Дата + місто -->
+                    <div class="px-4 py-6">
+                        <p class="font-mono text-sm text-off-white">{{ order.created_at|date:"d.m.Y" }}
+                            <span class="text-grunge-gray ml-1">{{ order.created_at|date:"H:i" }}</span>
+                        </p>
+                        <p class="font-mono text-[10px] text-grunge-gray mt-1 flex items-center gap-1.5">
+                            <i class="fa-solid fa-location-dot text-[8px]"></i>
+                            {{ order.city }}
+                            <span class="opacity-40 mx-1">·</span>
+                            {% with c=order.order_items.count %}
+                            {{ c }}&nbsp;{% if c == 1 %}річ{% elif c < 5 %}речі{% else %}речей{% endif %}
+                            {% endwith %}
+                        </p>
+                    </div>
+
+                    <!-- Сума -->
+                    <div class="px-4 py-6 text-right">
+                        <p class="font-bebas text-2xl text-off-white leading-none">{{ order.total }}</p>
+                        <p class="font-mono text-[9px] text-grunge-gray mt-0.5">{{ order.currency }}</p>
+                    </div>
+
+                    <!-- Статус -->
+                    <div class="px-4 py-6">
+                        <span class="text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 border inline-block
                                      {% if order.status == 'delivered' %}border-green-700 text-green-400
                                      {% elif order.status == 'shipped' %}border-blue-700 text-blue-400
-                                     {% elif order.status == 'confirmed' %}border-charcoal-700 text-off-white
-                                     {% elif order.status == 'cancelled' %}border-red-800 text-red-400
+                                     {% elif order.status == 'confirmed' %}border-grunge-gray text-off-white
+                                     {% elif order.status == 'cancelled' %}border-red-900 text-red-500
                                      {% else %}border-charcoal-700 text-grunge-gray{% endif %}">
                             {{ order.get_status_display }}
                         </span>
+                    </div>
+
+                    <!-- Дії -->
+                    <div class="px-4 py-6 flex items-center justify-end gap-2">
                         <a href="{% url 'order_detail' order.pk %}"
-                           class="text-[9px] font-mono uppercase tracking-widest px-3 py-1 border border-charcoal-700
-                                  text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
-                            Деталі
+                           class="w-8 h-8 flex items-center justify-center border border-charcoal-700
+                                  text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all"
+                           title="Деталі">
+                            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
                         </a>
                         {% if order.status == 'pending' or order.status == 'confirmed' %}
                         <form method="POST" action="{% url 'cancel_order' order.pk %}" class="inline"
                               data-confirm="Скасувати замовлення #{{ order.pk }}? Після скасування відновити не можна.">
                             {% csrf_token %}
+                            <button type="submit" title="Скасувати"
+                                    class="w-8 h-8 flex items-center justify-center border border-charcoal-700
+                                           text-grunge-gray hover:border-red-800 hover:text-red-500 transition-all">
+                                <i class="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Рядок: мобільний -->
+                <div class="lg:hidden px-5 py-5">
+                    <div class="flex items-start justify-between gap-4 mb-3">
+                        <span class="font-bebas text-4xl leading-none
+                                     {% if order.status == 'cancelled' %}text-grunge-gray{% else %}text-off-white{% endif %}">
+                            #{{ order.pk }}
+                        </span>
+                        <span class="text-[9px] font-mono uppercase tracking-wider px-2.5 py-1 border flex-shrink-0
+                                     {% if order.status == 'delivered' %}border-green-700 text-green-400
+                                     {% elif order.status == 'shipped' %}border-blue-700 text-blue-400
+                                     {% elif order.status == 'confirmed' %}border-grunge-gray text-off-white
+                                     {% elif order.status == 'cancelled' %}border-red-900 text-red-500
+                                     {% else %}border-charcoal-700 text-grunge-gray{% endif %}">
+                            {{ order.get_status_display }}
+                        </span>
+                    </div>
+                    <div class="flex items-end justify-between">
+                        <div>
+                            <p class="font-mono text-xs text-off-white">{{ order.created_at|date:"d.m.Y · H:i" }}</p>
+                            <p class="font-mono text-[10px] text-grunge-gray mt-0.5">{{ order.city }}</p>
+                        </div>
+                        <p class="font-bebas text-2xl text-off-white">{{ order.total }} {{ order.currency }}</p>
+                    </div>
+                    <div class="flex items-center gap-2 mt-4 pt-3 border-t border-charcoal-700">
+                        <a href="{% url 'order_detail' order.pk %}"
+                           class="flex-1 border border-charcoal-700 text-center text-grunge-gray hover:text-off-white
+                                  hover:border-grunge-gray font-mono text-[9px] uppercase tracking-widest py-2 transition-all">
+                            Деталі
+                        </a>
+                        {% if order.status == 'pending' or order.status == 'confirmed' %}
+                        <form method="POST" action="{% url 'cancel_order' order.pk %}" class="flex-1"
+                              data-confirm="Скасувати замовлення #{{ order.pk }}?">
+                            {% csrf_token %}
                             <button type="submit"
-                                    class="text-[9px] font-mono uppercase tracking-widest px-3 py-1 border
-                                           border-red-900 text-red-500 hover:border-red-600 hover:text-red-400 transition-all">
+                                    class="w-full border border-red-900 text-red-500 hover:border-red-700
+                                           font-mono text-[9px] uppercase tracking-widest py-2 transition-all">
                                 Скасувати
                             </button>
                         </form>
@@ -83,44 +164,25 @@
                     </div>
                 </div>
 
-                <!-- Товари -->
-                <div class="px-6 py-4">
-                    {% for oi in order.order_items.all %}
-                    <div class="flex items-center justify-between py-2
-                                {% if not forloop.last %}border-b border-charcoal-700{% endif %}">
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-mono text-off-white line-clamp-1">{{ oi.name }}</p>
-                            {% if oi.size %}<p class="text-[10px] font-mono text-grunge-gray">Розмір: {{ oi.size }}</p>{% endif %}
-                        </div>
-                        <p class="text-[11px] font-mono text-grunge-gray ml-6 flex-shrink-0">
-                            {{ oi.price }} × {{ oi.quantity }}
-                        </p>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Адреса -->
-                <div class="px-6 py-4 border-t border-charcoal-700 flex items-center gap-2">
-                    <i class="fa-solid fa-location-dot text-[10px] text-grunge-gray"></i>
-                    <p class="text-[10px] font-mono text-grunge-gray">
-                        {{ order.city }}, {{ order.address }}
-                    </p>
-                </div>
             </div>
             {% endfor %}
         </div>
 
         {% else %}
-        <div class="border border-charcoal-700 bg-charcoal-800 py-24 text-center max-w-md mx-auto mt-10">
-            <i class="fa-regular fa-rectangle-list text-grunge-gray text-5xl mb-6 block"></i>
-            <p class="font-mono text-xs uppercase tracking-widest text-grunge-gray mb-2">Замовлень ще немає</p>
-            <p class="font-mono text-[10px] text-grunge-gray mb-8">Додавайте речі в кошик та оформлюйте замовлення</p>
+
+        <!-- Порожній стан -->
+        <div class="max-w-sm mx-auto mt-16 text-center">
+            <div class="border border-charcoal-700 bg-charcoal-800 py-20 px-8 mb-6">
+                <p class="font-bebas text-[80px] leading-none text-charcoal-700 mb-2">0</p>
+                <p class="font-mono text-[10px] uppercase tracking-widest text-grunge-gray">Замовлень ще немає</p>
+            </div>
             <a href="{% url 'brands_list' %}"
-               class="border border-charcoal-700 hover:border-off-white text-grunge-gray hover:text-off-white
-                      font-mono text-[10px] uppercase tracking-widest px-6 py-3 transition-all inline-block">
-                До каталогу
+               class="inline-block w-full border border-charcoal-700 hover:border-off-white text-grunge-gray
+                      hover:text-off-white font-mono text-[10px] uppercase tracking-widest py-4 transition-all">
+                Перейти до каталогу
             </a>
         </div>
+
         {% endif %}
 
     </div>

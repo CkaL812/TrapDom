@@ -1,164 +1,204 @@
 {% extends 'trapApp/base.html' %}
 {% load static %}
 
-{% block title %}Замовлення #{{ order.pk }} — TrapDom{% endblock %}
+{% block title %}#{{ order.pk }} — TrapDom{% endblock %}
 
 {% block content %}
 <main class="relative z-10 pt-20 min-h-screen">
 
-    <div class="border-b border-charcoal-700 px-6 py-8 max-w-[1440px] mx-auto">
-        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-1">
-            <a href="{% url 'orders' %}" class="hover:text-off-white transition-colors">Замовлення</a>
-            <span class="mx-2 opacity-40">/</span>
-            #{{ order.pk }}
-        </p>
+    <!-- Навігація -->
+    <div class="border-b border-charcoal-700 px-6 py-5 max-w-[1440px] mx-auto">
+        <a href="{% url 'orders' %}"
+           class="inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-widest
+                  text-grunge-gray hover:text-off-white transition-colors">
+            <i class="fa-solid fa-arrow-left text-[9px]"></i> Всі замовлення
+        </a>
     </div>
 
-    <div class="max-w-[680px] mx-auto px-6 py-10">
-        <div class="border border-charcoal-700 bg-charcoal-800 px-6 py-8">
+    <div class="max-w-[1440px] mx-auto px-6 py-10">
 
-            <!-- Статус -->
-            <div class="flex items-center justify-between mb-6">
-                <h1 class="font-mono text-2xl text-off-white">#{{ order.pk }}</h1>
-                <span class="text-[9px] font-mono uppercase tracking-wider px-3 py-1 border
+        <!-- Велика шапка -->
+        <div class="border-b border-charcoal-700 pb-8 mb-0 flex items-end justify-between flex-wrap gap-4">
+            <div>
+                <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
+                    {{ order.created_at|date:"d.m.Y" }}
+                    <span class="opacity-40 mx-2">·</span>
+                    {{ order.created_at|date:"H:i" }}
+                </p>
+                <h1 class="font-bebas text-[80px] sm:text-[110px] leading-none text-off-white tracking-wide
+                           {% if order.status == 'cancelled' %}opacity-40{% endif %}">
+                    #{{ order.pk }}
+                </h1>
+            </div>
+            <div class="pb-3">
+                <span class="text-[10px] font-mono uppercase tracking-widest px-4 py-2 border inline-block
                              {% if order.status == 'delivered' %}border-green-700 text-green-400
                              {% elif order.status == 'shipped' %}border-blue-700 text-blue-400
-                             {% elif order.status == 'confirmed' %}border-charcoal-700 text-off-white
-                             {% elif order.status == 'cancelled' %}border-red-800 text-red-400
+                             {% elif order.status == 'confirmed' %}border-grunge-gray text-off-white
+                             {% elif order.status == 'cancelled' %}border-red-900 text-red-500
                              {% else %}border-charcoal-700 text-grunge-gray{% endif %}">
                     {{ order.get_status_display }}
                 </span>
             </div>
-
-            <div class="space-y-2.5 border-t border-charcoal-700 pt-6 mb-6">
-                <div class="flex justify-between">
-                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Дата</span>
-                    <span class="font-mono text-sm text-off-white">{{ order.created_at|date:"d.m.Y о H:i" }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Отримувач</span>
-                    <span class="font-mono text-sm text-off-white">{{ order.full_name }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Телефон</span>
-                    <span class="font-mono text-sm text-off-white">{{ order.phone }}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Місто</span>
-                    <span class="font-mono text-sm text-off-white">{{ order.city }}</span>
-                </div>
-                <div class="flex justify-between items-start">
-                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Адреса</span>
-                    <span class="font-mono text-sm text-off-white text-right max-w-xs">{{ order.address }}</span>
-                </div>
-                <div class="flex justify-between items-center border-t border-charcoal-700 pt-3 mt-1">
-                    <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Сума</span>
-                    <span class="font-mono text-xl text-off-white font-bold">{{ order.total }} {{ order.currency }}</span>
-                </div>
-            </div>
-
-            <!-- Товари -->
-            <div class="border-t border-charcoal-700 pt-4 mb-6 space-y-1">
-                {% for oi in order.order_items.all %}
-                <div class="flex items-center justify-between py-2 {% if not forloop.last %}border-b border-charcoal-700{% endif %}">
-                    <span class="font-mono text-xs text-off-white line-clamp-1 flex-1 mr-4">{{ oi.name }}</span>
-                    <span class="font-mono text-[10px] text-grunge-gray flex-shrink-0">{{ oi.price }} × {{ oi.quantity }}</span>
-                </div>
-                {% endfor %}
-            </div>
-
-            <div class="flex flex-col sm:flex-row gap-3">
-                <a href="{% url 'orders' %}"
-                   class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white
-                          font-mono text-[10px] uppercase tracking-widest px-6 py-3 transition-all text-center">
-                    Мої замовлення
-                </a>
-                <a href="{% url 'brands_list' %}"
-                   class="bg-off-white text-charcoal-900 hover:bg-grunge-gray font-mono text-[10px]
-                          uppercase tracking-widest px-6 py-3 transition-all font-bold text-center">
-                    До каталогу
-                </a>
-            </div>
-
-            {% if order.status == 'pending' or order.status == 'confirmed' %}
-            <div class="mt-6 pt-6 border-t border-charcoal-700">
-                <form method="POST" action="{% url 'cancel_order' order.pk %}"
-                      data-confirm="Скасувати замовлення #{{ order.pk }}? Після скасування відновити не можна.">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="w-full border border-red-800 text-red-400 hover:border-red-500 hover:text-red-300
-                                   font-mono text-[10px] uppercase tracking-widest py-3 transition-all
-                                   flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-xmark text-[11px]"></i> Скасувати замовлення
-                    </button>
-                </form>
-            </div>
-            {% endif %}
         </div>
+
+        <!-- Основний контент -->
+        <div class="grid lg:grid-cols-2 border border-t-0 border-charcoal-700">
+
+            <!-- ── Ліво: Доставка ──────────────────────── -->
+            <div class="border-b lg:border-b-0 lg:border-r border-charcoal-700">
+
+                <div class="px-6 py-4 border-b border-charcoal-700 bg-charcoal-800/40">
+                    <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                        <i class="fa-solid fa-location-dot text-[8px] mr-2"></i>Доставка
+                    </p>
+                </div>
+
+                <div class="divide-y divide-charcoal-700">
+                    <div class="flex justify-between items-center px-6 py-4">
+                        <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Отримувач</span>
+                        <span class="font-mono text-sm text-off-white">{{ order.full_name }}</span>
+                    </div>
+                    <div class="flex justify-between items-center px-6 py-4">
+                        <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Телефон</span>
+                        <span class="font-mono text-sm text-off-white">{{ order.phone }}</span>
+                    </div>
+                    <div class="flex justify-between items-center px-6 py-4">
+                        <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Місто</span>
+                        <span class="font-mono text-sm text-off-white">{{ order.city }}</span>
+                    </div>
+                    <div class="flex justify-between items-start px-6 py-4">
+                        <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray flex-shrink-0 mr-6">Адреса</span>
+                        <span class="font-mono text-sm text-off-white text-right">{{ order.address }}</span>
+                    </div>
+                    {% if order.comment %}
+                    <div class="flex justify-between items-start px-6 py-4">
+                        <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray flex-shrink-0 mr-6">Коментар</span>
+                        <span class="font-mono text-sm text-grunge-gray text-right">{{ order.comment }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Дії -->
+                <div class="px-6 py-5 border-t border-charcoal-700 flex flex-wrap gap-3">
+                    <a href="{% url 'orders' %}"
+                       class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray
+                              hover:text-off-white font-mono text-[9px] uppercase tracking-widest
+                              px-5 py-2.5 transition-all">
+                        ← Всі замовлення
+                    </a>
+                    <a href="{% url 'brands_list' %}"
+                       class="bg-off-white text-charcoal-900 hover:bg-grunge-gray font-mono text-[9px]
+                              uppercase tracking-widest px-5 py-2.5 transition-all font-bold">
+                        До каталогу
+                    </a>
+                    {% if order.status == 'pending' or order.status == 'confirmed' %}
+                    <form method="POST" action="{% url 'cancel_order' order.pk %}"
+                          data-confirm="Скасувати замовлення #{{ order.pk }}? Після скасування відновити не можна.">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="border border-red-900 text-red-500 hover:border-red-700 hover:bg-red-950/20
+                                       font-mono text-[9px] uppercase tracking-widest px-5 py-2.5 transition-all
+                                       flex items-center gap-2">
+                            <i class="fa-solid fa-xmark text-[9px]"></i> Скасувати
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ── Право: Товари ───────────────────────── -->
+            <div class="flex flex-col">
+
+                <div class="px-6 py-4 border-b border-charcoal-700 bg-charcoal-800/40">
+                    <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">
+                        <i class="fa-solid fa-bag-shopping text-[8px] mr-2"></i>Склад замовлення
+                    </p>
+                </div>
+
+                <div class="flex-1 divide-y divide-charcoal-700">
+                    {% for oi in order.order_items.all %}
+                    <div class="flex items-center gap-4 px-6 py-4">
+                        <!-- Фото (якщо є) -->
+                        {% if oi.item and oi.item.image_local %}
+                        <div class="w-12 h-14 bg-charcoal-700 flex-shrink-0 overflow-hidden">
+                            <img src="{{ oi.item.image_local.url }}" alt="{{ oi.name }}" class="w-full h-full object-cover">
+                        </div>
+                        {% elif oi.item and oi.item.image_url %}
+                        <div class="w-12 h-14 bg-charcoal-700 flex-shrink-0 overflow-hidden">
+                            <img src="{{ oi.item.image_url }}" alt="{{ oi.name }}" class="w-full h-full object-cover">
+                        </div>
+                        {% else %}
+                        <div class="w-12 h-14 bg-charcoal-800 border border-charcoal-700 flex-shrink-0 flex items-center justify-center">
+                            <i class="fa-solid fa-shirt text-[10px] text-grunge-gray"></i>
+                        </div>
+                        {% endif %}
+
+                        <!-- Назва -->
+                        <div class="flex-1 min-w-0">
+                            {% if oi.item %}
+                            <a href="{% url 'product_detail' oi.item.pk %}"
+                               class="font-mono text-sm text-off-white hover:text-grunge-gray transition-colors line-clamp-2 leading-snug block">
+                                {{ oi.name }}
+                            </a>
+                            {% else %}
+                            <p class="font-mono text-sm text-off-white line-clamp-2 leading-snug">{{ oi.name }}</p>
+                            {% endif %}
+                            {% if oi.size %}
+                            <p class="font-mono text-[9px] text-grunge-gray mt-0.5 uppercase tracking-wide">Розмір: {{ oi.size }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Ціна -->
+                        <div class="text-right flex-shrink-0">
+                            <p class="font-mono text-sm text-off-white font-bold">{{ oi.subtotal }} {{ order.currency }}</p>
+                            <p class="font-mono text-[9px] text-grunge-gray">{{ oi.price }} × {{ oi.quantity }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Підсумок -->
+                <div class="border-t border-charcoal-700 mt-auto">
+                    <div class="flex items-center justify-between px-6 py-6">
+                        <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Разом</p>
+                        <p class="font-bebas text-4xl text-off-white tracking-wide leading-none">
+                            {{ order.total }} {{ order.currency }}
+                        </p>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
     </div>
 </main>
 
 {% if is_new %}
-<!-- ══════════════════════════════════════════════════════════
-     МОДАЛ «ЗАМОВЛЕННЯ ОФОРМЛЕНО»  (з'являється тільки раз)
-     ══════════════════════════════════════════════════════════ -->
-<div id="order-success-modal"
-     class="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center">
-
-    <!-- Підложка -->
+<div id="order-success-modal" class="fixed inset-0 z-[9998] flex items-end sm:items-center justify-center">
     <div id="osm-bg" class="absolute inset-0 bg-black/85" style="animation:osmFadeIn .25s ease both;"></div>
-
-    <!-- Вікно -->
-    <div class="relative w-full sm:max-w-[460px] sm:mx-6 bg-charcoal-900 border border-charcoal-700
-                flex flex-col overflow-hidden"
+    <div class="relative w-full sm:max-w-[460px] sm:mx-6 bg-charcoal-900 border border-charcoal-700 flex flex-col overflow-hidden"
          style="animation:osmSlideUp .38s cubic-bezier(.34,1.46,.64,1) .1s both;">
-
-        <!-- ── Шапка ────────────────────────────────────── -->
         <div class="bg-off-white flex items-center justify-between px-5 py-3 flex-shrink-0">
-            <p class="font-mono text-[8px] uppercase tracking-[.3em] text-charcoal-900 font-bold">
-                TrapDom · Замовлення оформлено
-            </p>
-            <button onclick="closeOrderModal()"
-                    class="text-charcoal-700 hover:text-charcoal-900 transition-colors ml-4 flex-shrink-0"
-                    aria-label="Закрити">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
+            <p class="font-mono text-[8px] uppercase tracking-[.3em] text-charcoal-900 font-bold">TrapDom · Замовлення оформлено</p>
+            <button onclick="closeOrderModal()" class="text-charcoal-700 hover:text-charcoal-900 transition-colors ml-4"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
-
-        <!-- ── Великий блок: номер + чек ─────────────────── -->
         <div class="px-6 pt-8 pb-6 border-b border-charcoal-700 flex items-center gap-6">
-
-            <!-- Анімований чек -->
-            <div id="osm-check"
-                 class="w-16 h-16 border border-charcoal-700 bg-charcoal-800 flex items-center justify-center flex-shrink-0"
+            <div class="w-16 h-16 border border-charcoal-700 bg-charcoal-800 flex items-center justify-center flex-shrink-0"
                  style="animation:osmCheckPop .4s cubic-bezier(.34,1.56,.64,1) .45s both;">
                 <i class="fa-solid fa-check text-off-white text-xl"></i>
             </div>
-
             <div>
                 <p class="font-bebas text-6xl text-off-white leading-none tracking-wide"
-                   style="animation:osmNumIn .5s ease .3s both; opacity:0;">#{{ order.pk }}</p>
+                   style="animation:osmNumIn .5s ease .3s both;opacity:0;">#{{ order.pk }}</p>
                 <p class="font-mono text-[10px] text-grunge-gray mt-1">{{ order.created_at|date:"d.m.Y · H:i" }}</p>
             </div>
         </div>
-
-        <!-- ── Інфо ───────────────────────────────────────── -->
         <div class="px-6 py-5 space-y-2.5 border-b border-charcoal-700">
-            <div class="flex justify-between items-center">
-                <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Отримувач</span>
-                <span class="font-mono text-sm text-off-white">{{ order.full_name }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-                <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Місто</span>
-                <span class="font-mono text-sm text-off-white">{{ order.city }}</span>
-            </div>
-            <div class="flex justify-between items-baseline">
-                <span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Разом</span>
-                <span class="font-bebas text-4xl text-off-white tracking-wide">{{ order.total }} {{ order.currency }}</span>
-            </div>
+            <div class="flex justify-between"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Отримувач</span><span class="font-mono text-sm text-off-white">{{ order.full_name }}</span></div>
+            <div class="flex justify-between"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Місто</span><span class="font-mono text-sm text-off-white">{{ order.city }}</span></div>
+            <div class="flex justify-between items-baseline"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Разом</span><span class="font-bebas text-4xl text-off-white tracking-wide">{{ order.total }} {{ order.currency }}</span></div>
         </div>
-
-        <!-- ── Товари ─────────────────────────────────────── -->
         <div class="px-6 py-4 border-b border-charcoal-700 max-h-32 overflow-y-auto space-y-1">
             {% for oi in order.order_items.all %}
             <div class="flex items-center justify-between {% if not forloop.last %}border-b border-charcoal-700 pb-1{% endif %}">
@@ -167,49 +207,29 @@
             </div>
             {% endfor %}
         </div>
-
-        <!-- ── Повідомлення ───────────────────────────────── -->
         <div class="px-6 py-4 border-b border-charcoal-700 flex items-start gap-3">
             <i class="fa-regular fa-clock text-[10px] text-grunge-gray mt-0.5 flex-shrink-0"></i>
-            <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">
-                Менеджер звʼяжеться з тобою протягом
-                <span class="text-off-white">2–4 годин</span> для підтвердження.
-                Оплата при отриманні. Доставка — Нова пошта або кур'єр.
-            </p>
+            <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">Менеджер звʼяжеться з тобою протягом <span class="text-off-white">2–4 годин</span>. Оплата при отриманні.</p>
         </div>
-
-        <!-- ── Кнопки ─────────────────────────────────────── -->
         <div class="flex flex-shrink-0">
-            <a href="{% url 'orders' %}"
-               class="flex-1 border-r border-charcoal-700 px-4 py-4 text-center font-mono text-[10px]
-                      uppercase tracking-widest text-grunge-gray hover:bg-charcoal-800
-                      hover:text-off-white transition-all">
-                Мої замовлення
-            </a>
-            <a href="{% url 'brands_list' %}"
-               class="flex-1 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest
-                      font-bold bg-off-white text-charcoal-900 hover:bg-grunge-gray transition-all">
-                До каталогу
-            </a>
+            <a href="{% url 'orders' %}" class="flex-1 border-r border-charcoal-700 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-grunge-gray hover:bg-charcoal-800 hover:text-off-white transition-all">Мої замовлення</a>
+            <a href="{% url 'brands_list' %}" class="flex-1 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest font-bold bg-off-white text-charcoal-900 hover:bg-grunge-gray transition-all">До каталогу</a>
         </div>
     </div>
 </div>
-
 <style>
-@keyframes osmFadeIn   { from{opacity:0}       to{opacity:1} }
+@keyframes osmFadeIn   { from{opacity:0} to{opacity:1} }
 @keyframes osmSlideUp  { from{opacity:0;transform:translateY(48px)} to{opacity:1;transform:translateY(0)} }
 @keyframes osmCheckPop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
 @keyframes osmNumIn    { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
 </style>
-
 <script>
-function closeOrderModal() {
-    var m = document.getElementById('order-success-modal');
-    m.style.transition = 'opacity .2s ease';
-    m.style.opacity = '0';
-    setTimeout(function(){ m.style.display = 'none'; }, 210);
+function closeOrderModal(){
+    var m=document.getElementById('order-success-modal');
+    m.style.transition='opacity .2s ease'; m.style.opacity='0';
+    setTimeout(function(){ m.style.display='none'; },210);
 }
-document.getElementById('osm-bg').addEventListener('click', closeOrderModal);
+document.getElementById('osm-bg').addEventListener('click',closeOrderModal);
 </script>
 {% endif %}
 
