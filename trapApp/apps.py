@@ -6,11 +6,13 @@ class TrapappConfig(AppConfig):
     name = 'trapApp'
 
     def ready(self):
-        # При runserver з reloader: запускаємо тільки в дочірньому процесі (RUN_MAIN=true)
-        # При runserver --noreload або gunicorn: RUN_MAIN не встановлено → запускаємо одразу
+        import sys
+        # Не запускаємо scheduler під час management команд (migrate, collectstatic тощо)
+        if any(cmd in sys.argv for cmd in ('migrate', 'collectstatic', 'makemigrations', 'shell')):
+            return
         run_main = os.environ.get('RUN_MAIN')
         if run_main == 'false':
-            return  # батьківський процес reloader — пропускаємо
+            return
         self._start_scheduler()
 
     def _start_scheduler(self):
