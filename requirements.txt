@@ -10,3 +10,4 @@ social-auth-app-django>=5.4
 django-apscheduler>=0.6
 gunicorn>=21.2
 whitenoise>=6.6
+
