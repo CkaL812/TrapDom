@@ -5,7 +5,6 @@ lxml>=5.0
 python-dotenv>=1.0
 Pillow>=10.0
 mysqlclient>=2.2
-playwright>=1.40
 social-auth-app-django>=5.4
 django-apscheduler>=0.6
 gunicorn>=21.2
