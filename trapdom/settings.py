@@ -1,7 +1,6 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-from decouple import config
 
 load_dotenv()
 
@@ -9,9 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-3c131gb4+f&2n%w%&0*mwgr7ibso2646$!_)dgsu)h*1xfbwbq')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -29,6 +28,7 @@ AUTH_USER_MODEL = 'trapApp.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -92,8 +92,8 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # ── Google OAuth2 ────────────────────────────────────────────────────────────
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY    = config('GOOGLE_CLIENT_ID', default='')
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = config('GOOGLE_CLIENT_SECRET', default='')
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY    = os.environ.get('GOOGLE_CLIENT_ID', '')
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 SOCIAL_AUTH_GOOGLE_OAUTH2_SCOPE  = ['openid', 'email', 'profile']
 
 SOCIAL_AUTH_URL_NAMESPACE = 'social'
@@ -133,12 +133,15 @@ USE_TZ        = True
 # ── Статика / медіа ─────────────────────────────────────────────────────────
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-OPENROUTER_API_KEY = config('OPENROUTER_API_KEY', default='')
+OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 
 # ── Email (Gmail SMTP) ───────────────────────────────────────────────────────
 
@@ -146,7 +149,7 @@ EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST          = 'smtp.gmail.com'
 EMAIL_PORT          = 587
 EMAIL_USE_TLS       = True
-EMAIL_HOST_USER     = config('EMAIL_HOST_USER', default='')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL  = config('EMAIL_HOST_USER', default='noreply@trapdom.com')
-SITE_URL            = config('SITE_URL', default='http://127.0.0.1:8000')
+EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
+DEFAULT_FROM_EMAIL  = os.environ.get('EMAIL_HOST_USER', 'noreply@trapdom.com')
+SITE_URL            = os.environ.get('SITE_URL', 'http://127.0.0.1:8000')
