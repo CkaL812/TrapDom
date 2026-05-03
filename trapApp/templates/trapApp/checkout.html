@@ -133,10 +133,10 @@
 
                 <div class="mt-4 border border-charcoal-700 bg-charcoal-800 px-4 py-4">
                     <div class="flex items-start gap-3">
-                        <i class="fa-solid fa-circle-info text-[10px] text-grunge-gray mt-0.5 flex-shrink-0"></i>
+                        <i class="fa-brands fa-stripe text-xl text-grunge-gray flex-shrink-0"></i>
                         <p class="text-[10px] font-mono text-grunge-gray leading-relaxed">
-                            Оплата при отриманні. Доставка Новою поштою або кур'єром.
-                            Менеджер звʼяжеться з вами для підтвердження.
+                            Безпечна оплата карткою через Stripe. Доставка Новою поштою або кур'єром.
+                            Дані картки не зберігаються на нашому сервері.
                         </p>
                     </div>
                 </div>
@@ -170,7 +170,7 @@
                     {{ cart_total }} {{ cart_currency }}
                 </p>
                 <p class="font-mono text-[9px] text-grunge-gray mt-3 tracking-widest uppercase">
-                    Оплата при отриманні · Нова пошта або кур'єр
+                    Безпечна оплата карткою · Нова пошта або кур'єр
                 </p>
             </div>
 
@@ -194,8 +194,8 @@
                 </button>
                 <button onclick="submitCheckout()"
                         class="flex-1 font-mono text-[11px] uppercase tracking-widest font-bold
-                               bg-off-white text-charcoal-900 hover:bg-grunge-gray transition-colors">
-                    Оформити замовлення
+                               bg-off-white text-charcoal-900 hover:bg-grunge-gray transition-colors flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-lock text-[9px]"></i> До оплати
                 </button>
             </div>
         </div>

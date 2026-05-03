@@ -564,6 +564,9 @@ class Order(models.Model):
     total      = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     currency   = models.CharField(max_length=3, default='UAH')
 
+    payment_status    = models.CharField(max_length=20, default='unpaid')
+    payment_intent_id = models.CharField(max_length=100, blank=True)
+
     class Meta:
         ordering            = ['-created_at']
         verbose_name        = 'Замовлення'

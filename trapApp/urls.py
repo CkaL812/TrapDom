@@ -46,7 +46,11 @@ urlpatterns = [
     path('orders/<int:pk>/',        views.order_detail,  name='order_detail'),
     path('orders/<int:pk>/cancel/', views.cancel_order,  name='cancel_order'),
 
-    # ── Нотатки / заходи ───────────────────────────────────────────────────
+    # -- Oplata
+    path('payment/<int:pk>/',         views.payment_view,         name='payment'),
+    path('payment/<int:pk>/success/', views.payment_success_view, name='payment_success'),
+
+    #── Нотатки / заходи ───────────────────────────────────────────────────
     path('notes/',                        views.note_list,       name='note_list'),
     path('notes/new/',                    views.note_create,     name='note_create'),
     path('notes/<int:pk>/',               views.note_detail,     name='note_detail'),

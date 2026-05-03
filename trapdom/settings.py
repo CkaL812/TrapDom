@@ -150,6 +150,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENROUTER_API_KEY = os.environ.get('OPENROUTER_API_KEY', '')
 
+# ── Stripe ───────────────────────────────────────────────────────────────────
+
+STRIPE_PUBLIC_KEY = os.environ.get('STRIPE_PUBLIC_KEY', '')
+STRIPE_SECRET_KEY = os.environ.get('STRIPE_SECRET_KEY', '')
+
 # ── Email (Gmail SMTP) ───────────────────────────────────────────────────────
 
 EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'

@@ -1427,7 +1427,7 @@ def checkout_view(request):
             )
 
             for ci in cart_items:
-                item_obj = ClothingItem.objects.filter(pk=ci['id']).first()
+                item_obj = ClothingItem.objects.filter(pk=ci['item_id']).first()
                 OrderItem.objects.create(
                     order=order,
                     item=item_obj,
@@ -1438,8 +1438,7 @@ def checkout_view(request):
                 )
 
             cart.clear()
-            from django.urls import reverse
-            return redirect(reverse('order_detail', kwargs={'pk': order.pk}) + '?new=1')
+            return redirect('payment', pk=order.pk)
 
     return render(request, 'trapApp/checkout.html', {
         'cart_items': cart_items,
@@ -1484,3 +1483,57 @@ def order_detail(request, pk):
         'order':  order,
         'is_new': request.GET.get('new') == '1',
     })
+
+
+@login_required(login_url='/login/')
+def payment_view(request, pk):
+    import stripe
+    order = get_object_or_404(Order, pk=pk, user=request.user)
+
+    if order.payment_status == 'paid':
+        from django.urls import reverse
+        return redirect(reverse('order_detail', kwargs={'pk': pk}) + '?new=1')
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if order.payment_intent_id:
+        intent = stripe.PaymentIntent.retrieve(order.payment_intent_id)
+        if intent.status == 'succeeded':
+            order.payment_status = 'paid'
+            order.status = 'confirmed'
+            order.save(update_fields=['payment_status', 'status'])
+            from django.urls import reverse
+            return redirect(reverse('order_detail', kwargs={'pk': pk}) + '?new=1')
+    else:
+        amount_kopiiky = int(order.total * 100)
+        intent = stripe.PaymentIntent.create(
+            amount=amount_kopiiky,
+            currency='uah',
+            metadata={'order_id': str(order.pk)},
+        )
+        order.payment_intent_id = intent.id
+        order.save(update_fields=['payment_intent_id'])
+
+    return render(request, 'trapApp/payment.html', {
+        'order':            order,
+        'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
+        'client_secret':    intent.client_secret,
+    })
+
+
+@login_required(login_url='/login/')
+def payment_success_view(request, pk):
+    import stripe
+    order = get_object_or_404(Order, pk=pk, user=request.user)
+
+    stripe.api_key = settings.STRIPE_SECRET_KEY
+
+    if order.payment_intent_id:
+        intent = stripe.PaymentIntent.retrieve(order.payment_intent_id)
+        if intent.status == 'succeeded':
+            order.payment_status = 'paid'
+            order.status = 'confirmed'
+            order.save(update_fields=['payment_status', 'status'])
+
+    from django.urls import reverse
+    return redirect(reverse('order_detail', kwargs={'pk': pk}) + '?new=1')

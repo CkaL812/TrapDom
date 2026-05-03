@@ -1,0 +1,213 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Оплата замовлення #{{ order.pk }} — TrapDom{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-3">Замовлення / Оплата</p>
+        <h1 class="font-mono text-4xl uppercase tracking-widest text-off-white">Оплата</h1>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-10">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+
+            <!-- ── Форма оплати ────────────────────────────── -->
+            <div>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-6">
+                    <span class="text-accent-red mr-2">01</span>Дані картки
+                </p>
+
+                <!-- Тестова підказка -->
+                <div class="mb-6 border border-charcoal-600 bg-charcoal-800 px-4 py-3 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info text-[10px] text-grunge-gray mt-0.5 flex-shrink-0"></i>
+                    <div>
+                        <p class="font-mono text-[10px] text-grunge-gray leading-relaxed uppercase tracking-widest mb-1">Тестовий режим</p>
+                        <p class="font-mono text-[10px] text-off-white leading-relaxed">
+                            Картка: <span class="text-accent-red font-bold tracking-widest">4242 4242 4242 4242</span>
+                        </p>
+                        <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">Термін: будь-яка майбутня дата · CVV: будь-які 3 цифри</p>
+                    </div>
+                </div>
+
+                <form id="payment-form">
+
+                    <!-- Stripe Payment Element вставляється сюди -->
+                    <div id="payment-element" class="mb-5"></div>
+
+                    <!-- Помилки -->
+                    <div id="payment-message" class="hidden font-mono text-[10px] text-red-400 mb-4 px-4 py-3 border border-red-900 bg-red-950/20"></div>
+
+                    <button id="pay-btn" type="submit"
+                            class="w-full bg-off-white text-charcoal-900 font-mono text-sm uppercase tracking-widest
+                                   py-4 font-bold hover:bg-grunge-gray transition-colors flex items-center justify-center gap-3
+                                   disabled:opacity-40 disabled:cursor-not-allowed">
+                        <span id="pay-btn-text">
+                            <i class="fa-solid fa-lock text-[11px]"></i>
+                            Сплатити — {{ order.total }} {{ order.currency }}
+                        </span>
+                        <span id="pay-btn-spinner" class="hidden">
+                            <i class="fa-solid fa-spinner fa-spin text-[11px]"></i>
+                            Обробка...
+                        </span>
+                    </button>
+
+                    <!-- Stripe badge -->
+                    <div class="mt-4 flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-stripe text-2xl text-grunge-gray"></i>
+                        <p class="font-mono text-[9px] text-grunge-gray uppercase tracking-widest">Безпечна оплата через Stripe</p>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ── Підсумок замовлення ─────────────────────── -->
+            <div>
+                <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-6">
+                    <span class="text-accent-red mr-2">02</span>Ваше замовлення #{{ order.pk }}
+                </p>
+
+                <div class="border border-charcoal-700 bg-charcoal-800">
+                    {% for oi in order.order_items.all %}
+                    <div class="flex items-center gap-4 px-4 py-4 border-b border-charcoal-700 last:border-b-0">
+                        {% if oi.item and oi.item.image_local %}
+                        <div class="w-16 h-20 bg-charcoal-700 flex-shrink-0 overflow-hidden">
+                            <img src="{{ oi.item.image_local.url }}" alt="{{ oi.name }}" class="w-full h-full object-cover">
+                        </div>
+                        {% elif oi.item and oi.item.image_url %}
+                        <div class="w-16 h-20 bg-charcoal-700 flex-shrink-0 overflow-hidden">
+                            <img src="{{ oi.item.image_url }}" alt="{{ oi.name }}" class="w-full h-full object-cover">
+                        </div>
+                        {% else %}
+                        <div class="w-16 h-20 bg-charcoal-800 border border-charcoal-700 flex-shrink-0 flex items-center justify-center">
+                            <i class="fa-solid fa-shirt text-grunge-gray"></i>
+                        </div>
+                        {% endif %}
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">
+                                {% if oi.item %}{{ oi.item.brand.name }}{% endif %}
+                            </p>
+                            <p class="text-sm font-mono text-off-white leading-tight line-clamp-2">{{ oi.name }}</p>
+                            {% if oi.size %}<p class="text-[10px] font-mono text-grunge-gray mt-0.5">Розмір: {{ oi.size }}</p>{% endif %}
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <p class="text-xs font-mono text-off-white font-bold">{{ oi.subtotal }} {{ order.currency }}</p>
+                            <p class="text-[10px] font-mono text-grunge-gray">× {{ oi.quantity }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="px-4 py-4 flex items-center justify-between border-t border-charcoal-700">
+                        <p class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Разом</p>
+                        <p class="font-mono text-lg text-off-white font-bold">{{ order.total }} {{ order.currency }}</p>
+                    </div>
+                </div>
+
+                <!-- Дані доставки -->
+                <div class="mt-4 border border-charcoal-700 bg-charcoal-800 divide-y divide-charcoal-700">
+                    <div class="px-4 py-3 flex items-center gap-2">
+                        <i class="fa-solid fa-location-dot text-[9px] text-grunge-gray"></i>
+                        <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray">Доставка</p>
+                    </div>
+                    <div class="px-4 py-3">
+                        <p class="font-mono text-xs text-off-white">{{ order.full_name }} · {{ order.phone }}</p>
+                        <p class="font-mono text-xs text-grunge-gray mt-1">{{ order.city }}, {{ order.address }}</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</main>
+
+{% block extra_js %}
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+(function () {
+    var stripe = Stripe('{{ stripe_public_key }}');
+    var elements = stripe.elements({
+        clientSecret: '{{ client_secret }}',
+        appearance: {
+            theme: 'night',
+            variables: {
+                colorPrimary:        '#E8E8E0',
+                colorBackground:     '#1A1A1A',
+                colorText:           '#E8E8E0',
+                colorDanger:         '#EF4444',
+                fontFamily:          '"Space Mono", "Courier New", monospace',
+                spacingUnit:         '4px',
+                borderRadius:        '0px',
+                colorTextPlaceholder: '#6B6B6B',
+            },
+            rules: {
+                '.Input': {
+                    border:          '1px solid #333',
+                    backgroundColor: '#141414',
+                    color:           '#E8E8E0',
+                    padding:         '12px 14px',
+                },
+                '.Input:focus': {
+                    border:    '1px solid #6B6B6B',
+                    boxShadow: 'none',
+                },
+                '.Label': {
+                    fontSize:      '9px',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color:         '#6B6B6B',
+                    marginBottom:  '6px',
+                },
+                '.Tab': {
+                    border:          '1px solid #333',
+                    backgroundColor: '#141414',
+                },
+                '.Tab--selected': {
+                    border:          '1px solid #6B6B6B',
+                    backgroundColor: '#1A1A1A',
+                },
+                '.Error': {
+                    fontSize: '10px',
+                    color:    '#EF4444',
+                },
+            }
+        }
+    });
+
+    var paymentElement = elements.create('payment', {
+        layout: { type: 'tabs', defaultCollapsed: false }
+    });
+    paymentElement.mount('#payment-element');
+
+    var form     = document.getElementById('payment-form');
+    var btn      = document.getElementById('pay-btn');
+    var btnText  = document.getElementById('pay-btn-text');
+    var spinner  = document.getElementById('pay-btn-spinner');
+    var msgBox   = document.getElementById('payment-message');
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        btn.disabled = true;
+        btnText.classList.add('hidden');
+        spinner.classList.remove('hidden');
+        msgBox.classList.add('hidden');
+
+        var result = await stripe.confirmPayment({
+            elements: elements,
+            confirmParams: {
+                return_url: window.location.origin + '{% url "payment_success" order.pk %}',
+            }
+        });
+
+        if (result.error) {
+            msgBox.textContent = result.error.message;
+            msgBox.classList.remove('hidden');
+            btn.disabled = false;
+            btnText.classList.remove('hidden');
+            spinner.classList.add('hidden');
+        }
+    });
+})();
+</script>
+{% endblock %}
+{% endblock %}

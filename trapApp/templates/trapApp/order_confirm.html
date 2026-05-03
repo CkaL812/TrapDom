@@ -30,7 +30,7 @@
                     #{{ order.pk }}
                 </h1>
             </div>
-            <div class="pb-3">
+            <div class="pb-3 flex flex-col items-end gap-2">
                 <span class="text-[10px] font-mono uppercase tracking-widest px-4 py-2 border inline-block
                              {% if order.status == 'delivered' %}border-green-700 text-green-400
                              {% elif order.status == 'shipped' %}border-blue-700 text-blue-400
@@ -39,6 +39,16 @@
                              {% else %}border-charcoal-700 text-grunge-gray{% endif %}">
                     {{ order.get_status_display }}
                 </span>
+                {% if order.payment_status == 'paid' %}
+                <span class="text-[10px] font-mono uppercase tracking-widest px-4 py-2 border inline-flex items-center gap-1.5 border-green-700 text-green-400">
+                    <i class="fa-solid fa-lock text-[9px]"></i> Оплачено
+                </span>
+                {% elif order.status != 'cancelled' %}
+                <a href="{% url 'payment' order.pk %}"
+                   class="text-[10px] font-mono uppercase tracking-widest px-4 py-2 border inline-flex items-center gap-1.5 border-yellow-700 text-yellow-400 hover:bg-yellow-950/20 transition-colors">
+                    <i class="fa-solid fa-lock text-[9px]"></i> Оплатити
+                </a>
+                {% endif %}
             </div>
         </div>
 
@@ -208,8 +218,14 @@
             {% endfor %}
         </div>
         <div class="px-6 py-4 border-b border-charcoal-700 flex items-start gap-3">
-            <i class="fa-regular fa-clock text-[10px] text-grunge-gray mt-0.5 flex-shrink-0"></i>
-            <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">Менеджер звʼяжеться з тобою протягом <span class="text-off-white">2–4 годин</span>. Оплата при отриманні.</p>
+            <i class="fa-solid fa-lock text-[10px] text-green-400 mt-0.5 flex-shrink-0"></i>
+            <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">
+                {% if order.payment_status == 'paid' %}
+                Оплату успішно підтверджено через <span class="text-off-white">Stripe</span>. Замовлення передано в обробку.
+                {% else %}
+                Замовлення створено. Перейдіть до оплати або менеджер звʼяжеться з вами протягом <span class="text-off-white">2–4 годин</span>.
+                {% endif %}
+            </p>
         </div>
         <div class="flex flex-shrink-0">
             <a href="{% url 'orders' %}" class="flex-1 border-r border-charcoal-700 px-4 py-4 text-center font-mono text-[10px] uppercase tracking-widest text-grunge-gray hover:bg-charcoal-800 hover:text-off-white transition-all">Мої замовлення</a>
