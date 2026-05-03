@@ -47,55 +47,6 @@
       </table>
     </div>
 
-    <!-- OUTFIT LABEL -->
-    <div style="padding:32px 40px 16px 40px;">
-      <p style="margin:0;font-size:9px;letter-spacing:0.5em;text-transform:uppercase;color:#A0A0A0;">
-        Підібраний образ &mdash; {{ items|length }} речей
-      </p>
-    </div>
-
-    <!-- ITEMS -->
-    <div style="padding:0 40px;">
-      {% for item in items %}
-      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #1E1E1E;margin-bottom:6px;background-color:#121212;">
-        <tr>
-          {% if item.image_url or item.image_local %}
-          <td style="width:90px;padding:0;vertical-align:top;">
-            <img src="{% if item.image_local %}{{ site_url }}{{ item.image_local.url }}{% else %}{{ item.image_url }}{% endif %}"
-                 width="90" height="120"
-                 style="display:block;width:90px;height:120px;object-fit:cover;opacity:0.9;"
-                 alt="{{ item.name }}">
-          </td>
-          {% endif %}
-          <td style="padding:16px 20px;vertical-align:top;border-left:1px solid #1E1E1E;">
-            <p style="margin:0 0 5px 0;font-size:8px;letter-spacing:0.3em;text-transform:uppercase;color:#A0A0A0;">
-              {{ item.brand.name }}&nbsp;&middot;&nbsp;{{ item.get_category_display }}
-            </p>
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#F5F5F0;line-height:1.45;">
-              {{ item.name }}
-            </p>
-            <p style="margin:0;font-size:10px;letter-spacing:0.08em;color:#808080;">
-              {% if item.sale_price %}
-                <span style="color:#F5F5F0;">{{ item.sale_price }} {{ item.currency }}</span>
-                &nbsp;<span style="text-decoration:line-through;font-size:9px;">{{ item.price }}</span>
-              {% elif item.price %}
-                {{ item.price }} {{ item.currency }}
-              {% endif %}
-            </p>
-          </td>
-          <td style="padding:0 16px 0 0;vertical-align:middle;text-align:right;white-space:nowrap;">
-            <a href="{{ site_url }}/product/{{ item.pk }}/"
-               style="display:inline-block;border:1px solid #2A2A2A;color:#A0A0A0;padding:8px 14px;font-size:8px;letter-spacing:0.3em;text-transform:uppercase;text-decoration:none;">
-              →
-            </a>
-          </td>
-        </tr>
-      </table>
-      {% empty %}
-      <p style="color:#808080;font-size:11px;letter-spacing:0.1em;">Образ ще формується.</p>
-      {% endfor %}
-    </div>
-
     <!-- CTA -->
     <div style="padding:40px 40px 48px 40px;text-align:center;">
       <a href="{{ note_url }}"
