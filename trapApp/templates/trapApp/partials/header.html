@@ -169,11 +169,11 @@
                 class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
                 Бренди
             </a>
+            {% if user.is_authenticated %}
             <a href="{% url 'outfit_picker' %}"
                 class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
                 Підбір образу
             </a>
-            {% if user.is_authenticated %}
             <a href="{% url 'wardrobe_upload' %}"
                 class="text-sm font-mono uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors py-2 border-b border-charcoal-700">
                 Гардероб
