@@ -1,55 +1,100 @@
 {% load static %}
 
-<footer class="relative z-10 border-t border-charcoal-700 bg-charcoal-900">
-    <div class="max-w-[1440px] mx-auto px-6 py-16">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-            <div class="md:col-span-1">
-                <a href="#" class="block mb-4">
-                    <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom Logo" width="140" height="37" style="object-fit: contain;">
+<footer class="relative z-10 bg-charcoal-900">
+
+    <!-- Верхня риска -->
+    <div class="border-t border-charcoal-700"></div>
+
+    <!-- Основна секція -->
+    <div class="max-w-[1440px] mx-auto px-6 pt-14 pb-10">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-6">
+
+            <!-- Лого + опис -->
+            <div class="lg:col-span-4">
+                <a href="{% url 'index' %}" class="block mb-5">
+                    <img src="{% static 'trapApp/trapdom_white.png' %}" alt="TrapDom" width="130" style="object-fit:contain;">
                 </a>
-                <p class="text-xs text-grunge-gray font-mono leading-relaxed">
-                    Forged in the underground. Crafted for rebels. Every thread tells a story of defiance.
+                <p class="font-mono text-[10px] text-grunge-gray leading-relaxed max-w-[260px] mb-6">
+                    Агрегатор преміум-брендів для тих, хто знає ціну стилю. Підбираємо образи — ти вирішуєш.
                 </p>
-                <div class="flex space-x-4 mt-6">
-                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-instagram"></i></a>
-                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-tiktok"></i></a>
-                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-x-twitter"></i></a>
-                    <a href="#" class="text-grunge-gray hover:text-off-white transition-colors"><i class="fa-brands fa-pinterest"></i></a>
+                <!-- Соцмережі -->
+                <div class="flex items-center gap-4">
+                    <a href="#" class="w-8 h-8 border border-charcoal-700 flex items-center justify-center text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                        <i class="fa-brands fa-instagram text-[11px]"></i>
+                    </a>
+                    <a href="#" class="w-8 h-8 border border-charcoal-700 flex items-center justify-center text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                        <i class="fa-brands fa-tiktok text-[11px]"></i>
+                    </a>
+                    <a href="#" class="w-8 h-8 border border-charcoal-700 flex items-center justify-center text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                        <i class="fa-brands fa-x-twitter text-[11px]"></i>
+                    </a>
+                    <a href="#" class="w-8 h-8 border border-charcoal-700 flex items-center justify-center text-grunge-gray hover:border-grunge-gray hover:text-off-white transition-all">
+                        <i class="fa-brands fa-pinterest text-[11px]"></i>
+                    </a>
                 </div>
             </div>
-            <div>
-                <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Shop</h4>
+
+            <!-- Каталог -->
+            <div class="lg:col-span-2 lg:col-start-6">
+                <p class="font-mono text-[9px] uppercase tracking-[.25em] text-off-white mb-5">Каталог</p>
                 <ul class="space-y-3">
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">New Arrivals</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Collections</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Accessories</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Sale</a></li>
+                    <li><a href="{% url 'brands_list' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Всі бренди</a></li>
+                    <li><a href="{% url 'search' %}?q=" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Пошук</a></li>
+                    <li><a href="{% url 'wishlist' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Вішліст</a></li>
+                    <li><a href="{% url 'cart' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Кошик</a></li>
                 </ul>
             </div>
-            <div>
-                <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Info</h4>
+
+            <!-- Сервіс -->
+            <div class="lg:col-span-2">
+                <p class="font-mono text-[9px] uppercase tracking-[.25em] text-off-white mb-5">Сервіс</p>
                 <ul class="space-y-3">
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">About</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Editorial</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Shipping &amp; Returns</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Size Guide</a></li>
+                    <li><a href="{% url 'outfit_picker' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Підбір образу</a></li>
+                    <li><a href="{% url 'my_outfits' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Мої образи</a></li>
+                    <li><a href="{% url 'wardrobe_upload' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Гардероб</a></li>
+                    <li><a href="{% url 'orders' %}" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors uppercase tracking-wider">Замовлення</a></li>
                 </ul>
             </div>
-            <div>
-                <h4 class="text-xs font-mono uppercase tracking-widest mb-6 text-off-white">Contact</h4>
+
+            <!-- Контакт -->
+            <div class="lg:col-span-2">
+                <p class="font-mono text-[9px] uppercase tracking-[.25em] text-off-white mb-5">Контакт</p>
                 <ul class="space-y-3">
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors">hello@trapdom.com</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">FAQ</a></li>
-                    <li><a href="#" class="text-xs text-grunge-gray font-mono hover:text-off-white transition-colors uppercase tracking-wide">Stockists</a></li>
+                    <li>
+                        <a href="mailto:hello@trapdom.com" class="font-mono text-[10px] text-grunge-gray hover:text-off-white transition-colors">
+                            hello@trapdom.com
+                        </a>
+                    </li>
+                    <li><span class="font-mono text-[10px] text-grunge-gray uppercase tracking-wider">Пн–Пт · 10:00–19:00</span></li>
+                    <li><span class="font-mono text-[10px] text-grunge-gray">Київ, Україна</span></li>
                 </ul>
+
+                <!-- Оплата -->
+                <p class="font-mono text-[9px] uppercase tracking-[.25em] text-off-white mt-6 mb-3">Оплата</p>
+                <div class="flex items-center gap-3">
+                    <i class="fa-brands fa-stripe text-2xl text-grunge-gray" title="Stripe"></i>
+                    <i class="fa-brands fa-cc-visa text-xl text-grunge-gray" title="Visa"></i>
+                    <i class="fa-brands fa-cc-mastercard text-xl text-grunge-gray" title="Mastercard"></i>
+                </div>
             </div>
+
         </div>
-        <div class="border-t border-charcoal-700 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p class="text-xs text-grunge-gray font-mono">© 2024 Iron &amp; Ink. All Rights Reserved.</p>
-            <div class="flex space-x-6">
-                <a href="#" class="text-xs text-grunge-gray font-mono hover:text-grunge-gray transition-colors uppercase">Privacy Policy</a>
-                <a href="#" class="text-xs text-grunge-gray font-mono hover:text-grunge-gray transition-colors uppercase">Terms</a>
+    </div>
+
+    <!-- Нижня смуга -->
+    <div class="border-t border-charcoal-700">
+        <div class="max-w-[1440px] mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p class="font-mono text-[9px] text-charcoal-700 uppercase tracking-widest">
+                © 2026 TrapDom · Всі права захищено
+            </p>
+            <div class="flex items-center gap-6">
+                <a href="#" class="font-mono text-[9px] text-charcoal-700 hover:text-grunge-gray uppercase tracking-widest transition-colors">Конфіденційність</a>
+                <a href="#" class="font-mono text-[9px] text-charcoal-700 hover:text-grunge-gray uppercase tracking-widest transition-colors">Умови</a>
+                <span class="font-mono text-[9px] text-charcoal-700 uppercase tracking-widest flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-600 inline-block"></span>Всі системи працюють
+                </span>
             </div>
         </div>
     </div>
+
 </footer>
