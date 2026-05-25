@@ -50,6 +50,17 @@ urlpatterns = [
     path('payment/<int:pk>/',         views.payment_view,         name='payment'),
     path('payment/<int:pk>/success/', views.payment_success_view, name='payment_success'),
 
+    # ── Примірка ───────────────────────────────────────────────────────────────
+    path('virtual-tryon/',                              views.virtual_tryon,        name='virtual_tryon'),
+    path('virtual-tryon/start/',                        views.tryon_start,          name='tryon_start'),
+    path('virtual-tryon/status/<str:job_id>/',          views.tryon_status,         name='tryon_status'),
+    path('virtual-tryon/search/',                       views.tryon_search,         name='tryon_search'),
+    path('virtual-tryon/catalog/',                      views.tryon_catalog,        name='tryon_catalog'),
+    path('virtual-tryon/catalog/<slug:slug>/',          views.tryon_catalog,        name='tryon_catalog_brand'),
+    path('virtual-tryon/result/<str:job_id>/',            views.tryon_result,         name='tryon_result'),
+    path('virtual-tryon/history/',                      views.tryon_history,        name='tryon_history'),
+    path('virtual-tryon/history/<int:pk>/delete/',      views.tryon_session_delete, name='tryon_session_delete'),
+
     #── Нотатки / заходи ───────────────────────────────────────────────────
     path('notes/',                        views.note_list,       name='note_list'),
     path('notes/new/',                    views.note_create,     name='note_create'),

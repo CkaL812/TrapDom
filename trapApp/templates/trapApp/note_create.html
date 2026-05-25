@@ -107,59 +107,6 @@
                 </div>
             </div>
 
-            <!-- Режим підбору -->
-            <div>
-                <label class="block font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-2">
-                    Підбір образу
-                </label>
-                <div class="grid grid-cols-2 gap-3">
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="mode" value="auto"
-                               {% if not form.mode.value or form.mode.value == 'auto' %}checked{% endif %}
-                               class="sr-only peer">
-                        <div class="relative border border-charcoal-700 px-4 py-5
-                                    peer-checked:border-off-white transition-colors duration-150">
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="fa-regular fa-clock text-off-white text-sm"></i>
-                                <span class="font-mono text-[11px] uppercase tracking-widest text-off-white">
-                                    Авто
-                                </span>
-                            </div>
-                            <p class="font-mono text-[9px] text-grunge-gray leading-relaxed">
-                                Образ підберемо і надішлемо листа за 5 годин до події
-                            </p>
-                            <!-- Опціонально зберіть самі -->
-                            <p class="font-mono text-[8px] text-grunge-gray/50 mt-2 leading-relaxed">
-                                Також можна скласти вручну у будь-який момент
-                            </p>
-                        </div>
-                    </label>
-
-                    <label class="cursor-pointer">
-                        <input type="radio" name="mode" value="manual"
-                               {% if form.mode.value == 'manual' %}checked{% endif %}
-                               class="sr-only peer">
-                        <div class="relative border border-charcoal-700 px-4 py-5
-                                    peer-checked:border-off-white transition-colors duration-150">
-                            <div class="flex items-center gap-2 mb-2">
-                                <i class="fa-regular fa-hand text-off-white text-sm"></i>
-                                <span class="font-mono text-[11px] uppercase tracking-widest text-off-white">
-                                    Вручну
-                                </span>
-                            </div>
-                            <p class="font-mono text-[9px] text-grunge-gray leading-relaxed">
-                                Ви самі оберете речі з каталогу по категоріях
-                            </p>
-                            <p class="font-mono text-[8px] text-grunge-gray/50 mt-2 leading-relaxed">
-                                Без автоматичного листа
-                            </p>
-                        </div>
-                    </label>
-
-                </div>
-            </div>
-
             <button type="submit"
                     class="w-full bg-off-white text-charcoal-900 py-4 font-mono text-sm font-bold
                            uppercase tracking-widest hover:bg-grunge-gray hover:text-off-white

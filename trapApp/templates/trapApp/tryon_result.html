@@ -1,0 +1,123 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Результат примірки — TrapDom{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/virtual_tryon.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- ═══ Хедер ═══ -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto">
+        <p class="text-[9px] font-mono uppercase tracking-[0.3em] text-grunge-gray mb-2">AI · Beta · Примірка</p>
+        <h1 class="font-mono text-6xl md:text-8xl uppercase tracking-widest text-off-white leading-none">Результат</h1>
+        <p class="text-grunge-gray font-mono text-xs mt-3 max-w-lg leading-relaxed">
+            {{ session.created_at|date:"d.m.Y · H:i" }}
+        </p>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-12">
+
+        <div class="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 lg:gap-12 items-start">
+
+            <!-- ═══ Ліва колонка: фінальний образ ═══ -->
+            <div>
+                <p class="text-[9px] font-mono uppercase tracking-[0.3em] text-grunge-gray mb-4">Ваш образ</p>
+                <div class="result-img-wrap border border-charcoal-700 bg-charcoal-900">
+                    <img src="{{ result_url }}" alt="Результат примірки" class="w-full object-contain">
+                </div>
+                <p class="font-mono text-[9px] text-grunge-gray mt-3 text-center">
+                    Згенеровано AI · результат може відрізнятися від реального одягу
+                </p>
+            </div>
+
+            <!-- ═══ Права колонка: дії + товари ═══ -->
+            <div class="flex flex-col gap-4 lg:sticky lg:top-24">
+
+                <!-- Дії -->
+                <div class="border border-charcoal-700 bg-charcoal-800 p-5">
+                    <p class="text-[9px] font-mono uppercase tracking-[0.3em] text-grunge-gray mb-4">Дії</p>
+                    <div class="flex flex-col gap-2">
+                        <a href="{{ result_url }}" download="trapdom-tryon.png"
+                            class="result-action-btn w-full flex items-center justify-center gap-2 px-4 py-3">
+                            <i class="fa-solid fa-download text-[11px]"></i>
+                            <span class="font-mono text-[11px] uppercase tracking-widest">Зберегти фото</span>
+                        </a>
+                        <a href="{% url 'virtual_tryon' %}"
+                            class="result-action-btn w-full flex items-center justify-center gap-2 px-4 py-3">
+                            <i class="fa-solid fa-rotate-left text-[11px]"></i>
+                            <span class="font-mono text-[11px] uppercase tracking-widest">Спробувати ще</span>
+                        </a>
+                        <a href="{% url 'tryon_history' %}"
+                            class="result-action-btn w-full flex items-center justify-center gap-2 px-4 py-3">
+                            <i class="fa-solid fa-clock-rotate-left text-[11px]"></i>
+                            <span class="font-mono text-[11px] uppercase tracking-widest">Мої примірки</span>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Примірений одяг -->
+                {% if items %}
+                <div class="border border-charcoal-700 bg-charcoal-800 p-5">
+                    <p class="text-[9px] font-mono uppercase tracking-[0.3em] text-grunge-gray mb-4">
+                        Примірений одяг
+                    </p>
+                    <div class="flex flex-col divide-y divide-charcoal-700">
+                        {% for item in items %}
+                        {% with price=item.sale_price|default:item.price %}
+                        <a href="{% url 'product_detail' item.pk %}"
+                            class="flex items-center gap-3 py-3 first:pt-0 last:pb-0 hover:opacity-75 transition-opacity">
+                            {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}"
+                                class="w-10 h-14 object-cover flex-shrink-0 bg-charcoal-900"
+                                onerror="this.style.display='none'">
+                            {% elif item.image_local %}
+                            <img src="{{ item.image_local.url }}" alt="{{ item.name }}"
+                                class="w-10 h-14 object-cover flex-shrink-0 bg-charcoal-900"
+                                onerror="this.style.display='none'">
+                            {% endif %}
+                            <div class="min-w-0 flex-1">
+                                <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray mb-0.5">
+                                    {{ item.get_category_display }}
+                                </p>
+                                <p class="font-mono text-xs text-off-white truncate">{{ item.name }}</p>
+                                <p class="font-mono text-[10px] text-grunge-gray mt-0.5">
+                                    {{ item.brand.name }}{% if price %} · {{ price }} ₴{% endif %}
+                                </p>
+                            </div>
+                            <i class="fa-solid fa-arrow-right text-grunge-gray text-[9px] flex-shrink-0"></i>
+                        </a>
+                        {% endwith %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Нагадуємо -->
+                <div class="border border-charcoal-700 bg-charcoal-800 p-5">
+                    <p class="text-[9px] font-mono uppercase tracking-[0.3em] text-grunge-gray mb-3">Нагадуємо</p>
+                    <ul class="space-y-2">
+                        <li class="font-mono text-[10px] text-grunge-gray flex gap-2">
+                            <span class="text-off-white flex-shrink-0">—</span>
+                            AI не відображає точно текстуру та колір
+                        </li>
+                        <li class="font-mono text-[10px] text-grunge-gray flex gap-2">
+                            <span class="text-off-white flex-shrink-0">—</span>
+                            Результат залежить від якості вашого фото
+                        </li>
+                        <li class="font-mono text-[10px] text-grunge-gray flex gap-2">
+                            <span class="text-off-white flex-shrink-0">—</span>
+                            Складні пози дають менш точний результат
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</main>
+{% endblock %}

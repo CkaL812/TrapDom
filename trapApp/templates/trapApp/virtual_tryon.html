@@ -1,0 +1,238 @@
+{% extends 'trapApp/base.html' %}
+{% load static %}
+
+{% block title %}Примірка — TrapDom{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'trapApp/css/virtual_tryon.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="relative z-10 pt-20 min-h-screen">
+
+    <!-- ═══ Хедер ═══ -->
+    <div class="border-b border-charcoal-700 px-6 py-10 max-w-[1440px] mx-auto flex items-start justify-between gap-6">
+        <div>
+            <p class="text-[9px] font-mono uppercase tracking-[0.3em] text-grunge-gray mb-2">AI · Beta</p>
+            <h1 class="font-mono text-6xl md:text-8xl uppercase tracking-widest text-off-white leading-none">Примірка</h1>
+            <p class="text-grunge-gray font-mono text-xs mt-3 max-w-lg leading-relaxed">
+                Завантажте своє фото у повний ріст та оберіть одяг — штучний інтелект одягне його на вас за 30–120 секунд.
+            </p>
+        </div>
+        <a href="{% url 'tryon_history' %}"
+           class="flex-shrink-0 mt-2 flex items-center gap-2.5 border border-charcoal-700 px-4 py-3
+                  font-mono text-[10px] uppercase tracking-widest text-grunge-gray
+                  hover:border-grunge-gray hover:text-off-white transition-all duration-200">
+            <i class="fa-regular fa-images text-sm"></i>
+            <span class="hidden sm:inline">Мої примірки</span>
+        </a>
+    </div>
+
+    <div class="max-w-[1440px] mx-auto px-6 py-12">
+
+        <!-- ═══ КРОК 1 + 2 ═══ -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-start">
+
+            <!-- ── КРОК 1: Ваше фото ── -->
+            <div>
+                <p class="step-label">
+                    <span class="text-off-white">01</span>&nbsp;·&nbsp;Ваше фото
+                </p>
+
+                <div id="person-drop-zone" class="tryon-upload-zone" onclick="document.getElementById('person-file').click()">
+                    <input type="file" id="person-file" accept="image/*" class="hidden">
+
+                    <div id="person-placeholder" class="flex flex-col items-center gap-3">
+                        <div class="upload-icon-wrap">
+                            <i class="fa-regular fa-user text-2xl text-grunge-gray"></i>
+                        </div>
+                        <div class="text-center">
+                            <p class="font-mono text-[11px] text-off-white">Перетягніть або натисніть</p>
+                            <p class="font-mono text-[9px] text-grunge-gray mt-1">JPG · PNG · WEBP · до 10 MB</p>
+                        </div>
+                    </div>
+
+                    <div id="person-preview-wrap" class="preview-wrap">
+                        <img id="person-preview" src="" alt="Ваше фото" class="tryon-preview-img">
+                        <button type="button" class="tryon-remove-btn" onclick="event.stopPropagation(); removePerson()">
+                            <i class="fa-solid fa-xmark text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Гайд -->
+                <div class="mt-4 border border-charcoal-700 bg-charcoal-800">
+                    <button type="button" id="guide-trigger"
+                        class="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-charcoal-900 transition-colors">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-regular fa-circle-question text-grunge-gray text-[11px]"></i>
+                            <span class="text-[10px] font-mono uppercase tracking-widest text-grunge-gray">Як зробити хороше фото</span>
+                        </div>
+                        <i id="guide-chevron" class="fa-solid fa-chevron-down text-grunge-gray text-[10px] transition-transform duration-300"></i>
+                    </button>
+                    <div id="guide-body" class="hidden border-t border-charcoal-700">
+                        <div class="px-5 py-4 grid grid-cols-2 gap-3">
+                            <div class="guide-tip">
+                                <i class="fa-solid fa-person-walking text-grunge-gray text-[10px] mb-1.5"></i>
+                                <p class="font-mono text-[10px] text-off-white">Повний ріст</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-0.5">Голова і ноги у кадрі</p>
+                            </div>
+                            <div class="guide-tip">
+                                <i class="fa-solid fa-hands text-grunge-gray text-[10px] mb-1.5"></i>
+                                <p class="font-mono text-[10px] text-off-white">Руки від тіла</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-0.5">Не притискати до боків</p>
+                            </div>
+                            <div class="guide-tip">
+                                <i class="fa-solid fa-square text-grunge-gray text-[10px] mb-1.5"></i>
+                                <p class="font-mono text-[10px] text-off-white">Однотонний фон</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-0.5">Стіна або двері</p>
+                            </div>
+                            <div class="guide-tip">
+                                <i class="fa-solid fa-sun text-grunge-gray text-[10px] mb-1.5"></i>
+                                <p class="font-mono text-[10px] text-off-white">Рівне освітлення</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-0.5">Без різких тіней</p>
+                            </div>
+                            <div class="guide-tip">
+                                <i class="fa-solid fa-shirt text-grunge-gray text-[10px] mb-1.5"></i>
+                                <p class="font-mono text-[10px] text-off-white">Облягаючий одяг</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-0.5">Щоб видно силует</p>
+                            </div>
+                            <div class="guide-tip">
+                                <i class="fa-solid fa-expand text-grunge-gray text-[10px] mb-1.5"></i>
+                                <p class="font-mono text-[10px] text-off-white">Мін. 800×1200px</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-0.5">Чітке, не розмите</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── КРОК 2: Одяг ── -->
+            <div>
+                <p class="step-label">
+                    <span class="text-off-white">02</span>&nbsp;·&nbsp;Одяг для примірки
+                </p>
+
+                <!-- Вкладки -->
+                <div class="flex border border-charcoal-700 mb-4">
+                    <button type="button" id="tab-catalog"
+                        class="tryon-tab tryon-tab-active flex-1 py-2.5 px-4 font-mono text-[10px] uppercase tracking-widest transition-colors"
+                        onclick="switchClothTab('catalog')">
+                        <i class="fa-solid fa-shirt mr-2 text-[9px]"></i>З каталогу
+                    </button>
+                    <button type="button" id="tab-upload"
+                        class="tryon-tab flex-1 py-2.5 px-4 font-mono text-[10px] uppercase tracking-widest border-l border-charcoal-700 transition-colors"
+                        onclick="switchClothTab('upload')">
+                        <i class="fa-solid fa-upload mr-2 text-[9px]"></i>Завантажити фото
+                    </button>
+                </div>
+
+                <!-- Вкладка: Каталог -->
+                <div id="cloth-catalog-panel">
+                    {% if preselected_item %}
+                    <!-- Обраний предмет -->
+                    <div class="selected-item-card">
+                        <div class="selected-item-img-wrap">
+                            {% if preselected_item.image_url %}
+                            <img src="{{ preselected_item.image_url }}" alt="{{ preselected_item.name }}" class="selected-item-img" onerror="this.style.display='none'">
+                            {% elif preselected_item.image_local %}
+                            <img src="{{ preselected_item.image_local.url }}" alt="{{ preselected_item.name }}" class="selected-item-img" onerror="this.style.display='none'">
+                            {% else %}
+                            <i class="fa-solid fa-shirt text-grunge-gray text-2xl"></i>
+                            {% endif %}
+                        </div>
+                        <div class="selected-item-info">
+                            <p class="selected-item-brand">{{ preselected_item.brand.name }}</p>
+                            <p class="selected-item-name">{{ preselected_item.name }}</p>
+                            {% if preselected_item.sale_price %}
+                            <p class="selected-item-price">{{ preselected_item.sale_price }} {{ preselected_item.currency }}</p>
+                            {% elif preselected_item.price %}
+                            <p class="selected-item-price">{{ preselected_item.price }} {{ preselected_item.currency }}</p>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'tryon_catalog' %}" class="selected-item-change">
+                            <i class="fa-solid fa-arrows-rotate text-[9px]"></i>
+                            Змінити
+                        </a>
+                    </div>
+                    {% else %}
+                    <!-- Кнопка відкрити каталог -->
+                    <a href="{% url 'tryon_catalog' %}" class="catalog-open-btn">
+                        <div class="catalog-open-inner">
+                            <i class="fa-solid fa-grip text-grunge-gray text-xl mb-3"></i>
+                            <p class="font-mono text-2xl tracking-widest text-off-white">
+                                Відкрити каталог
+                            </p>
+                            <p class="font-mono text-[9px] text-grunge-gray mt-1 uppercase tracking-widest">
+                                Вибрати один предмет для примірки
+                            </p>
+                        </div>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <!-- Вкладка: Завантажити -->
+                <div id="cloth-upload-panel" class="hidden">
+                    <div id="cloth-drop-zone" class="tryon-upload-zone tryon-upload-zone--sm"
+                        onclick="document.getElementById('cloth-file').click()">
+                        <input type="file" id="cloth-file" accept="image/*" class="hidden">
+
+                        <div id="cloth-placeholder" class="flex flex-col items-center gap-3">
+                            <div class="upload-icon-wrap">
+                                <i class="fa-solid fa-shirt text-2xl text-grunge-gray"></i>
+                            </div>
+                            <div class="text-center">
+                                <p class="font-mono text-[11px] text-off-white">Фото одягу</p>
+                                <p class="font-mono text-[9px] text-grunge-gray mt-1">Краще на білому або світлому фоні</p>
+                            </div>
+                        </div>
+
+                        <div id="cloth-preview-wrap" class="preview-wrap">
+                            <img id="cloth-preview" src="" alt="Одяг" class="tryon-preview-img">
+                            <button type="button" class="tryon-remove-btn"
+                                onclick="event.stopPropagation(); removeCloth()">
+                                <i class="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ КНОПКА ═══ -->
+        <div class="mt-10 border-t border-charcoal-700 pt-10">
+            <div id="tryon-error" class="hidden mb-4 border border-red-900/50 bg-red-950/20 px-4 py-3">
+                <p id="tryon-error-text" class="font-mono text-[11px] text-red-400"></p>
+            </div>
+
+            <button type="button" id="tryon-btn" disabled
+                class="tryon-btn w-full px-6 py-5 font-mono text-2xl tracking-widest uppercase transition-all duration-300 flex items-center justify-center gap-4">
+                <span id="tryon-btn-text">Приміряти</span>
+                <i id="tryon-btn-spinner" class="fa-solid fa-circle-notch fa-spin hidden text-xl"></i>
+            </button>
+            <p class="text-[9px] font-mono text-grunge-gray mt-2 text-center">Обов'язкові: ваше фото + одяг</p>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    const CSRF_TOKEN = '{{ csrf_token }}';
+    {% if preselected_item %}
+    window.PRESELECTED_ITEM = {
+        id: {{ preselected_item.id }},
+        name: "{{ preselected_item.name|escapejs }}",
+        brand: "{{ preselected_item.brand.name|escapejs }}",
+        price: "{% if preselected_item.sale_price %}{{ preselected_item.sale_price }}{% else %}{{ preselected_item.price|default:'' }}{% endif %}",
+        image: "{{ preselected_item.image_url|escapejs }}",
+        url: "{% url 'product_detail' preselected_item.pk %}"
+    };
+    {% else %}
+    window.PRESELECTED_ITEM = null;
+    {% endif %}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'trapApp/js/virtual_tryon.js' %}"></script>
+{% endblock %}

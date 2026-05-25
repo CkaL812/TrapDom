@@ -69,38 +69,28 @@
              ══════════════════════════════════════════════════ -->
         {% if note.mode == 'auto' and not note.outfit_locked and not items %}
 
-        <div class="border border-charcoal-700 bg-charcoal-800 p-8 mb-6">
+        <div class="border border-charcoal-700 bg-charcoal-800 p-8 mb-6" id="generating-block">
             <div class="flex items-start gap-5">
                 <div class="w-12 h-12 border border-charcoal-700 flex items-center justify-center shrink-0">
-                    <i class="fa-regular fa-hourglass text-grunge-gray text-lg"></i>
+                    <i class="fa-solid fa-circle-notch fa-spin text-grunge-gray text-lg"></i>
                 </div>
                 <div class="flex-1">
                     <p class="font-mono text-sm uppercase tracking-widest text-off-white mb-1">
-                        Очікує підбору
+                        Генеруємо образ
                     </p>
                     <p class="font-mono text-[10px] text-grunge-gray leading-relaxed">
-                        Ми автоматично підберемо образ і надішлемо вам листа на
-                        <span class="text-off-white">{{ note.user.email }}</span>
+                        Підбираємо одяг для вашого заходу — це займе кілька секунд.
+                        Сторінка оновиться автоматично.
                     </p>
-                    {% if notify_at %}
-                    <p class="font-mono text-[10px] text-grunge-gray mt-1">
-                        Орієнтовно:
-                        <span class="text-off-white">{{ notify_at|date:"d.m" }} о {{ notify_at|time:"H:i" }}</span>
-                    </p>
-                    {% endif %}
+                    <div class="flex gap-1 mt-3">
+                        <span class="w-1.5 h-1.5 bg-grunge-gray rounded-full animate-pulse"></span>
+                        <span class="w-1.5 h-1.5 bg-grunge-gray rounded-full animate-pulse" style="animation-delay:0.2s"></span>
+                        <span class="w-1.5 h-1.5 bg-grunge-gray rounded-full animate-pulse" style="animation-delay:0.4s"></span>
+                    </div>
                 </div>
             </div>
 
             <div class="border-t border-charcoal-700 mt-6 pt-6 flex items-center gap-3 flex-wrap">
-                <form method="POST" action="{% url 'note_regenerate' note.pk %}">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
-                                   px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
-                                   hover:border-grunge-gray hover:text-off-white transition-colors">
-                        <i class="fa-solid fa-bolt text-[8px]"></i> Підібрати зараз
-                    </button>
-                </form>
                 <a href="{% url 'note_outfit_builder' note.pk %}"
                    class="flex items-center gap-2 border border-charcoal-700 text-grunge-gray
                           px-4 py-2.5 font-mono text-[10px] uppercase tracking-widest
@@ -109,6 +99,10 @@
                 </a>
             </div>
         </div>
+
+        <script>
+            setTimeout(function() { location.reload(); }, 4000);
+        </script>
 
         <!-- ══════════════════════════════════════════════════
              СТАН 2: Є образ (ручний або авто-згенерований)

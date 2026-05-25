@@ -15,7 +15,6 @@ class BaseScraper:
     }
     delay: float = 1.5  # секунди між запитами
     AUTO_TAG = True  # ← НОВЕ
-
     def __init__(self):  # ← НОВЕ
         self._scraped_item_ids = []
 
@@ -37,16 +36,12 @@ class BaseScraper:
             return None
 
     def save_item(self, data: dict, sizes: list[str]) -> ClothingItem | None:
-        """data — словник полів ClothingItem (без id/brand). sizes — список рядків."""
         brand = self.get_brand()
-
         season_names = data.pop('seasons', [])
-
         item, created = ClothingItem.objects.update_or_create(
             source_url=data['source_url'],
             defaults={**data, 'brand': brand}
         )
-
         if season_names:
             season_objs = []
             for name in season_names:
@@ -56,24 +51,18 @@ class BaseScraper:
                 item.seasons.set(season_objs)
             else:
                 item.seasons.add(*season_objs)
-
         for size_label in sizes:
             ClothingSize.objects.get_or_create(item=item, size_label=size_label)
-
         action = 'Додано' if created else 'Оновлено'
         print(f'[{self.brand_name}] {action}: {item.name}')
-
         self._scraped_item_ids.append(item.pk)  # ← НОВЕ
         return item
-
     def run(self):
         raise NotImplementedError('Реалізуй метод run() у підкласі')
-
     def run_with_tagging(self):  # ← НОВЕ
         self.run()
         if self.AUTO_TAG and self._scraped_item_ids:
             self._run_tagger()
-
     def _run_tagger(self):  # ← НОВЕ
         from trapApp.tagger import get_tagger
         qs = ClothingItem.objects.filter(pk__in=self._scraped_item_ids)

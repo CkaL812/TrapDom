@@ -76,7 +76,7 @@ class SetPasswordForm(forms.Form):
 class NoteForm(forms.ModelForm):
     class Meta:
         model  = Note
-        fields = ['event_name', 'event_date', 'event_time', 'gender', 'mode']
+        fields = ['event_name', 'event_date', 'event_time', 'gender']
         widgets = {
             'event_date': forms.DateInput(attrs={'type': 'date'}),
             'event_time': forms.TimeInput(attrs={'type': 'time'}),

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
-    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&display=swap" rel="stylesheet">
     <script>window.FontAwesomeConfig = { autoReplaceSvg: 'nest' };</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" defer crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -28,7 +28,6 @@
                     },
                     fontFamily: {
                         'gothic': ['"UnifrakturMaguntia"', 'cursive'],
-                        'bebas':  ['"Bebas Neue"', 'cursive'],
                         'sans':   ['"Helvetica Neue"', 'Arial', 'sans-serif'],
                         'mono':   ['"Courier New"', 'monospace'],
                     },
@@ -48,6 +47,7 @@
 {% block content %}{% endblock %}
 
 {% include 'trapApp/partials/footer.html' %}
+{% include 'trapApp/partials/tryon_drawer.html' %}
 
 <!-- Кастомний модал підтвердження -->
 <div id="trap-modal" class="fixed inset-0 z-[9999] hidden" aria-modal="true" role="dialog">

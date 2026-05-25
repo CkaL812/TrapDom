@@ -1,0 +1,228 @@
+{% load static %}
+{# trapApp/partials/tryon_drawer.html — примірочна (аналог кошика, справа) #}
+
+{# ── Overlay ── #}
+<div id="tryon-overlay"
+     class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+{# ── Drawer ── #}
+<div id="tryon-drawer"
+     class="fixed top-0 left-0 bottom-0 w-full sm:w-[400px] bg-charcoal-900 border-r border-charcoal-700 z-[70]
+            flex flex-col transform -translate-x-full transition-transform duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]">
+
+    {# HEAD #}
+    <div class="flex items-center justify-between px-6 py-5 border-b border-charcoal-700 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <span class="font-mono text-xl uppercase tracking-widest text-off-white">Примірочна</span>
+            <span id="tryon-drawer-badge"
+                  class="text-[9px] font-mono text-charcoal-900 bg-off-white px-2 py-0.5 tracking-widest">0</span>
+        </div>
+        <button id="tryon-drawer-close"
+                class="w-9 h-9 border border-charcoal-700 flex items-center justify-center text-grunge-gray
+                       hover:border-grunge-gray hover:text-off-white transition-all"
+                aria-label="Закрити">
+            <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+    </div>
+
+    {# ITEMS #}
+    <div id="tryon-drawer-items" class="flex-1 overflow-y-auto hidden"></div>
+
+    {# EMPTY STATE #}
+    <div id="tryon-drawer-empty" class="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
+        <i class="fa-solid fa-shirt text-grunge-gray text-4xl mb-4"></i>
+        <p class="text-grunge-gray font-mono text-xs uppercase tracking-widest mb-1">Примірочна порожня</p>
+        <p class="text-grunge-gray font-mono text-[10px] mb-8">Оберіть одяг з каталогу</p>
+        <a href="/virtual-tryon/catalog/"
+           class="border border-charcoal-700 hover:border-grunge-gray text-grunge-gray hover:text-off-white
+                  font-mono text-xs uppercase tracking-widest px-6 py-3 transition-all">
+            Відкрити каталог
+        </a>
+    </div>
+
+    {# FOOTER #}
+    <div id="tryon-drawer-footer" class="border-t border-charcoal-700 px-6 py-5 flex-shrink-0 hidden">
+        <a href="/virtual-tryon/"
+           class="block w-full bg-off-white text-charcoal-900 font-mono text-xs uppercase tracking-widest
+                  text-center py-4 hover:bg-grunge-gray transition-colors font-bold">
+            Перейти до примірки
+        </a>
+        <div class="flex items-center justify-between mt-3">
+            <a href="/virtual-tryon/catalog/"
+               class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray hover:text-off-white transition-colors">
+                + Додати ще
+            </a>
+            <button onclick="window.trapClearTryon()"
+                    class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray hover:text-red-400 transition-colors">
+                Очистити все
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const STORAGE_KEY = 'trapdomTryon';
+    const CAT_LABELS  = {
+        tops:      'Верх',
+        layering:  'Другий шар',
+        bottoms:   'Низ',
+        onepiece:  'Суцільний одяг',
+        outerwear: 'Верхній одяг',
+        footwear:  'Взуття',
+        accessory: 'Аксесуари',
+    };
+    const CAT_ORDER = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory'];
+
+    /* ── DOM ── */
+    const overlay    = document.getElementById('tryon-overlay');
+    const drawer     = document.getElementById('tryon-drawer');
+    const closeBtn   = document.getElementById('tryon-drawer-close');
+    const itemsWrap  = document.getElementById('tryon-drawer-items');
+    const emptyState = document.getElementById('tryon-drawer-empty');
+    const footer     = document.getElementById('tryon-drawer-footer');
+    const badge      = document.getElementById('tryon-drawer-badge');
+
+    /* ── Storage ── */
+    function getWardrobe() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }
+        catch { return {}; }
+    }
+
+    function saveWardrobe(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        renderAll();
+        if (typeof window.onTryonWardrobeChange === 'function') {
+            window.onTryonWardrobeChange(data);
+        }
+    }
+
+    /* ── Open / Close ── */
+    function openDrawer() {
+        drawer.classList.remove('-translate-x-full');
+        overlay.classList.remove('opacity-0', 'pointer-events-none');
+        overlay.classList.add('opacity-100');
+        document.body.style.overflow = 'hidden';
+    }
+    function closeDrawer() {
+        drawer.classList.add('-translate-x-full');
+        overlay.classList.add('opacity-0', 'pointer-events-none');
+        overlay.classList.remove('opacity-100');
+        document.body.style.overflow = '';
+    }
+
+    overlay.addEventListener('click', closeDrawer);
+    closeBtn.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+    /* ── Render ── */
+    function esc(s) {
+        if (!s) return '';
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function renderAll() {
+        const w     = getWardrobe();
+        const count = Object.keys(w).length;
+        const items = CAT_ORDER.filter(c => w[c]);
+
+        /* Badges */
+        if (badge) badge.textContent = count;
+        document.querySelectorAll('.tryon-header-badge').forEach(el => {
+            el.textContent = count;
+            el.style.display = count > 0 ? 'flex' : 'none';
+        });
+
+        if (count === 0) {
+            itemsWrap.innerHTML = '';
+            itemsWrap.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+            footer.classList.add('hidden');
+            return;
+        }
+
+        emptyState.classList.add('hidden');
+        itemsWrap.classList.remove('hidden');
+        footer.classList.remove('hidden');
+
+        itemsWrap.innerHTML = items.map(cat => {
+            const item = w[cat];
+            return `
+            <div class="flex gap-4 px-6 py-5 border-b border-charcoal-700">
+                <div class="w-16 h-20 flex-shrink-0 bg-charcoal-800 border border-charcoal-700 overflow-hidden">
+                    ${item.image
+                        ? `<img src="${esc(item.image)}" alt="${esc(item.name)}" class="w-full h-full object-cover"
+                               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';console.warn('Tryon drawer img failed:',this.src)">
+                           <div class="w-full h-full items-center justify-center" style="display:none">
+                               <i class="fa-solid fa-shirt text-grunge-gray text-xl"></i>
+                           </div>`
+                        : `<div class="w-full h-full flex items-center justify-center">
+                               <i class="fa-solid fa-shirt text-grunge-gray text-xl"></i>
+                           </div>`}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[9px] font-mono uppercase tracking-widest text-grunge-gray mb-0.5">
+                        ${esc(CAT_LABELS[cat] || cat)}
+                    </p>
+                    <p class="text-xs font-mono text-off-white leading-snug line-clamp-2 mb-0.5">
+                        ${esc(item.name)}
+                    </p>
+                    <p class="text-[10px] font-mono text-grunge-gray">
+                        ${item.brand ? esc(item.brand) + (item.price ? ' · ' : '') : ''}${item.price ? esc(item.price) + ' ₴' : ''}
+                    </p>
+                    <button class="mt-2 text-[9px] font-mono uppercase tracking-widest text-grunge-gray
+                                   hover:text-red-400 transition-colors"
+                            onclick="window.trapRemoveFromTryon('${esc(cat)}')">
+                        Видалити
+                    </button>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    /* ── Global API ── */
+    window.trapAddToTryon = function (id, category, name, image, price, brand) {
+        // Один предмет — замінюємо попередній
+        const w = {};
+        w[category] = { id: parseInt(id), name, image, price, brand };
+        saveWardrobe(w);
+        openDrawer();
+    };
+
+    window.trapRemoveFromTryon = function (category) {
+        const w = getWardrobe();
+        delete w[category];
+        saveWardrobe(w);
+    };
+
+    window.trapClearTryon = function () {
+        saveWardrobe({});
+    };
+
+    window.getTryonWardrobe  = function () { return getWardrobe(); };
+    window.openTryonDrawer   = openDrawer;
+    window.closeTryonDrawer  = closeDrawer;
+
+    /* ── Click delegation — кнопки [data-tryon-btn] ── */
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('[data-tryon-btn]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const { id, category, name, image, price, brand } = btn.dataset;
+        window.trapAddToTryon(id, category, name, image, price, brand);
+
+        /* Feedback */
+        const icon = btn.querySelector('i');
+        if (icon) {
+            const orig = icon.className;
+            icon.className = 'fa-solid fa-check text-[10px]';
+            setTimeout(() => { icon.className = orig; }, 1400);
+        }
+    });
+
+    /* ── Init ── */
+    renderAll();
+})();
+</script>

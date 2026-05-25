@@ -96,7 +96,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     padding: 9px 16px 9px 24px;
     font-family: 'Courier New', monospace; font-size: 9px;
     text-transform: uppercase; letter-spacing: 0.08em;
-    color: #555;
+    color: #C8C8C8;
     border-left: 2px solid transparent;
     border-bottom: 1px solid #222;
     background: none; cursor: pointer;
@@ -104,7 +104,7 @@ input[type=number] { -moz-appearance: textfield; appearance: textfield; }
     text-decoration: none;
 }
 .subcat-btn:last-child { border-bottom: none; }
-.subcat-btn:hover { color: #C8C8C8; background: #1a1a1a; border-left-color: #555; }
+.subcat-btn:hover { color: #F5F5F0; background: #1a1a1a; border-left-color: #C8C8C8; }
 .subcat-btn.active { color: #F5F5F0 !important; border-left-color: #F5F5F0; background: #121212; }
 
 /* Add-to-cart button on hover */

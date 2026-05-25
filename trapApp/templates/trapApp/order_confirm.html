@@ -25,7 +25,7 @@
                     <span class="opacity-40 mx-2">·</span>
                     {{ order.created_at|date:"H:i" }}
                 </p>
-                <h1 class="font-bebas text-[80px] sm:text-[110px] leading-none text-off-white tracking-wide
+                <h1 class="font-mono text-[80px] sm:text-[110px] leading-none text-off-white tracking-wide
                            {% if order.status == 'cancelled' %}opacity-40{% endif %}">
                     #{{ order.pk }}
                 </h1>
@@ -172,7 +172,7 @@
                 <div class="border-t border-charcoal-700 mt-auto">
                     <div class="flex items-center justify-between px-6 py-6">
                         <p class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Разом</p>
-                        <p class="font-bebas text-4xl text-off-white tracking-wide leading-none">
+                        <p class="font-mono text-4xl text-off-white tracking-wide leading-none">
                             {{ order.total }} {{ order.currency }}
                         </p>
                     </div>
@@ -199,7 +199,7 @@
                 <i class="fa-solid fa-check text-off-white text-xl"></i>
             </div>
             <div>
-                <p class="font-bebas text-6xl text-off-white leading-none tracking-wide"
+                <p class="font-mono text-6xl text-off-white leading-none tracking-wide"
                    style="animation:osmNumIn .5s ease .3s both;opacity:0;">#{{ order.pk }}</p>
                 <p class="font-mono text-[10px] text-grunge-gray mt-1">{{ order.created_at|date:"d.m.Y · H:i" }}</p>
             </div>
@@ -207,7 +207,7 @@
         <div class="px-6 py-5 space-y-2.5 border-b border-charcoal-700">
             <div class="flex justify-between"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Отримувач</span><span class="font-mono text-sm text-off-white">{{ order.full_name }}</span></div>
             <div class="flex justify-between"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Місто</span><span class="font-mono text-sm text-off-white">{{ order.city }}</span></div>
-            <div class="flex justify-between items-baseline"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Разом</span><span class="font-bebas text-4xl text-off-white tracking-wide">{{ order.total }} {{ order.currency }}</span></div>
+            <div class="flex justify-between items-baseline"><span class="font-mono text-[9px] uppercase tracking-widest text-grunge-gray">Разом</span><span class="font-mono text-4xl text-off-white tracking-wide">{{ order.total }} {{ order.currency }}</span></div>
         </div>
         <div class="px-6 py-4 border-b border-charcoal-700 max-h-32 overflow-y-auto space-y-1">
             {% for oi in order.order_items.all %}

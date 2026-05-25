@@ -53,33 +53,21 @@ class ClipTagger:
     }
 
     def __init__(self, model_name='openai/clip-vit-base-patch32', device=None):
-        """
-        Завантажує модель при першому використанні.
-        Ця ініціалізація важка (~1 хв + ~600 MB download при першому запуску).
-        """
         log.info(f'[ClipTagger] Завантаження моделі {model_name}...')
         t0 = time.time()
-
-        # Ліниві імпорти, щоб моделі не завантажувались при імпорті модуля
         import torch
         from transformers import CLIPModel, CLIPProcessor
-
         self.torch = torch
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
-
         self.model = CLIPModel.from_pretrained(model_name).to(self.device)
         self.model.eval()
         self.processor = CLIPProcessor.from_pretrained(model_name)
-
-        # Попередньо обчислюємо text embeddings для всіх промптів (один раз)
         log.info('[ClipTagger] Обчислення text embeddings...')
         self._category_emb    = self._precompute_text_embeddings(CATEGORY_PROMPTS)
         self._style_emb       = self._precompute_text_embeddings(STYLE_PROMPTS)
         self._formality_emb   = self._precompute_text_embeddings(FORMALITY_PROMPTS)
         self._subcategory_emb = self._precompute_text_embeddings(SUBCATEGORY_PROMPTS)
-
         log.info(f'[ClipTagger] Готово за {time.time()-t0:.1f}s. Device: {self.device}')
-
     # ────────────────────────────────────────────────────────────
     #  PUBLIC API
     # ────────────────────────────────────────────────────────────
@@ -135,57 +123,32 @@ class ClipTagger:
     def _tag_single_item(self, item) -> bool:
         if not item.image_url:
             log.warning(f'  [{item.pk}] немає image_url — пропуск')
-            return False
-
-        # 1. Завантажуємо фото
         image = self._download_image(item.image_url)
         if image is None:
             return False
-
-        # 2. Обчислюємо image embedding (ОДИН раз на товар)
         img_emb = self._compute_image_embedding(image)
-
-        # 3. CLIP: subcategory (звужуємо до категорії товару)
         sub, sub_conf = self._classify_subcategory(img_emb, item.category)
-
-        # 4. CLIP: formality
         formality, form_conf = self._classify(img_emb, self._formality_emb)
-
-        # 5. CLIP: styles (top-N)
         styles_with_conf = self._classify_topn(img_emb, self._style_emb, n=self.TOP_N_STYLES)
-
-        # 6. Застосовуємо тільки результати, які перевищують поріг
         updated_fields = []
-
         if sub and sub_conf >= self.MIN_CONFIDENCE:
             item.subcategory = sub
             updated_fields.append('subcategory')
-
         if formality and form_conf >= self.MIN_CONFIDENCE:
             item.formality = formality
             updated_fields.append('formality')
-
-        # 7. ПРАВИЛА: time_of_day на основі subcategory
         item.set_time_of_day(compute_time_of_day(item.subcategory))
-
-        # 8. ПРАВИЛА: age_ranges на основі styles + formality
         good_styles = [s for s, c in styles_with_conf if c >= self.MIN_CONFIDENCE]
         item.set_age_ranges(compute_age_ranges(good_styles, item.formality))
-
-        # 9. Записуємо confidence у tags (для дебагу)
         item.set_confidence({
             'subcategory': round(float(sub_conf), 3),
             'formality':   round(float(form_conf), 3),
             'styles':      {s: round(float(c), 3) for s, c in styles_with_conf},
         })
-
-        # 10. Зберігаємо: спочатку основні поля, потім M2M стилі
         updated_fields.append('tags')
         item.save(update_fields=updated_fields)
-
         if good_styles:
             item.set_styles(good_styles)
-
         item.mark_tagged(source='mixed')   # CLIP + правила
         return True
 
@@ -258,26 +221,16 @@ class ClipTagger:
         return [(labels[int(i)], float(v)) for v, i in zip(top.values, top.indices)]
 
     def _classify_subcategory(self, img_emb, category: str) -> Tuple[Optional[str], float]:
-        """
-        Спеціальна класифікація підкатегорії: беремо лише підкатегорії,
-        що відповідають основній category товару.
-        """
         from trapApp.models import ClothingItem
-
         allowed_subcats = ClothingItem.SUBCATEGORY_BY_CATEGORY.get(category, [])
         if not allowed_subcats:
-            # Якщо category невідома — беремо всі
             return self._classify(img_emb, self._subcategory_emb)
-
-        # Фільтруємо precomputed embeddings
         all_labels, all_emb = self._subcategory_emb
         indices = [all_labels.index(s) for s in allowed_subcats if s in all_labels]
         if not indices:
             return None, 0.0
-
         filtered_emb = all_emb[indices]
         filtered_labels = [all_labels[i] for i in indices]
-
         sims = self._similarity(img_emb, filtered_emb)
         probs = sims.softmax(dim=-1)
         top_idx = int(probs.argmax())

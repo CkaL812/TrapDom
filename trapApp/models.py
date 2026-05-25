@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.hashers import make_password, check_password as _check_password
 from django.core.exceptions import ValidationError
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -392,35 +391,6 @@ class CustomUser(AbstractUser):
         return self.email
 
 
-class AdminManager(models.Manager):
-    def create_admin(self, email, password):
-        if not email:
-            raise ValueError("Email є обов'язковим")
-        admin = self.model(email=email.lower().strip())
-        admin.set_password(password)
-        admin.save(using=self._db)
-        return admin
-
-
-class Admin(models.Model):
-    email      = models.EmailField(unique=True)
-    password   = models.CharField(max_length=255)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    objects = AdminManager()
-
-    class Meta:
-        verbose_name        = 'Адміністратор'
-        verbose_name_plural = 'Адміністратори'
-
-    def set_password(self, raw_password):
-        self.password = make_password(raw_password)
-
-    def check_password(self, raw_password):
-        return _check_password(raw_password, self.password)
-
-    def __str__(self):
-        return self.email
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -516,6 +486,40 @@ class SavedOutfit(models.Model):
         first = self.items.exclude(image_url='').first()
         if first:
             return first.image_local.url if first.image_local else first.image_url
+        return None
+
+
+# ══════════════════════════════════════════════════════════════════
+#                     TRYON SESSION (примірка)
+# ══════════════════════════════════════════════════════════════════
+
+class TryOnSession(models.Model):
+    STATUS_CHOICES = [
+        ('processing', 'Обробляється'),
+        ('done',       'Готово'),
+        ('error',      'Помилка'),
+    ]
+
+    user          = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='tryon_sessions')
+    job_id        = models.CharField(max_length=36, unique=True, db_index=True)
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default='processing')
+    items         = models.ManyToManyField(ClothingItem, blank=True, related_name='tryon_sessions')
+    result_image  = models.CharField(max_length=500, blank=True)
+    error_message = models.TextField(blank=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['-created_at']
+        verbose_name        = 'Сесія примірки'
+        verbose_name_plural = 'Сесії примірки'
+
+    def __str__(self):
+        return f'{self.user.email} — {self.created_at:%d.%m.%Y %H:%M}'
+
+    def get_result_url(self):
+        if self.result_image:
+            from django.conf import settings
+            return settings.MEDIA_URL + self.result_image
         return None
 
 

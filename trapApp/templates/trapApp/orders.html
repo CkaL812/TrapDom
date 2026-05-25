@@ -60,7 +60,7 @@
 
                     <!-- Номер -->
                     <div class="px-6 py-6">
-                        <span class="font-bebas text-3xl leading-none
+                        <span class="font-mono text-3xl leading-none
                                      {% if order.status == 'cancelled' %}text-grunge-gray{% else %}text-off-white{% endif %}">
                             #{{ order.pk }}
                         </span>
@@ -83,7 +83,7 @@
 
                     <!-- Сума -->
                     <div class="px-4 py-6 text-right">
-                        <p class="font-bebas text-2xl text-off-white leading-none">{{ order.total }}</p>
+                        <p class="font-mono text-2xl text-off-white leading-none">{{ order.total }}</p>
                         <p class="font-mono text-[9px] text-grunge-gray mt-0.5">{{ order.currency }}</p>
                     </div>
 
@@ -124,7 +124,7 @@
                 <!-- Рядок: мобільний -->
                 <div class="lg:hidden px-5 py-5">
                     <div class="flex items-start justify-between gap-4 mb-3">
-                        <span class="font-bebas text-4xl leading-none
+                        <span class="font-mono text-4xl leading-none
                                      {% if order.status == 'cancelled' %}text-grunge-gray{% else %}text-off-white{% endif %}">
                             #{{ order.pk }}
                         </span>
@@ -142,7 +142,7 @@
                             <p class="font-mono text-xs text-off-white">{{ order.created_at|date:"d.m.Y · H:i" }}</p>
                             <p class="font-mono text-[10px] text-grunge-gray mt-0.5">{{ order.city }}</p>
                         </div>
-                        <p class="font-bebas text-2xl text-off-white">{{ order.total }} {{ order.currency }}</p>
+                        <p class="font-mono text-2xl text-off-white">{{ order.total }} {{ order.currency }}</p>
                     </div>
                     <div class="flex items-center gap-2 mt-4 pt-3 border-t border-charcoal-700">
                         <a href="{% url 'order_detail' order.pk %}"
@@ -173,7 +173,7 @@
         <!-- Порожній стан -->
         <div class="max-w-sm mx-auto mt-16 text-center">
             <div class="border border-charcoal-700 bg-charcoal-800 py-20 px-8 mb-6">
-                <p class="font-bebas text-[80px] leading-none text-charcoal-700 mb-2">0</p>
+                <p class="font-mono text-[80px] leading-none text-charcoal-700 mb-2">0</p>
                 <p class="font-mono text-[10px] uppercase tracking-widest text-grunge-gray">Замовлень ще немає</p>
             </div>
             <a href="{% url 'brands_list' %}"

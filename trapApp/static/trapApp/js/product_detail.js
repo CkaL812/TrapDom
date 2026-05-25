@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('btn-buy')?.addEventListener('click', function() {
         const id = +this.dataset.id, size = document.getElementById('sel-size')?.value || '', qty = +(qv?.textContent || 1);
-        fetch('/cart/add/' + id + '/', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({size, quantity:qty}) })
+        fetch('/cart/add/' + id + '/', { method:'POST', headers:{'Content-Type':'application/json','X-CSRFToken':getCsrfToken()}, body: JSON.stringify({size, quantity:qty}) })
         .then(r => r.json()).then(d => { if (d.status === 'ok') location.href = '/cart/'; });
     });
 });

@@ -133,6 +133,16 @@
             </a>
             {% endif %}
 
+            <!-- ── Кнопка примірочної ── -->
+            <a href="{% url 'virtual_tryon' %}"
+               class="text-off-white hover:text-grunge-gray transition-colors relative"
+               aria-label="Примірочна">
+                <i class="fa-solid fa-shirt"></i>
+                <span class="tryon-header-badge absolute -top-2 -right-2 min-w-[16px] h-4 bg-off-white text-charcoal-900
+                             font-mono text-[8px] font-bold items-center justify-center px-1"
+                      style="display:none"></span>
+            </a>
+
             <!-- ── Кнопка кошика з лічильником ── -->
             <a href="{% url 'cart' %}" id="header-cart-btn"
                     class="text-off-white hover:text-grunge-gray transition-colors relative"

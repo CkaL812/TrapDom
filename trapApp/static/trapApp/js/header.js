@@ -1,3 +1,9 @@
+function getCsrfToken() {
+    const fromCookie = document.cookie.match(/csrftoken=([^;]+)/)?.[1];
+    if (fromCookie) return decodeURIComponent(fromCookie);
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || '';
+}
+
 /* ── Burger Menu (shared across all pages) ── */
 document.addEventListener('DOMContentLoaded', function () {
     const menuBtn  = document.getElementById('mobile-menu-btn');

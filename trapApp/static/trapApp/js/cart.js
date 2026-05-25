@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             fetch('/cart/update/', {
                 method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
                 body:    JSON.stringify({ key, quantity: newQty }),
             })
             .then(r => r.json())
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const row = document.querySelector(`.cart-row[data-key="${key}"]`);
             fetch('/cart/remove/', {
                 method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
                 body:    JSON.stringify({ key }),
             })
             .then(r => r.json())

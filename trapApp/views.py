@@ -3,17 +3,21 @@ import json
 import random
 import logging
 import requests
+import os
+import uuid
+import glob as glob_module
+import shutil
+import threading
 from datetime import date
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, Http404
 from django.core.paginator import Paginator
-from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Count
-from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit, WishlistItem, Order, OrderItem
+from .models import ClothingItem, Event, CustomUser, Brand, Note, Style, SavedOutfit, WishlistItem, Order, OrderItem, TryOnSession
 from .forms import RegisterForm, LoginForm, ProfileForm, SetPasswordForm, PasswordChangeForm, NoteForm
 from .cart import Cart
 
@@ -144,6 +148,7 @@ _MALE_ONLY_SUBCATS = frozenset({
 _ONEPIECE_GENDERS = frozenset({'F'})
 
 ITEMS_PER_CATEGORY = 3
+POOL_PER_CATEGORY  = 6   # більший пул для AI-куратора
 CATEGORY_ORDER     = ['tops', 'layering', 'bottoms', 'onepiece', 'outerwear', 'footwear', 'accessory']
 
 # Шаблони образу: роздільний (верх + низ) та суцільний (плаття/комбінезон)
@@ -166,6 +171,13 @@ MODELS_TO_TRY = [
     "google/gemma-3-27b-it:free",
     "nvidia/nemotron-3-super-120b-a12b:free",
     "deepseek/deepseek-chat:free",
+]
+
+# Vision-capable моделі для аналізу фото в гардеробі
+WARDROBE_VISION_MODELS = [
+    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-flash-1.5",
+    "openai/gpt-4o-mini",
 ]
 
 
@@ -200,35 +212,24 @@ def _resolve_formality(event_str, dresscode):
 
 
 def _filter_qs(qs, payload, formality_levels, opts):
-    """Застосовує фільтри до queryset згідно з opts."""
     gender_db = GENDER_MAP.get(payload.get('gender'), 'U')
     season    = payload.get('season')
-
-    # Базова фільтрація по гендеру.
-    # Правило: M-теговані та F-теговані речі ніколи не перетинаються.
-    # U-тегованих речей зараз 0, але якщо з'являться — фільтруємо їх
-    # за чорними списками підкатегорій щоб уникнути гендерного переносу.
     if gender_db == 'M':
-        # Суворо чоловічі + гендерно-нейтральні без жіночих підкатегорій
         qs = qs.filter(
             Q(gender='M') |
             (Q(gender='U') & ~Q(subcategory__in=_FEMALE_ONLY_SUBCATS))
         )
     elif gender_db == 'F':
-        # Суворо жіночі + гендерно-нейтральні без чоловічих підкатегорій
         qs = qs.filter(
             Q(gender='F') |
             (Q(gender='U') & ~Q(subcategory__in=_MALE_ONLY_SUBCATS))
         )
-    else:  # 'U' — без обмеження по гендеру, показуємо всі
+    else:
         pass
-
     if season and opts.get('season', True):
         qs = qs.filter(seasons__name=season)
-
     if opts['formality'] and formality_levels:
         qs = qs.filter(formality__in=formality_levels)
-
     if opts['budget']:
         bmin = payload.get('budget_min')
         bmax = payload.get('budget_max')
@@ -236,24 +237,20 @@ def _filter_qs(qs, payload, formality_levels, opts):
             qs = qs.filter(price__gte=bmin)
         if bmax is not None:
             qs = qs.filter(price__lte=bmax)
-
     if opts['styles']:
         styles = payload.get('styles', [])
         if styles:
             qs = qs.filter(styles__name__in=styles)
-
     if opts['time']:
         time_val = payload.get('time')
         if time_val:
             qs = qs.filter(tags__time_of_day__contains=[time_val])
-
     if opts['age']:
         age = payload.get('age')
         if age is not None:
             age_range = _age_to_range(age)
             if age_range:
                 qs = qs.filter(tags__age_ranges__contains=[age_range])
-
     return qs.distinct()
 
 
@@ -275,7 +272,8 @@ def _pick_for_template(base_qs, payload, formality_levels, template, opts, per_c
             style_match=Count('styles', filter=Q(styles__name__in=styles))
         ).order_by('-style_match', '?')
     else:
-        qs = qs.order_by('?')
+        # Пріоритет речам зі style-тегами — вони "стильніші" за замовчуванням
+        qs = qs.annotate(style_count=Count('styles')).order_by('-style_count', '?')
     return {cat: list(qs.filter(category=cat)[:per_cat]) for cat in template}
 
 
@@ -319,10 +317,11 @@ def _build_catalog_for_ai(selections):
     lines = []
     for category in CATEGORY_ORDER:
         for item in selections.get(category, []):
+            styles_str = ', '.join(s.name for s in item.styles.all()) or 'n/a'
             lines.append(
                 f"ID:{item.id}|cat:{item.category}|{item.brand.name} {item.name}|"
                 f"form:{item.formality}|color:{item.color or 'n/a'}|"
-                f"price:{item.price or '?'}"
+                f"styles:{styles_str}|price:{item.price or '?'}"
             )
     return "\n".join(lines)
 
@@ -426,7 +425,99 @@ def _ask_ai_for_commentary(payload, selections, api_key):
     return None
 
 
-@csrf_exempt
+def _ask_ai_to_curate_and_comment(payload, selections, api_key):
+    """
+    AI отримує більший пул товарів, сам вибирає найкращу комбінацію по ID
+    і пише коментарі. Повертає dict або None якщо не спрацював.
+    """
+    event     = payload.get('event', '')
+    gender    = GENDER_LABELS.get(payload.get('gender'), '')
+    season    = SEASON_LABELS.get(payload.get('season'), '')
+    dresscode = payload.get('dresscode', '')
+    styles    = payload.get('styles', [])
+    catalog   = _build_catalog_for_ai(selections)
+
+    system_prompt = (
+        "Ти — топовий стиліст. З каталогу нижче ВІДБЕРИ найстильніший цілісний образ і напиши коментарі.\n"
+        "Поверни ТІЛЬКИ валідний JSON без markdown.\n"
+        'Формат: {"selected_ids":[1,2,3],"outfit_name":"...","stylist_comment":"...","reasons":{"1":"..."}}\n\n'
+        "ПРАВИЛА ВІДБОРУ:\n"
+        "1. Вибирай 1-2 речі на категорію, не більше\n"
+        "2. Єдиний стиль — не мішай streetwear з business, casual з formal\n"
+        "3. Колірна капсула: нейтральна база (чорний/білий/сірий/бежевий) + максимум 1 яскравий акцент\n"
+        "4. Речі мають реально добре виглядати разом — це пріоритет №1\n"
+        "5. outfit_name — 3-5 слів українською що описує образ\n"
+        "6. stylist_comment — 2 речення чому цей образ крутий\n"
+        "7. reasons — для кожного обраного ID одне речення чому ця річ в образі\n"
+        "КРИТИЧНО: selected_ids містить ТІЛЬКИ ID з каталогу. JSON валідний, ключі reasons — рядки."
+    )
+
+    user_prompt = (
+        f"Подія: {event}\nСтать: {gender}\nСезон: {season}\n"
+        + (f"Дрес-код: {dresscode}\n" if dresscode else "")
+        + (f"Бажані стилі: {', '.join(styles)}\n" if styles else "")
+        + f"\nКаталог для відбору:\n{catalog}"
+    )
+
+    for model_id in MODELS_TO_TRY:
+        try:
+            logger.info(f"[AI curator] Спроба моделі {model_id}")
+            resp = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type":  "application/json",
+                    "HTTP-Referer":  "https://trapdom.com",
+                    "X-Title":       "TrapDom Outfit Curator",
+                },
+                json={
+                    "model":    model_id,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user",   "content": user_prompt},
+                    ],
+                    "temperature": 0.4,
+                    "max_tokens":  2048,
+                },
+                timeout=25,
+            )
+            resp.raise_for_status()
+            raw    = resp.json()["choices"][0]["message"]["content"].strip()
+            parsed = _parse_llm_json(raw)
+
+            selected_ids = []
+            for x in parsed.get('selected_ids', []):
+                try:
+                    selected_ids.append(int(x))
+                except (ValueError, TypeError):
+                    continue
+
+            if not selected_ids:
+                logger.warning(f"[AI curator] {model_id} — порожній selected_ids")
+                continue
+
+            raw_reasons = parsed.get('reasons', {})
+            reasons = {}
+            for k, v in raw_reasons.items():
+                try:
+                    reasons[int(k)] = str(v)
+                except (ValueError, TypeError):
+                    continue
+
+            logger.info(f"[AI curator] відібрано {len(selected_ids)} речей")
+            return {
+                'selected_ids':    selected_ids,
+                'outfit_name':     parsed.get('outfit_name', 'Підібраний образ'),
+                'stylist_comment': parsed.get('stylist_comment', ''),
+                'reasons':         reasons,
+            }
+        except Exception as e:
+            logger.warning(f"[AI curator] {model_id} не спрацював: {e}")
+
+    logger.warning("[AI curator] Всі моделі провалились")
+    return None
+
+
 @login_required(login_url='/login/')
 def generate_outfit(request):
     if request.method != 'POST':
@@ -451,7 +542,10 @@ def generate_outfit(request):
     formality_levels = _resolve_formality(event, data.get('dresscode'))
     logger.info(f"[OUTFIT] event={event!r} → formality_levels={formality_levels}")
 
-    selections, pass_used, template = _pick_items_with_fallback(data, formality_levels)
+    # Більший пул — AI-куратор сам вибере найкращу комбінацію
+    selections, pass_used, template = _pick_items_with_fallback(
+        data, formality_levels, per_category=POOL_PER_CATEGORY
+    )
     total = sum(len(v) for v in selections.values())
     logger.info(
         f"[OUTFIT] template={template} pass={pass_used} total={total}: " +
@@ -467,20 +561,35 @@ def generate_outfit(request):
     outfit_name     = 'Підібраний образ'
     stylist_comment = ''
     reasons         = {}
+    final_selections = selections
 
     api_key = getattr(settings, 'OPENROUTER_API_KEY', None)
     if api_key:
-        ai_result = _ask_ai_for_commentary(data, selections, api_key)
+        ai_result = _ask_ai_to_curate_and_comment(data, selections, api_key)
         if ai_result:
             outfit_name     = ai_result['outfit_name']
             stylist_comment = ai_result['stylist_comment']
             reasons         = ai_result['reasons']
+            selected_ids    = set(ai_result['selected_ids'])
+
+            # Залишаємо тільки AI-вибрані речі
+            final_selections = {}
+            for cat, items in selections.items():
+                chosen = [item for item in items if item.id in selected_ids]
+                # Fallback: якщо AI не вибрав нічого для критичної категорії — беремо першу
+                if not chosen and items and cat in ('tops', 'bottoms', 'footwear', 'onepiece'):
+                    chosen = items[:1]
+                final_selections[cat] = chosen
+        else:
+            # AI не спрацював — обрізаємо пул до стандартного розміру
+            final_selections = {cat: items[:ITEMS_PER_CATEGORY] for cat, items in selections.items()}
     else:
-        logger.info("[OUTFIT] OPENROUTER_API_KEY відсутній — пропускаємо AI коментарі")
+        logger.info("[OUTFIT] OPENROUTER_API_KEY відсутній — пропускаємо AI куратора")
+        final_selections = {cat: items[:ITEMS_PER_CATEGORY] for cat, items in selections.items()}
 
     all_items = []
     for category in CATEGORY_ORDER:
-        for item in selections.get(category, []):
+        for item in final_selections.get(category, []):
             all_items.append({'id': item.id, 'reason': reasons.get(item.id, '')})
 
     request.session['outfit_result'] = {
@@ -772,7 +881,6 @@ def cart_view(request):
     })
 
 
-@csrf_exempt
 def cart_add(request, item_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
@@ -798,7 +906,6 @@ def cart_add(request, item_id):
     })
 
 
-@csrf_exempt
 def cart_update(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
@@ -830,7 +937,6 @@ def cart_update(request):
     })
 
 
-@csrf_exempt
 def cart_remove(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
@@ -896,10 +1002,10 @@ def note_create(request):
         if form.is_valid():
             note = form.save(commit=False)
             note.user = request.user
+            note.mode = 'auto'
             note.save()
-            if note.mode == 'manual':
-                return redirect('note_outfit_builder', pk=note.pk)
-            messages.success(request, 'Захід створено! Образ буде підібрано вчасно.')
+            threading.Thread(target=_generate_note_outfit, args=(note,), daemon=True).start()
+            messages.success(request, 'Захід створено! Підбираємо образ — це займе кілька секунд.')
             return redirect('note_detail', pk=note.pk)
     else:
         form = NoteForm()
@@ -1060,21 +1166,15 @@ _WARDROBE_CATEGORY_LABELS = {
 
 
 def _extract_dominant_color(pil_image):
-    """
-    Повертає (h°, s, v) домінантного кольору одягу на фото.
-    Використовує тільки PIL + colorsys — без ML.
-    """
     import colorsys
     try:
         img = pil_image.copy().convert('RGB')
         w, h = img.size
-        # Центральна зона 60%×70% — відсікаємо фон і манекен/людину
         x0, y0 = int(w * 0.2), int(h * 0.12)
         x1, y1 = int(w * 0.8), int(h * 0.88)
         region = img.crop((x0, y0, x1, y1))
         region = region.resize((24, 24), resample=1)
         pixels = list(region.getdata())
-        # Відфільтровуємо майже-білий фон і занадто темні пікселі
         filtered = [
             (r, g, b) for r, g, b in pixels
             if 18 < (r + g + b) / 3 < 228
@@ -1091,15 +1191,9 @@ def _extract_dominant_color(pil_image):
 
 
 def _color_harmony_score(item_hex, dominant_hsv):
-    """
-    Повертає 0–10: наскільки колір item_hex гармонує з dominant_hsv.
-    Вищий score → більш гармонійна пара.
-    Використовує тільки colorsys (stdlib).
-    """
     dh, ds, dv = dominant_hsv
     if not item_hex or dh is None:
-        return 5  # немає даних → нейтральний score
-
+        return 5  
     import colorsys
     try:
         hx = item_hex.lstrip('#')
@@ -1110,14 +1204,10 @@ def _color_harmony_score(item_hex, dominant_hsv):
         b = int(hx[4:6], 16) / 255
         ih, is_, iv = colorsys.rgb_to_hsv(r, g, b)
         ih *= 360
-
-        # Нейтральні речі (чорний/білий/сірий/беж) підходять до всього
         if is_ < 0.15 or iv < 0.12:
             return 9
-        # Якщо uploaded item нейтральний — підходить будь-що
         if ds < 0.15:
             return 8
-
         hue_diff = abs(ih - dh)
         if hue_diff > 180:
             hue_diff = 360 - hue_diff
@@ -1348,7 +1438,6 @@ def wishlist_view(request):
 
 
 @login_required(login_url='/login/')
-@csrf_exempt
 def wishlist_toggle(request, item_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'method not allowed'}, status=405)
@@ -1537,3 +1626,541 @@ def payment_success_view(request, pk):
 
     from django.urls import reverse
     return redirect(reverse('order_detail', kwargs={'pk': pk}) + '?new=1')
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#   VIRTUAL TRY-ON
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_tryon_jobs = {}  # job_id → {status, result, error, step, total, step_result}
+
+_TRYON_CAT_ORDER = ['onepiece', 'tops', 'layering', 'bottoms', 'outerwear', 'footwear', 'accessory']
+
+
+@login_required(login_url='/login/')
+def virtual_tryon(request):
+    item_id = request.GET.get('item_id')
+    preselected_item = None
+    if item_id:
+        preselected_item = (
+            ClothingItem.objects
+            .filter(pk=item_id)
+            .select_related('brand')
+            .first()
+        )
+    return render(request, 'trapApp/virtual_tryon.html', {
+        'preselected_item': preselected_item,
+    })
+
+
+@login_required(login_url='/login/')
+def tryon_start(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Метод не дозволено'}, status=405)
+
+    person_file = request.FILES.get('person_photo')
+    cloth_file  = request.FILES.get('clothing_photo')
+    item_ids    = request.POST.getlist('item_ids[]')
+
+    if not person_file:
+        return JsonResponse({'error': 'Завантажте своє фото'}, status=400)
+    if not cloth_file and not item_ids:
+        return JsonResponse({'error': 'Оберіть або завантажте одяг'}, status=400)
+
+    job_id   = str(uuid.uuid4())
+    temp_dir = os.path.join(settings.MEDIA_ROOT, 'tryon_temp')
+    os.makedirs(temp_dir, exist_ok=True)
+
+    person_path = os.path.join(temp_dir, f'{job_id}_person.jpg')
+    with open(person_path, 'wb') as f:
+        for chunk in person_file.chunks():
+            f.write(chunk)
+
+    cloth_items = []  # (cloth_source, item_id, category)
+
+    if cloth_file:
+        cloth_path = os.path.join(temp_dir, f'{job_id}_cloth.jpg')
+        with open(cloth_path, 'wb') as f:
+            for chunk in cloth_file.chunks():
+                f.write(chunk)
+        cloth_items.append((cloth_path, None, 'tops'))
+    else:
+        items_qs = (
+            ClothingItem.objects
+            .filter(pk__in=item_ids)
+            .select_related('brand')
+        )
+        items_map = {str(i.pk): i for i in items_qs}
+        for iid in sorted(
+            item_ids,
+            key=lambda x: (
+                _TRYON_CAT_ORDER.index(items_map[x].category)
+                if x in items_map and items_map[x].category in _TRYON_CAT_ORDER
+                else 99
+            ),
+        ):
+            item = items_map.get(iid)
+            if not item:
+                continue
+            src = item.image_url or (item.image_local.path if item.image_local else None)
+            if src:
+                cloth_items.append((src, item.pk, item.category))
+
+        if not cloth_items:
+            return JsonResponse({'error': 'Зображення товару недоступне'}, status=400)
+        cloth_items = cloth_items[:1]   # тільки 1 предмет
+
+    _tryon_jobs[job_id] = {
+        'status':      'processing',
+        'result':      None,
+        'error':       None,
+        'step':        0,
+        'total':       len(cloth_items),
+        'step_result': None,
+    }
+
+    # Зберігаємо сесію в БД
+    session = TryOnSession.objects.create(
+        user=request.user,
+        job_id=job_id,
+        status='processing',
+    )
+    if not cloth_file:
+        item_pks = [ci[1] for ci in cloth_items if ci[1]]
+        if item_pks:
+            session.items.set(ClothingItem.objects.filter(pk__in=item_pks))
+
+    threading.Thread(
+        target=_run_tryon,
+        args=(job_id, person_path, cloth_items),
+        daemon=True,
+    ).start()
+
+    return JsonResponse({'job_id': job_id})
+
+
+# Категорія → текстовий опис для IDM-VTON (garment_des)
+_TRYON_GARMENT_DESC = {
+    'tops':      'upper body clothing, shirt or top',
+    'layering':  'upper body layering, sweater or jacket',
+    'outerwear': 'upper body outerwear, coat or jacket',
+    'bottoms':   'lower body clothing, pants or trousers',
+    'onepiece':  'full body dress or jumpsuit',
+    'footwear':  'footwear, shoes or boots',
+    'accessory': 'accessory',
+}
+
+# Категорія → тип garment для Leffa API (upper_body / lower_body / dresses)
+_LEFFA_GARMENT_TYPE = {
+    'tops':      'upper_body',
+    'layering':  'upper_body',
+    'outerwear': 'upper_body',
+    'bottoms':   'lower_body',
+    'onepiece':  'dresses',
+    'footwear':  'lower_body',
+    'accessory': 'upper_body',
+}
+
+# Категорія → fashn.ai category (tryon-v1.6)
+_FASHN_CATEGORY = {
+    'tops':      'tops',
+    'layering':  'tops',
+    'outerwear': 'tops',
+    'bottoms':   'bottoms',
+    'onepiece':  'one-pieces',
+    'footwear':  'auto',
+    'accessory': 'auto',
+}
+
+
+def _run_step_colab(colab_url, person_path, cloth_source, category, step_dest):
+    """Безкоштовно: Gradio-сервер у Google Colab (share=True URL)."""
+    import base64
+
+    def _b64(src):
+        if src.startswith('http'):
+            resp = requests.get(src, timeout=30)
+            resp.raise_for_status()
+            data = resp.content
+        else:
+            with open(src, 'rb') as fh:
+                data = fh.read()
+        return 'data:image/jpeg;base64,' + base64.b64encode(data).decode()
+
+    payload = {
+        'data': [_b64(person_path), _b64(cloth_source), category],
+    }
+    resp = requests.post(f'{colab_url.rstrip("/")}/run/predict',
+                         json=payload, timeout=300)
+    resp.raise_for_status()
+    result_b64 = resp.json()['data'][0]
+    img_bytes = base64.b64decode(result_b64.split(',')[1] if ',' in result_b64 else result_b64)
+    with open(step_dest, 'wb') as fh:
+        fh.write(img_bytes)
+    logger.info('TryOn Colab step OK → %s', step_dest)
+
+
+def _run_step_fashn(api_key, person_path, cloth_source, category, step_dest):
+    """fashn.ai tryon-v1.6 — явний параметр category (tops/bottoms/one-pieces)."""
+    import base64
+    import time
+
+    fashn_cat = _FASHN_CATEGORY.get(category, 'auto')
+
+    headers = {
+        'Authorization': f'Bearer {api_key}',
+        'Content-Type': 'application/json',
+    }
+
+    def _to_input(src):
+        if isinstance(src, str) and src.startswith('http'):
+            return src
+        with open(src, 'rb') as fh:
+            return 'data:image/jpeg;base64,' + base64.b64encode(fh.read()).decode()
+
+    payload = {
+        'model_name': 'tryon-v1.6',
+        'inputs': {
+            'model_image':   _to_input(person_path),
+            'garment_image': _to_input(cloth_source),
+            'category':      fashn_cat,
+            'mode':          'balanced',
+        },
+    }
+
+    resp = requests.post('https://api.fashn.ai/v1/run', json=payload, headers=headers, timeout=30)
+    resp.raise_for_status()
+    pred_id = resp.json()['id']
+    logger.info('fashn.ai job started id=%s cat=%s', pred_id, fashn_cat)
+
+    for _ in range(60):          # max ~3 хвилини
+        time.sleep(3)
+        st = requests.get(f'https://api.fashn.ai/v1/status/{pred_id}', headers=headers, timeout=15)
+        st.raise_for_status()
+        data = st.json()
+        status = data.get('status')
+        if status == 'completed':
+            img_url = data['output'][0]
+            img_bytes = requests.get(img_url, timeout=60).content
+            with open(step_dest, 'wb') as fh:
+                fh.write(img_bytes)
+            logger.info('fashn.ai step OK → %s', step_dest)
+            return
+        if status in ('failed', 'error'):
+            raise RuntimeError(f"fashn.ai error: {data.get('error', 'unknown')}")
+
+    raise TimeoutError('fashn.ai timeout after 3 min')
+
+
+def _run_step_replicate(token, person_path, cloth_source, category, step_dest):
+    """Найкраща якість: IDM-VTON через Replicate (~$0.026/фото)."""
+    try:
+        import replicate as rep
+    except ImportError:
+        raise ImportError('Встановіть бібліотеку: pip install replicate')
+    import urllib.request
+
+    os.environ['REPLICATE_API_TOKEN'] = token
+    garm_is_url = cloth_source.startswith('http')
+    garm_file   = cloth_source if garm_is_url else open(cloth_source, 'rb')
+    try:
+        with open(person_path, 'rb') as human_fp:
+            output = rep.run(
+                'cuuupid/idm-vton:0513734a452173b8173e907e3a59d19a36266e55b48528559432bd21c7d7e985',
+                input={
+                    'human_img':       human_fp,
+                    'garm_img':        garm_file,
+                    'garment_des':     _TRYON_GARMENT_DESC.get(category, category or 'clothing'),
+                    'is_checked':      True,
+                    'is_checked_crop': False,
+                    'denoise_steps':   30,
+                    'seed':            42,
+                },
+            )
+    finally:
+        if not garm_is_url:
+            garm_file.close()
+
+    img_url = str(output[0]) if isinstance(output, (list, tuple)) else str(output)
+    urllib.request.urlretrieve(img_url, step_dest)
+    logger.info('TryOn Replicate IDM-VTON step OK → %s', step_dest)
+
+
+def _run_step_hf(hf_token, person_path, cloth_source, category, step_dest):
+    """
+    Верх (tops/layering/outerwear) → IDM-VTON, якщо впаде — Leffa upper_body.
+    Низ (bottoms/footwear/onepiece) → одразу Leffa з явним lower_body/dresses,
+    бо IDM-VTON не вміє одягати нижній одяг — кладе все на тулуб.
+    """
+    from gradio_client import Client, handle_file
+
+    garment_type  = _LEFFA_GARMENT_TYPE.get(category, 'upper_body')
+    is_upper      = garment_type == 'upper_body'
+
+    # IDM-VTON тільки для верхнього одягу
+    if is_upper:
+        try:
+            client = Client('yisol/IDM-VTON', token=hf_token)
+            result = client.predict(
+                dict={
+                    'background': handle_file(person_path),
+                    'layers':     [],
+                    'composite':  None,
+                },
+                garm_img=handle_file(cloth_source),
+                garment_des=_TRYON_GARMENT_DESC.get(category, ''),
+                is_checked=True,
+                is_checked_crop=False,
+                denoise_steps=30,
+                seed=42,
+                api_name='/tryon',
+            )
+            img_dict   = result[0]
+            result_img = img_dict['path'] if isinstance(img_dict, dict) else img_dict
+            shutil.copy2(result_img, step_dest)
+            logger.info('TryOn IDM-VTON (HF) step OK → %s', step_dest)
+            return
+        except Exception as e:
+            logger.warning('IDM-VTON HF недоступний: %s — перемикаємось на Leffa', e)
+
+    # Leffa: для нижнього одягу — завжди; для верхнього — якщо IDM-VTON впав
+    client = Client('franciszzj/Leffa', token=hf_token)
+    result = client.predict(
+        src_image_path=handle_file(person_path),
+        ref_image_path=handle_file(cloth_source),
+        ref_acceleration=False,
+        step=30,
+        scale=2.5,
+        seed=42,
+        vt_model_type='viton_hd',
+        vt_garment_type=garment_type,
+        vt_repaint=False,
+        api_name='/leffa_predict_vt',
+    )
+    img_dict   = result[0]
+    result_img = img_dict['path'] if isinstance(img_dict, dict) else img_dict
+    shutil.copy2(result_img, step_dest)
+    logger.info('TryOn Leffa (%s) step OK → %s', garment_type, step_dest)
+
+
+def _run_tryon(job_id, person_path, cloth_items):
+    from .models import TryOnSession
+    result_dir = os.path.join(settings.MEDIA_ROOT, 'tryon_results')
+    os.makedirs(result_dir, exist_ok=True)
+
+    current_person  = person_path
+    hf_token        = getattr(settings, 'HF_TOKEN', None) or None
+    replicate_token = getattr(settings, 'REPLICATE_API_TOKEN', None) or None
+    fashn_key       = getattr(settings, 'FASHN_API_KEY', None) or None
+    colab_url       = getattr(settings, 'TRYON_COLAB_URL', None) or None
+    tryon_temp_abs  = os.path.abspath(os.path.join(settings.MEDIA_ROOT, 'tryon_temp'))
+
+    try:
+        for step, (cloth_source, item_id, category) in enumerate(cloth_items):
+            _tryon_jobs[job_id]['step'] = step + 1
+            step_dest = os.path.join(result_dir, f'{job_id}_s{step}.png')
+
+            if colab_url:
+                _run_step_colab(colab_url, current_person, cloth_source, category, step_dest)
+            elif replicate_token:
+                try:
+                    _run_step_replicate(replicate_token, current_person, cloth_source, category, step_dest)
+                except Exception as rep_err:
+                    logger.warning('Replicate недоступний (%s) — fashn.ai/HF', rep_err)
+                    if fashn_key:
+                        _run_step_fashn(fashn_key, current_person, cloth_source, category, step_dest)
+                    else:
+                        _run_step_hf(hf_token, current_person, cloth_source, category, step_dest)
+            elif fashn_key:
+                _run_step_fashn(fashn_key, current_person, cloth_source, category, step_dest)
+            else:
+                _run_step_hf(hf_token, current_person, cloth_source, category, step_dest)
+
+            # Step images are kept on disk for the result page — do NOT add to temp_files
+            current_person = step_dest
+
+            _tryon_jobs[job_id]['step_result'] = (
+                settings.MEDIA_URL + f'tryon_results/{job_id}_s{step}.png'
+            )
+            logger.info('TryOn job=%s step=%d done', job_id, step)
+
+        final = os.path.join(result_dir, f'{job_id}.png')
+        shutil.copy2(current_person, final)
+
+        result_url = settings.MEDIA_URL + f'tryon_results/{job_id}.png'
+        _tryon_jobs[job_id].update({'status': 'done', 'result': result_url, 'error': None})
+        TryOnSession.objects.filter(job_id=job_id).update(
+            status='done',
+            result_image=f'tryon_results/{job_id}.png',
+        )
+        logger.info('TryOn job=%s DONE', job_id)
+
+    except Exception as e:
+        step_num = _tryon_jobs[job_id].get('step', '?')
+        err = f'Помилка на кроці {step_num}: {e}'
+        logger.error('TryOn error job=%s: %s', job_id, e, exc_info=True)
+        _tryon_jobs[job_id].update({'status': 'error', 'result': None, 'error': err})
+        TryOnSession.objects.filter(job_id=job_id).update(status='error', error_message=err)
+    finally:
+        # Delete original uploaded person photo
+        try:
+            if person_path and os.path.exists(person_path):
+                os.remove(person_path)
+        except Exception:
+            pass
+        # Delete only temp-uploaded cloth files (not catalog item images from media/)
+        for src, _, _ in cloth_items:
+            try:
+                if src and not src.startswith('http'):
+                    abs_src = os.path.abspath(src)
+                    if abs_src.startswith(tryon_temp_abs) and os.path.exists(abs_src):
+                        os.remove(abs_src)
+            except Exception:
+                pass
+
+
+def tryon_status(request, job_id):
+    job = _tryon_jobs.get(job_id)
+    if not job:
+        return JsonResponse({'status': 'not_found'}, status=404)
+    return JsonResponse({
+        'status':      job['status'],
+        'result':      job.get('result'),
+        'error':       job.get('error'),
+        'step':        job.get('step', 0),
+        'total':       job.get('total', 1),
+        'step_result': job.get('step_result'),
+    })
+
+
+@login_required(login_url='/login/')
+def tryon_history(request):
+    sessions = (
+        TryOnSession.objects
+        .filter(user=request.user)
+        .prefetch_related('items__brand')
+        .order_by('-created_at')[:30]
+    )
+    return render(request, 'trapApp/tryon_history.html', {'sessions': sessions})
+
+
+@login_required(login_url='/login/')
+def tryon_session_delete(request, pk):
+    session = get_object_or_404(TryOnSession, pk=pk, user=request.user)
+    if request.method == 'POST':
+        if session.result_image:
+            path = os.path.join(settings.MEDIA_ROOT, session.result_image)
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except Exception:
+                pass
+        # Delete step images kept for result page
+        result_dir = os.path.join(settings.MEDIA_ROOT, 'tryon_results')
+        for step_file in glob_module.glob(os.path.join(result_dir, f'{session.job_id}_s*.png')):
+            try:
+                os.remove(step_file)
+            except Exception:
+                pass
+        session.delete()
+    return redirect('tryon_history')
+
+
+@login_required(login_url='/login/')
+def tryon_result(request, job_id):
+    session = get_object_or_404(TryOnSession, job_id=job_id, user=request.user)
+    if session.status != 'done':
+        return redirect('virtual_tryon')
+
+    items = list(session.items.select_related('brand').all())
+    items.sort(
+        key=lambda i: (
+            _TRYON_CAT_ORDER.index(i.category)
+            if i.category in _TRYON_CAT_ORDER else 99
+        )
+    )
+
+    # Collect step images kept on disk
+    result_dir = os.path.join(settings.MEDIA_ROOT, 'tryon_results')
+    step_urls = []
+    for i in range(20):
+        step_path = os.path.join(result_dir, f'{job_id}_s{i}.png')
+        if os.path.exists(step_path):
+            step_urls.append(settings.MEDIA_URL + f'tryon_results/{job_id}_s{i}.png')
+        else:
+            break
+
+    return render(request, 'trapApp/tryon_result.html', {
+        'session':    session,
+        'items':      items,
+        'result_url': session.get_result_url(),
+        'step_urls':  step_urls,
+    })
+
+
+def tryon_search(request):
+    q = request.GET.get('q', '').strip()
+    if len(q) < 2:
+        return JsonResponse({'items': []})
+
+    qs = (
+        ClothingItem.objects
+        .filter(Q(name__icontains=q) | Q(brand__name__icontains=q))
+        .select_related('brand')[:20]
+    )
+
+    items = []
+    for item in qs:
+        price = item.sale_price or item.price
+        image = item.image_url or (item.image_local.url if item.image_local else '')
+        items.append({
+            'id':    item.id,
+            'name':  item.name,
+            'brand': item.brand.name,
+            'price': str(price) if price else '',
+            'image': image,
+            'url':   f'/product/{item.id}/',
+        })
+
+    return JsonResponse({'items': items})
+
+
+@login_required(login_url='/login/')
+def tryon_catalog(request, slug=None):
+    brands = Brand.objects.all().order_by('name')
+
+    if slug:
+        brand = get_object_or_404(Brand, slug=slug)
+    else:
+        brand = brands.first()
+        if not brand:
+            return render(request, 'trapApp/tryon_catalog.html', {'brands': brands, 'selected_brand': None, 'items': []})
+        return redirect('tryon_catalog_brand', slug=brand.slug)
+
+    category_key = request.GET.get('cat', '') or None
+    gender       = request.GET.get('gender', '') or None
+    price_min    = request.GET.get('price_min', '') or None
+    price_max    = request.GET.get('price_max', '') or None
+    sort         = request.GET.get('sort', '') or None
+    page         = request.GET.get('page', 1)
+
+    wishlist_ids = set()
+    if request.user.is_authenticated:
+        wishlist_ids = set(
+            WishlistItem.objects.filter(user=request.user).values_list('item_id', flat=True)
+        )
+
+    ctx = _brand_context(
+        brand,
+        category_key=category_key,
+        gender=gender,
+        price_min=price_min,
+        price_max=price_max,
+        sort=sort,
+        page=page,
+    )
+    ctx['brands']          = brands
+    ctx['selected_brand']  = brand
+    ctx['wishlist_ids']    = wishlist_ids
+
+    return render(request, 'trapApp/tryon_catalog.html', ctx)

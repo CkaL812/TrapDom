@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Brand, Event, ClothingItem, ClothingSize, Outfit, Season, Style
+from .models import Brand, Event, ClothingItem, ClothingSize, Outfit, Season, Style, TryOnSession
 
 
 # ─── Inline: розміри всередині картки речі ───────────────────────────────────
@@ -277,3 +277,25 @@ from django.contrib.auth.admin import UserAdmin
 from .models import CustomUser
 
 admin.site.register(CustomUser, UserAdmin)
+
+
+# ─── TryOnSession ─────────────────────────────────────────────────────────────
+
+@admin.register(TryOnSession)
+class TryOnSessionAdmin(admin.ModelAdmin):
+    list_display  = ('user', 'status', 'item_count', 'result_thumb', 'created_at')
+    list_filter   = ('status',)
+    search_fields = ('user__email', 'job_id')
+    ordering      = ('-created_at',)
+    readonly_fields = ('job_id', 'created_at', 'result_thumb')
+
+    @admin.display(description='Речей')
+    def item_count(self, obj):
+        return obj.items.count()
+
+    @admin.display(description='Результат')
+    def result_thumb(self, obj):
+        url = obj.get_result_url()
+        if url:
+            return format_html('<img src="{}" style="height:64px;border-radius:4px;">', url)
+        return '—'

@@ -8,6 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-3c131gb4+f&2n%w%&0*mwgr7ibso2646$!_)dgsu)h*1xfbwbq')
 
+HF_TOKEN = os.environ.get('HF_TOKEN', '')
+REPLICATE_API_TOKEN = os.environ.get('REPLICATE_API_TOKEN', '')
+
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
@@ -72,11 +75,11 @@ WSGI_APPLICATION = 'trapdom.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE':   'django.db.backends.mysql',
-        'NAME':     os.environ.get('DB_NAME', 'clothing_d'),
-        'USER':     os.environ.get('DB_USER', 'root'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', '2009'),
-        'HOST':     os.environ.get('DB_HOST', 'localhost'),
-        'PORT':     os.environ.get('DB_PORT', '3306'),
+        'NAME':     os.environ.get('DB_NAME'),
+        'USER':     os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASSWORD'),
+        'HOST':     os.environ.get('DB_HOST'),
+        'PORT':     os.environ.get('DB_PORT'),
         'OPTIONS': {
             'charset': 'utf8mb4',
         },
